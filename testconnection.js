@@ -4,10 +4,10 @@ const fs = require('fs');
 
 // Create a connection to Azure MySQL
 const connection = mysql.createConnection({
-    host: "group9server.mysql.database.azure.com",
+    host: "coogsmusic-database-server.mysql.database.azure.com",
     user: "selbeyhan",  // ✅ Add @server-name
     password: "1234801&$@)HJFDS92h",         // 🔹 Replace with your actual password
-    database: "coogsmusicdatabase",         // 🔹 Replace with your actual database name
+    database: "main_database",         // 🔹 Replace with your actual database name
     port: 3306,
     ssl: {
         ca: fs.readFileSync("DigiCertGlobalRootCA.crt.pem")  // ✅ Use correct CA certificate
