@@ -1,3 +1,13 @@
+## Notes From Adem
+
+To connect to the database
+hostname=coogsmusic-database-server.mysql.database.azure.com
+port=3306
+username=selbeyhan
+password=1234801&$@)HJFDS92h
+ssl-mode=require
+
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
