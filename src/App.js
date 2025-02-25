@@ -6,8 +6,12 @@ import { useState } from 'react';
 export default function MyApp() {
   const displayAbout = false;
   return (
-    <MyButton/>
-  );
+    <div>
+      <h1>GOATED ACTIVITES</h1>
+      <MyButton/>
+      <img src={logo} alt="Logo" />
+    </div>
+    );
 }
 
 function MyButton() {
@@ -22,14 +26,5 @@ function MyButton() {
       <button>This is a button</button>
       <h1 onClick={handleClick}> Yes {count}</h1>
     </div>
-  );
-}
-
-function AboutPage() {
-  return (
-    <>
-      <h1>About</h1>
-      <p>Hello there.<br />How do you do?</p>
-    </>
   );
 }
