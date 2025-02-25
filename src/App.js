@@ -7,11 +7,13 @@ export default function MyApp() {
   return (
     <div>
       <h1>GOATED ACTIVITES</h1>
-      <MyButton/>
+      <a href="https://reactjs.org">learn react</a>  {/* apparently this needs to be added for build/deploy step */}
+      <MyButton />
       <img src={logo} alt="Logo" />
     </div>
-    );
+  );
 }
+
 
 function MyButton() {
   const [count, setCount] = useState(0);
