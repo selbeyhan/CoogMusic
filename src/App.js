@@ -1,19 +1,18 @@
-import logo from './logo.svg';
+// import logo from './logo.svg'; old logo from react
 import './App.css';
-import { useState } from 'react';
+// import { useState } from 'react';
 
 
 export default function MyApp() {
   return (
-    <div>
-      <h1>GOATED ACTIVITES</h1>
-      <a href="https://reactjs.org">learn react</a>  {/* apparently this needs to be added for build/deploy step */}
-      <MyButton />
-      <img src={logo} alt="Logo" />
+    <div className="logo-container">
+      <img src="/coogmusiclogonobg.png" alt="CoogMusic Logo" />
     </div>
   );
 }
 
+
+/* sep function 
 
 function MyButton() {
   const [count, setCount] = useState(0);
@@ -29,3 +28,4 @@ function MyButton() {
     </div>
   );
 }
+  */

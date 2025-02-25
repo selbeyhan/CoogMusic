@@ -36,3 +36,20 @@
     transform: rotate(360deg);
   }
 }
+
+
+
+/* for the logo */
+.logo-container {
+  display: flex;
+  justify-content: center; /* Center horizontally */
+  align-items: flex-start; /* Align at the top */
+  height: 100vh; /* Full viewport height (optional) */
+  padding-top: 20px; /* Add space from the top */
+}
+
+.logo-container img {
+  width: 200px; /* Adjust size as needed */
+  height: auto; /* Maintain aspect ratio */
+}
+
