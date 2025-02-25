@@ -1,39 +1,45 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { getAllUsers } = require('./testconnection'); // Import getAllUsers
 
 const PORT = process.env.PORT || 8080;
 
-const server = http.createServer((req, res) => {
-  // Determine the file path. Serve index.html for the root or any unknown route.
-  let filePath = req.url === '/' ? path.join(__dirname, 'build', 'index.html') : path.join(__dirname, 'build', req.url);
-  
-  // Get the file extension to set the content type.
-  const extname = path.extname(filePath);
-  let contentType = 'text/html';
-  switch (extname) {
-    case '.js':
-      contentType = 'text/javascript';
-      break;
-    case '.css':
-      contentType = 'text/css';
-      break;
-    case '.json':
-      contentType = 'application/json';
-      break;
-    case '.png':
-      contentType = 'image/png';
-      break;
-    case '.jpg':
-      contentType = 'image/jpg';
-      break;
-    // Add more types as needed.
+const server = http.createServer(async (req, res) => {
+  if (req.url === '/users' && req.method === 'GET') {
+    try {
+      const users = await getAllUsers(); // Fetch users from MySQL
+
+      // Debugging: Log data before sending to frontend
+      console.log("🟢 Sending users to frontend:", users);
+      console.log("🟡 Type of users:", typeof users);
+      console.log("🟠 Is users an array?", Array.isArray(users));
+
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify(users)); // Ensure an array is sent
+    } catch (err) {
+      console.error("❌ Error in API:", err.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ message: 'Error fetching users', error: err.message }));
+    }
+    return; // Stop further processing
   }
 
-  // Read the file from the build directory.
+  // Serve frontend files (React app)
+  let filePath = req.url === '/' ? path.join(__dirname, 'build', 'index.html') : path.join(__dirname, 'build', req.url);
+  const extname = path.extname(filePath);
+  let contentType = 'text/html';
+
+  switch (extname) {
+    case '.js': contentType = 'text/javascript'; break;
+    case '.css': contentType = 'text/css'; break;
+    case '.json': contentType = 'application/json'; break;
+    case '.png': contentType = 'image/png'; break;
+    case '.jpg': contentType = 'image/jpg'; break;
+  }
+
   fs.readFile(filePath, (err, content) => {
     if (err) {
-      // If the file isn't found, default to index.html for client-side routing.
       if (err.code === 'ENOENT') {
         fs.readFile(path.join(__dirname, 'build', 'index.html'), (err, content) => {
           if (err) {
@@ -58,4 +64,3 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-

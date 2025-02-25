@@ -36,6 +36,46 @@ async function runDatabaseOperations() {
 }
 
 runDatabaseOperations();
+// Function to get all users
+async function getAllUsers() {
+    let connection;
+    try {
+        // Create a new database connection     optimize so that connection is only done once
+        connection = await mysql.createConnection({
+            host: "coogsmusic-database-server.mysql.database.azure.com",
+            user: "selbeyhan",
+            password: "1234801&$@)HJFDS92h",
+            database: "main_database",
+            port: 3306,
+            ssl: {
+                ca: fs.readFileSync("DigiCertGlobalRootCA.crt.pem")
+            }
+        });
+
+        // Use promise-based connection for better async handling
+        const promiseConn = connection.promise();
+        const [rows] = await promiseConn.execute('SELECT * FROM Users');
+
+        // Debugging logs
+        console.log("🟢 Users fetched from DB:", rows);
+        console.log("🟡 Type of rows:", typeof rows);
+        console.log("🟠 Is rows an array?", Array.isArray(rows));
+
+        // Ensure rows is an array before returning
+        if (!Array.isArray(rows)) {
+            console.error("🚨 Unexpected response format:", rows);
+            return []; // Return empty array to prevent frontend errors
+        }
+
+        return rows;
+    } catch (err) {
+        console.error("❌ Error fetching users:", err.message);
+        return []; // Return an empty array on error
+    } finally {
+        if (connection) await connection.end(); // Close connection properly
+    }
+}
+  
 
 async function createRandomUser() {
   // Generate random data for the user
@@ -81,3 +121,5 @@ async function createRandomUser() {
     console.error('Error creating random user:', err.message);
   }
 }
+
+module.exports = { getAllUsers };
