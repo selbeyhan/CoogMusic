@@ -7,9 +7,6 @@ export default function MyApp() {
   const displayAbout = false;
   return (
     <MyButton/>
-    if (displayAbout) {
-      <AboutPage/>
-    }
   );
 }
 
