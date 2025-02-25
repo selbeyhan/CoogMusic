@@ -4,7 +4,6 @@ import { useState } from 'react';
 
 
 export default function MyApp() {
-  const displayAbout = false;
   return (
     <div>
       <h1>GOATED ACTIVITES</h1>
