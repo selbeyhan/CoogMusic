@@ -26,7 +26,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Serve frontend files (React app)
-  let filePath = req.url === '/' ? path.join(__dirname, 'build', 'index.html') : path.join(__dirname, 'build', req.url);
+  let filePath = req.url === '/' 
+    ? path.join(__dirname, '../client/build', 'index.html') 
+    : path.join(__dirname, '../client/build', req.url);
   const extname = path.extname(filePath);
   let contentType = 'text/html';
 
