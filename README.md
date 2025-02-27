@@ -1,3 +1,15 @@
+# Adem's Notes
+To start for local development
+2 instances needed, one for client and one for server
+
+### 'cd client'
+### 'npm install'
+### 'npm start
+
+### 'cd server'
+### 'npm install'
+### 'npm start
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).

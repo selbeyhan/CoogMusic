@@ -11,14 +11,14 @@ const server = http.createServer(async (req, res) => {
       const users = await getAllUsers(); // Fetch users from MySQL
 
       // Debugging: Log data before sending to frontend
-      console.log("🟢 Sending users to frontend:", users);
-      console.log("🟡 Type of users:", typeof users);
-      console.log("🟠 Is users an array?", Array.isArray(users));
+      console.log("Sending users to frontend:", users);
+      console.log("Type of users:", typeof users);
+      console.log("Is users an array?", Array.isArray(users));
 
       res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
       res.end(JSON.stringify(users)); // Ensure an array is sent
     } catch (err) {
-      console.error("❌ Error in API:", err.message);
+      console.error("Error in API:", err.message);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ message: 'Error fetching users', error: err.message }));
     }
@@ -26,9 +26,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Serve frontend files (React app)
-  let filePath = req.url === '/' 
-    ? path.join(__dirname, '../client/build', 'index.html') 
-    : path.join(__dirname, '../client/build', req.url);
+  let filePath = req.url === '/' ? path.join(__dirname, 'build', 'index.html') : path.join(__dirname, 'build', req.url);
+  
+  // Ensure file extension is handled correctly
   const extname = path.extname(filePath);
   let contentType = 'text/html';
 
@@ -38,8 +38,10 @@ const server = http.createServer(async (req, res) => {
     case '.json': contentType = 'application/json'; break;
     case '.png': contentType = 'image/png'; break;
     case '.jpg': contentType = 'image/jpg'; break;
+    case '.svg': contentType = 'image/svg+xml'; break;
   }
 
+  // Serve static files or return index.html for React routes
   fs.readFile(filePath, (err, content) => {
     if (err) {
       if (err.code === 'ENOENT') {
@@ -63,6 +65,7 @@ const server = http.createServer(async (req, res) => {
   });
 });
 
+// Start the server
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
