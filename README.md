@@ -22,9 +22,9 @@ To automate the deployment process, use the provided `deploy.sh` script. This sc
     chmod +x deploy.sh
     ```
     Run the script:
-
+    ```bash
     ./deploy.sh
-
+    ```
     Press any key to stop the server and clean up temporary files.
 
 
