@@ -2,11 +2,35 @@
 
 This guide explains how to build and run the CoogMusic application for deployment on Azure.
 
-## Prerequisites
+---
 
-- Node.js installed on your machine.
-- All necessary environment variables and database configurations are properly set up.
+## Automated Deployment (Recommended)
 
+To automate the deployment process, use the provided `deploy.sh` script. This script:
+
+- Builds the React client.
+- Moves the client’s `build` folder into the `server` folder.
+- Installs dependencies in the `server` folder.
+- Starts the Node server.
+- Waits for user input to stop the server and clean up unnecessary files.
+
+### Running the Automated Deployment Script:
+
+1. Open a terminal and navigate to the project root folder.
+2. Make the script executable (only needed the first time):
+   ```bash
+   chmod +x deploy.sh
+
+    Run the script:
+
+    ./deploy.sh
+
+    Press any key to stop the server and clean up temporary files.
+
+
+Manual Deployment (Alternative)
+
+If you prefer to run the process manually, follow these steps.
 ## Build and Run Steps
 
 1. Open a terminal and navigate to the `client` folder:
@@ -39,4 +63,3 @@ rm -rf node_modules
 ```
 
 This process simulates how the application is structured and deployed on Azure. Make sure your Azure deployment process reflects these steps.
-
