@@ -18,9 +18,9 @@ To automate the deployment process, use the provided `deploy.sh` script. This sc
 
 1. Open a terminal and navigate to the project root folder.
 2. Make the script executable (only needed the first time):
-   ```bash
-   chmod +x deploy.sh
-
+    ```bash
+    chmod +x deploy.sh
+    ```
     Run the script:
 
     ./deploy.sh
