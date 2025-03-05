@@ -12,7 +12,7 @@ export default function MyApp() {
   // Function to fetch users when button is clicked
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:8080/users');
+      const response = await fetch('/users')
       const data = await response.json();
   
       console.log("🔍 API Response:", data);

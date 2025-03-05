@@ -11,9 +11,9 @@ const server = http.createServer(async (req, res) => {
       const users = await getAllUsers(); // Fetch users from MySQL
 
       // Debugging: Log data before sending to frontend
-      console.log("Sending users to frontend:", users);
-      console.log("Type of users:", typeof users);
-      console.log("Is users an array?", Array.isArray(users));
+      // console.log("Sending users to frontend:", users);
+      // console.log("Type of users:", typeof users);
+      // console.log("Is users an array?", Array.isArray(users));
 
       res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
       res.end(JSON.stringify(users)); // Ensure an array is sent

@@ -35,7 +35,7 @@ async function runDatabaseOperations() {
   }
 }
 
-runDatabaseOperations();
+// runDatabaseOperations();
 // Function to get all users
 async function getAllUsers() {
     let connection;
