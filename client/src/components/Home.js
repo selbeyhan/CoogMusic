@@ -9,7 +9,7 @@ function Home() {
   const [genre, setGenre] = useState('');
   const [description, setDescription] = useState('');
   const [coverArtUrl, setCoverArtUrl] = useState('');
-  const [musicianId, setMusicianId] = useState(''); // Added input for musician ID
+  const [musicianId, setMusicianId] = useState(''); // ----------------- Temporary input field for musician ID -----------------
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -18,6 +18,13 @@ function Home() {
       .catch(error => {
         console.error('Error fetching top songs:', error);
       });
+
+    // ----------------- Future: Fetch musician_id from user session or authentication system -----------------
+    // Instead of manually inputting musician_id, this should be fetched when the user logs in.
+    // Example:
+    // axios.get('/current-user')
+    //   .then(response => setMusicianId(response.data.user_id))
+    //   .catch(error => console.error('Error fetching user ID:', error));
   }, []);
 
   const handleFileChange = (event) => {
@@ -35,7 +42,7 @@ function Home() {
     formData.append('genre', genre);
     formData.append('description', description);
     formData.append('cover_art_url', coverArtUrl);
-    formData.append('musician_id', musicianId); // Include musician ID
+    formData.append('musician_id', musicianId); // ----------------- This should eventually come from user session -----------------
     formData.append('file', selectedFile);
 
     try {
@@ -75,7 +82,10 @@ function Home() {
         <input type="text" placeholder="Genre" value={genre} onChange={e => setGenre(e.target.value)} /><br />
         <textarea placeholder="Description" value={description} onChange={e => setDescription(e.target.value)}></textarea><br />
         <input type="text" placeholder="Cover Art URL" value={coverArtUrl} onChange={e => setCoverArtUrl(e.target.value)} /><br />
-        <input type="text" placeholder="Musician User ID" value={musicianId} onChange={e => setMusicianId(e.target.value)} /><br /> {/* Added musician ID field */}
+        
+        {/* ----------------- Temporary musician ID input (to be replaced with session data) ----------------- */}
+        <input type="text" placeholder="Musician User ID" value={musicianId} onChange={e => setMusicianId(e.target.value)} /><br />
+        
         <input type="file" onChange={handleFileChange} /><br />
         <button onClick={handleUpload}>Upload</button>
         <p>{message}</p>
