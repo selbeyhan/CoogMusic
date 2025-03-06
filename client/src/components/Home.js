@@ -5,13 +5,15 @@ import './Home.css';
 function Home() {
   const [topSongs, setTopSongs] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [title, setTitle] = useState('');
+  const [genre, setGenre] = useState('');
+  const [description, setDescription] = useState('');
+  const [coverArtUrl, setCoverArtUrl] = useState('');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     // Fetch the top 5 songs from your backend endpoint
-    axios.get('top-songs')
-      .then(response => {
-        setTopSongs(response.data);
-      })
+    axios.get('/top-songs').then(response => {setTopSongs(response.data);})
       .catch(error => {
         console.error('Error fetching top songs:', error);
       });
@@ -22,22 +24,27 @@ function Home() {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
-      alert('Please select a file first.');
+    if (!title || !genre || !description || !coverArtUrl || !selectedFile) {
+      setMessage('All fields are required.');
       return;
     }
 
     const formData = new FormData();
+    formData.append('title', title);
+    formData.append('genre', genre);
+    formData.append('description', description);
+    formData.append('cover_art_url', coverArtUrl);
     formData.append('file', selectedFile);
 
     try {
       const response = await axios.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data',
+         'Access-Control-Allow-Origin': '*'}
       });
-      alert('File uploaded successfully: ' + response.data.url);
+      setMessage('File uploaded successfully: ' + response.data.url);
     } catch (error) {
       console.error('Error uploading file:', error);
-      alert('Failed to upload file.');
+      setMessage('Failed to upload file.');
     }
   };
 
@@ -54,15 +61,18 @@ function Home() {
 
       {/* Headline */}
       <h1 className="welcome-text">Welcome to CoogMusic!</h1>
-      <p className="subtitle">
-        The #1 place for all your UH music streaming needs.
-      </p>
+      <p className="subtitle">The #1 place for all your UH music streaming needs.</p>
 
       {/* Upload Music Section */}
       <div className="upload-container">
         <h2>Upload Your Music</h2>
-        <input type="file" onChange={handleFileChange} />
+        <input type="text" placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} /><br />
+        <input type="text" placeholder="Genre" value={genre} onChange={e => setGenre(e.target.value)} /><br />
+        <textarea placeholder="Description" value={description} onChange={e => setDescription(e.target.value)}></textarea><br />
+        <input type="text" placeholder="Cover Art URL" value={coverArtUrl} onChange={e => setCoverArtUrl(e.target.value)} /><br />
+        <input type="file" onChange={handleFileChange} /><br />
         <button onClick={handleUpload}>Upload</button>
+        <p>{message}</p>
       </div>
 
       {/* Top Songs Table */}
