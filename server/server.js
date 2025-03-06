@@ -74,7 +74,7 @@ async function uploadSong(req, res) {
       console.log("File uploaded:", fileUrl);
 
       
-      // FOR TESTING: Adding fake values for song metadata
+      // FOR TESTING: Adding fake values for song metadata to go into mysql server
       const title = "test";  // Hardcoded title for testing
       const musician_id = "test1234";  // Fake musician ID for testing (should come from frontend)
       const genre = "Unknown";  // Default genre for testing
@@ -85,7 +85,7 @@ async function uploadSong(req, res) {
       /* 
       Modify it for Production (Use Data from Frontend)
 
-      // FOR PRODUCTION: Use actual values from the frontend request
+      // FOR PRODUCTION: Use actual values from the frontend request (json format , so we can parse it , prob via input fields)
       const { title, musician_id, genre, duration, cover_art_url, description } = req.body;
 
       // Ensure required fields are present
