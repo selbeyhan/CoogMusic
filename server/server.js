@@ -71,11 +71,24 @@ async function uploadSong(req, res) {
   }
 }
 
+
 const server = http.createServer(async (req, res) => {
-  if (req.url === '/upload' && req.method === 'POST') {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // Handle File Uploads -- function that is used for 
+  // getting  file upload from user and uploading it to Azure Blob Storage
+  if (req.url === "/upload" && req.method === "POST") {
     let data = [];
-    req.on('data', chunk => data.push(chunk));
-    req.on('end', async () => {
+    req.on("data", (chunk) => data.push(chunk));
+    req.on("end", async () => {
       req.fileBuffer = Buffer.concat(data);
       req.fileName = "uploaded-song.mp3";
       req.fileType = "audio/mpeg";
@@ -84,22 +97,45 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (req.url === '/top-songs' && req.method === 'GET') {
+
+
+
+  // Fetch Top Songs from Database
+  if (req.url === "/top-songs" && req.method === "GET") {
     try {
       const songs = await getAllSongs();
-      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(songs));
     } catch (err) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ message: 'Error fetching songs', error: err.message }));
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Error fetching songs", error: err.message }));
     }
     return;
   }
 
-  res.writeHead(404, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ message: 'Not Found' }));
+  // Serve React Frontend (Static Files)
+  const buildPath = path.join(__dirname, "build");
+  if (req.method === "GET") {
+    let filePath = path.join(buildPath, req.url === "/" ? "index.html" : req.url);
+
+    fs.readFile(filePath, (err, content) => {
+      if (!err) {
+        res.writeHead(200);
+        res.end(content);
+      } else {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ message: "Not Found" }));
+      }
+    });
+    return;
+  }
+
+  //  404 Handler (If No Routes Match)
+  res.writeHead(404, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ message: "Not Found" }));
 });
 
+// Start Server
 server.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`🚀 Server is running on port ${PORT}`);
 });
