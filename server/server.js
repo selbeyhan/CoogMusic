@@ -73,13 +73,29 @@ async function uploadSong(req, res) {
       const fileUrl = blockBlobClient.url;
       console.log("File uploaded:", fileUrl);
 
-      // ✅ FOR TESTING: Adding fake values for song metadata
+      
+      // FOR TESTING: Adding fake values for song metadata
       const title = "test";  // Hardcoded title for testing
       const musician_id = "test1234";  // Fake musician ID for testing (should come from frontend)
       const genre = "Unknown";  // Default genre for testing
       const duration = 200;  // Fake duration in seconds
       const cover_art_url = null;  // No cover art in testing
       const description = "test";  // Hardcoded description for testing
+
+      /* 
+      Modify it for Production (Use Data from Frontend)
+
+      // FOR PRODUCTION: Use actual values from the frontend request
+      const { title, musician_id, genre, duration, cover_art_url, description } = req.body;
+
+      // Ensure required fields are present
+      if (!title || !musician_id || !duration) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Missing required song details (title, musician_id, duration)" }));
+          return;
+      }
+      */
+
 
       // Get current timestamp in MySQL DATETIME format (YYYY-MM-DD HH:MM:SS)
       const uploadDate = new Date().toISOString().slice(0, 19).replace("T", " ");
