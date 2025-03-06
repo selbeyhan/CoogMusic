@@ -9,11 +9,12 @@ function Home() {
   const [genre, setGenre] = useState('');
   const [description, setDescription] = useState('');
   const [coverArtUrl, setCoverArtUrl] = useState('');
+  const [musicianId, setMusicianId] = useState(''); // Added input for musician ID
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     // Fetch the top 5 songs from your backend endpoint
-    axios.get('/top-songs').then(response => {setTopSongs(response.data);})
+    axios.get('/top-songs').then(response => { setTopSongs(response.data); })
       .catch(error => {
         console.error('Error fetching top songs:', error);
       });
@@ -24,7 +25,7 @@ function Home() {
   };
 
   const handleUpload = async () => {
-    if (!title || !genre || !description || !coverArtUrl || !selectedFile) {
+    if (!title || !genre || !description || !coverArtUrl || !musicianId || !selectedFile) {
       setMessage('All fields are required.');
       return;
     }
@@ -34,17 +35,21 @@ function Home() {
     formData.append('genre', genre);
     formData.append('description', description);
     formData.append('cover_art_url', coverArtUrl);
+    formData.append('musician_id', musicianId); // Include musician ID
     formData.append('file', selectedFile);
 
     try {
       const response = await axios.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data',
-         'Access-Control-Allow-Origin': '*'}
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
       setMessage('File uploaded successfully: ' + response.data.url);
     } catch (error) {
       console.error('Error uploading file:', error);
-      setMessage('Failed to upload file.');
+      if (error.response) {
+        setMessage(`Failed to upload file: ${error.response.data.error || "Unknown error"}`);
+      } else {
+        setMessage('Failed to upload file. Check server logs.');
+      }
     }
   };
 
@@ -70,6 +75,7 @@ function Home() {
         <input type="text" placeholder="Genre" value={genre} onChange={e => setGenre(e.target.value)} /><br />
         <textarea placeholder="Description" value={description} onChange={e => setDescription(e.target.value)}></textarea><br />
         <input type="text" placeholder="Cover Art URL" value={coverArtUrl} onChange={e => setCoverArtUrl(e.target.value)} /><br />
+        <input type="text" placeholder="Musician User ID" value={musicianId} onChange={e => setMusicianId(e.target.value)} /><br /> {/* Added musician ID field */}
         <input type="file" onChange={handleFileChange} /><br />
         <button onClick={handleUpload}>Upload</button>
         <p>{message}</p>

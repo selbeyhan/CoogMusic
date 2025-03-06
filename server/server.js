@@ -51,7 +51,7 @@ async function getAllSongs() {
 
 async function uploadSong(req, res) {
   try {
-    const { title, genre, description, cover_art_url } = req.body;
+    const { title, genre, description, cover_art_url, musician_id } = req.body;
     const fileBuffer = req.fileBuffer;
     const fileName = `${uuidv4()}-${req.fileName}`;
     const blockBlobClient = containerClient.getBlockBlobClient(fileName);
@@ -64,37 +64,32 @@ async function uploadSong(req, res) {
     const fileUrl = blockBlobClient.url;
     console.log("File uploaded:", fileUrl);
 
-    exec(`ffprobe -i "${fileUrl}" -show_entries format=duration -v quiet -of csv="p=0"`, async (error, stdout) => {
-      if (error) {
-        res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Error calculating duration" }));
-        return;
-      }
+    // Set a default duration instead of calculating with ffprobe
+    const duration = 180; // Default duration of 3 minutes
+    console.log("Skipping ffprobe. Using default duration:", duration);
 
-      const duration = parseFloat(stdout.trim());
-      const uploadDate = new Date().toISOString().slice(0, 19).replace("T", " ");
-      const musician_id = null;
+    const uploadDate = new Date().toISOString().slice(0, 19).replace("T", " ");
 
-      let connection;
-      try {
-        connection = await mysql.createConnection(dbConfig);
-        await connection.execute(
-          `INSERT INTO Songs (title, musician_id, upload_date, genre, duration, file_url, cover_art_url, description) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [title, musician_id, uploadDate, genre, duration, fileUrl, cover_art_url, description]
-        );
-        console.log("File URL stored in database.");
-      } catch (dbError) {
-        console.error("Database error:", dbError);
-      } finally {
-        if (connection) await connection.end();
-      }
+    let connection;
+    try {
+      connection = await mysql.createConnection(dbConfig);
+      await connection.execute(
+        `INSERT INTO Songs (title, musician_id, upload_date, genre, duration, file_url, cover_art_url, description) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [title, musician_id, uploadDate, genre, duration, fileUrl, cover_art_url, description]
+      );
+      console.log("✅ File metadata stored in database.");
+    } catch (dbError) {
+      console.error("❌ Database error:", dbError);
+    } finally {
+      if (connection) await connection.end();
+    }
 
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "File uploaded and saved successfully", url: fileUrl }));
-    });
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ message: "File uploaded and saved successfully", url: fileUrl }));
+
   } catch (error) {
-    console.error("Upload error:", error);
+    console.error("❌ Upload error:", error);
     res.writeHead(500, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "Error uploading file", details: error.message }));
   }
@@ -111,17 +106,40 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-
   if (req.url === "/upload" && req.method === "POST") {
-    let data = [];
-    req.on("data", (chunk) => {
-      data.push(chunk);
-    });
-    req.on("end", async () => {
-      req.fileBuffer = Buffer.concat(data);
-      req.fileName = "uploaded-song.mp3";
-      req.fileType = "audio/mpeg";
-      await uploadSong(req, res);
+    upload.single("file")(req, res, async (err) => {
+      if (err) {
+        console.error("❌ Multer file upload error:", err);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "File upload failed" }));
+        return;
+      }
+
+      try {
+        console.log("✅ File upload received");
+        console.log("Received req.body:", req.body);
+        console.log("Received file:", req.file);
+
+        // Extract form metadata from req.body
+        const { title, genre, description, cover_art_url, musician_id } = req.body;
+
+        if (!title || !genre || !description || !cover_art_url || !musician_id) {
+          throw new Error("Missing required metadata fields.");
+        }
+
+        // Extract uploaded file data
+        req.fileBuffer = req.file.buffer;
+        req.fileName = req.file.originalname;
+        req.fileType = req.file.mimetype;
+
+        console.log("✅ Processing file:", req.fileName);
+
+        await uploadSong(req, res);
+      } catch (error) {
+        console.error("❌ Upload processing error:", error);
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: error.message }));
+      }
     });
     return;
   }
@@ -155,7 +173,6 @@ const server = http.createServer(async (req, res) => {
     });
     return;
   }
-
 
   res.writeHead(404, { "Content-Type": "application/json" });
   res.end(JSON.stringify({ message: "Not Found" }));
