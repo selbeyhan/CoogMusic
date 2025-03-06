@@ -64,9 +64,12 @@ async function uploadSong(req, res) {
     const fileUrl = blockBlobClient.url;
     console.log("File uploaded:", fileUrl);
 
-    // Set a default duration instead of calculating with ffprobe
+    // ---------------
+    // Setting a default duration instead of using ffprobe
+    // In production, replace this with an actual duration calculation
     const duration = 180; // Default duration of 3 minutes
     console.log("Skipping ffprobe. Using default duration:", duration);
+    // ---------------
 
     const uploadDate = new Date().toISOString().slice(0, 19).replace("T", " ");
 
