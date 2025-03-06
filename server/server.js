@@ -53,38 +53,63 @@ async function getAllSongs() {
 //try this func , should return link to the uploaded file that we can store in mysql dbs
 async function uploadSong(req, res) {
   try {
-    // Extract the file data from the request object
-    const fileBuffer = req.fileBuffer; // The file content in binary format (Buffer)
-    
-    // Generate a unique filename using UUID to prevent overwriting existing files
-    const fileName = `${uuidv4()}-${req.fileName}`;
+      // Extract the file buffer from the request
+      const fileBuffer = req.fileBuffer;
 
-    // Get a reference to the Azure Blob Storage container and create a new blob client for this file
-    const blockBlobClient = containerClient.getBlockBlobClient(fileName);
+      // Generate a unique filename to avoid overwriting files
+      const fileName = `${uuidv4()}-${req.fileName}`;
 
-    console.log("Uploading to Azure Blob Storage...");
+      // Get a reference to Azure Blob Storage
+      const blockBlobClient = containerClient.getBlockBlobClient(fileName);
 
-    // Upload the file buffer to Azure Blob Storage
-    await blockBlobClient.uploadData(fileBuffer, {
-      blobHTTPHeaders: { blobContentType: req.fileType }, // Set the correct content type (e.g., "audio/mpeg")
-    });
+      console.log("Uploading to Azure Blob Storage...");
+      
+      // Upload the file to Azure Blob Storage
+      await blockBlobClient.uploadData(fileBuffer, {
+          blobHTTPHeaders: { blobContentType: req.fileType },
+      });
 
-    // Get the public URL of the uploaded file from Azure Blob Storage
-    const fileUrl = blockBlobClient.url;
-    console.log("File uploaded:", fileUrl);
+      // Get the public URL of the uploaded file
+      const fileUrl = blockBlobClient.url;
+      console.log("File uploaded:", fileUrl);
 
-    // Send a success response to the client with the file URL
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ message: "File uploaded successfully", url: fileUrl }));
+      // ✅ FOR TESTING: Adding fake values for song metadata
+      const title = "test";  // Hardcoded title for testing
+      const musician_id = "test1234";  // Fake musician ID for testing (should come from frontend)
+      const genre = "Unknown";  // Default genre for testing
+      const duration = 200;  // Fake duration in seconds
+      const cover_art_url = null;  // No cover art in testing
+      const description = "test";  // Hardcoded description for testing
+
+      // Get current timestamp in MySQL DATETIME format (YYYY-MM-DD HH:MM:SS)
+      const uploadDate = new Date().toISOString().slice(0, 19).replace("T", " ");
+
+      // ✅ Insert the song details into MySQL database
+      let connection;
+      try {
+          connection = await mysql.createConnection(dbConfig);
+          await connection.execute(
+              `INSERT INTO Songs (title, musician_id, upload_date, genre, duration, file_url, cover_art_url, description) 
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+              [title, musician_id, uploadDate, genre, duration, fileUrl, cover_art_url, description]
+          );
+          console.log("File URL stored in database.");
+      } catch (dbError) {
+          console.error("Database error:", dbError);
+      } finally {
+          if (connection) await connection.end();
+      }
+
+      // ✅ Return success response with file URL
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "File uploaded and saved successfully", url: fileUrl }));
   } catch (error) {
-    // Log any upload errors that occur
-    console.error("Upload error:", error);
-
-    // Send an error response to the client
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: "Error uploading file", details: error.message }));
+      console.error("Upload error:", error);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Error uploading file", details: error.message }));
   }
 }
+
 
 
 const server = http.createServer(async (req, res) => {
