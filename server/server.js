@@ -10,15 +10,21 @@ const { v4: uuidv4 } = require("uuid");
 const PORT = process.env.PORT || 8080;
 const upload = multer({ storage: multer.memoryStorage() });
 
-const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
+const AZURE_STORAGE_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=coogsmusicstorage;AccountKey=WPvelBoCZ6xVs39HDIoJ+aVzkNwFoo0bex+H2uG9ANc+dZOUVlz3LxlVE91SLWIA3e1X0/L1sVba+AStpYb1uw==;EndpointSuffix=core.windows.net";
+  const AZURE_CONTAINER_NAME = "songs"; 
 
+if (!AZURE_STORAGE_CONNECTION_STRING) {
+  throw new Error("Azure Storage connection string is missing.");
+}
 
-const AZURE_CONTAINER_NAME = process.env.AZURE_CONTAINER_NAME;
+const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+const containerClient = blobServiceClient.getContainerClient(AZURE_CONTAINER_NAME);
+
 async function getAllUsers() {
   let connection;
   try {
     connection = await mysql.createConnection(dbConfig);
-    const [rows] = await connection.execute('SELECT * FROM Users');
+    const [rows] = await connection.execute("SELECT * FROM Users");
     return rows;
   } catch (err) {
     console.error("❌ Error fetching users:", err.message);
@@ -32,82 +38,68 @@ async function getAllSongs() {
   let connection;
   try {
     connection = await mysql.createConnection(dbConfig);
-    const [rows] = await connection.execute('SELECT * FROM Songs');
+    const [rows] = await connection.execute("SELECT * FROM Songs");
     return rows;
   } catch (err) {
-    console.error("❌ Error fetching users:", err.message);
+    console.error("❌ Error fetching songs:", err.message);
     return [];
   } finally {
     if (connection) await connection.end();
   }
 }
 
+async function uploadSong(req, res) {
+  try {
+    const fileBuffer = req.fileBuffer;
+    const fileName = `${uuidv4()}-${req.fileName}`;
+    const blockBlobClient = containerClient.getBlockBlobClient(fileName);
+
+    console.log("Uploading to Azure Blob Storage...");
+    await blockBlobClient.uploadData(fileBuffer, {
+      blobHTTPHeaders: { blobContentType: req.fileType },
+    });
+
+    const fileUrl = blockBlobClient.url;
+    console.log("File uploaded:", fileUrl);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ message: "File uploaded successfully", url: fileUrl }));
+  } catch (error) {
+    console.error("Upload error:", error);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: "Error uploading file", details: error.message }));
+  }
+}
 
 const server = http.createServer(async (req, res) => {
+  if (req.url === '/upload' && req.method === 'POST') {
+    let data = [];
+    req.on('data', chunk => data.push(chunk));
+    req.on('end', async () => {
+      req.fileBuffer = Buffer.concat(data);
+      req.fileName = "uploaded-song.mp3";
+      req.fileType = "audio/mpeg";
+      await uploadSong(req, res);
+    });
+    return;
+  }
+
   if (req.url === '/top-songs' && req.method === 'GET') {
     try {
-      const users = await getAllSongs();
+      const songs = await getAllSongs();
       res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-      res.end(JSON.stringify(users));
+      res.end(JSON.stringify(songs));
     } catch (err) {
-      console.error("Error in API:", err.message);
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ message: 'Error fetching users', error: err.message }));
+      res.end(JSON.stringify({ message: 'Error fetching songs', error: err.message }));
     }
     return;
   }
-  if (req.url === '/users' && req.method === 'GET') {
-    try {
-      const users = await getAllSongs();
-      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-      res.end(JSON.stringify(users));
-    } catch (err) {
-      console.error("Error in API:", err.message);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ message: 'Error fetching users', error: err.message }));
-    }
-    return;
-  }
-  
-  // Serve frontend files (React app)
-  let filePath = req.url === '/' ? path.join(__dirname, 'build', 'index.html') : path.join(__dirname, 'build', req.url);
-  
-  const extname = path.extname(filePath);
-  const contentTypeMap = {
-    '.js': 'text/javascript',
-    '.css': 'text/css',
-    '.json': 'application/json',
-    '.png': 'image/png',
-    '.jpg': 'image/jpg',
-    '.svg': 'image/svg+xml'
-  };
-  
-  const contentType = contentTypeMap[extname] || 'text/html';
 
-  fs.readFile(filePath, (err, content) => {
-    if (err) {
-      if (err.code === 'ENOENT') {
-        fs.readFile(path.join(__dirname, 'build', 'index.html'), (err, content) => {
-          if (err) {
-            res.writeHead(500);
-            res.end('500 - Internal Server Error');
-          } else {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(content, 'utf-8');
-          }
-        });
-      } else {
-        res.writeHead(500);
-        res.end(`Server error: ${err.code}`);
-      }
-    } else {
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content, 'utf-8');
-    }
-  });
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ message: 'Not Found' }));
 });
 
-// Start the server
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
