@@ -1,47 +1,82 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { getAllUsers } = require('./testconnection'); // Import getAllUsers
+const mysql = require('mysql2/promise');
+const dbConfig = require('./dbConfig'); // Import DB config
 
 const PORT = process.env.PORT || 8080;
 
+async function getAllUsers() {
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute('SELECT * FROM Users');
+    return rows;
+  } catch (err) {
+    console.error("❌ Error fetching users:", err.message);
+    return [];
+  } finally {
+    if (connection) await connection.end();
+  }
+}
+
+async function getAllSongs() {
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute('SELECT * FROM Songs');
+    return rows;
+  } catch (err) {
+    console.error("❌ Error fetching users:", err.message);
+    return [];
+  } finally {
+    if (connection) await connection.end();
+  }
+}
+
+
+
 const server = http.createServer(async (req, res) => {
-  if (req.url === '/users' && req.method === 'GET') {
+  if (req.url === '/top-songs' && req.method === 'GET') {
     try {
-      const users = await getAllUsers(); // Fetch users from MySQL
-
-      // Debugging: Log data before sending to frontend
-      // console.log("Sending users to frontend:", users);
-      // console.log("Type of users:", typeof users);
-      // console.log("Is users an array?", Array.isArray(users));
-
+      const users = await getAllSongs();
       res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-      res.end(JSON.stringify(users)); // Ensure an array is sent
+      res.end(JSON.stringify(users));
     } catch (err) {
       console.error("Error in API:", err.message);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ message: 'Error fetching users', error: err.message }));
     }
-    return; // Stop further processing
+    return;
   }
-
+  if (req.url === '/users' && req.method === 'GET') {
+    try {
+      const users = await getAllSongs();
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify(users));
+    } catch (err) {
+      console.error("Error in API:", err.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ message: 'Error fetching users', error: err.message }));
+    }
+    return;
+  }
+  
   // Serve frontend files (React app)
   let filePath = req.url === '/' ? path.join(__dirname, 'build', 'index.html') : path.join(__dirname, 'build', req.url);
   
-  // Ensure file extension is handled correctly
   const extname = path.extname(filePath);
-  let contentType = 'text/html';
+  const contentTypeMap = {
+    '.js': 'text/javascript',
+    '.css': 'text/css',
+    '.json': 'application/json',
+    '.png': 'image/png',
+    '.jpg': 'image/jpg',
+    '.svg': 'image/svg+xml'
+  };
+  
+  const contentType = contentTypeMap[extname] || 'text/html';
 
-  switch (extname) {
-    case '.js': contentType = 'text/javascript'; break;
-    case '.css': contentType = 'text/css'; break;
-    case '.json': contentType = 'application/json'; break;
-    case '.png': contentType = 'image/png'; break;
-    case '.jpg': contentType = 'image/jpg'; break;
-    case '.svg': contentType = 'image/svg+xml'; break;
-  }
-
-  // Serve static files or return index.html for React routes
   fs.readFile(filePath, (err, content) => {
     if (err) {
       if (err.code === 'ENOENT') {
