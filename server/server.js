@@ -48,24 +48,39 @@ async function getAllSongs() {
   }
 }
 
+
+
+//try this func , should return link to the uploaded file that we can store in mysql dbs
 async function uploadSong(req, res) {
   try {
-    const fileBuffer = req.fileBuffer;
+    // Extract the file data from the request object
+    const fileBuffer = req.fileBuffer; // The file content in binary format (Buffer)
+    
+    // Generate a unique filename using UUID to prevent overwriting existing files
     const fileName = `${uuidv4()}-${req.fileName}`;
+
+    // Get a reference to the Azure Blob Storage container and create a new blob client for this file
     const blockBlobClient = containerClient.getBlockBlobClient(fileName);
 
     console.log("Uploading to Azure Blob Storage...");
+
+    // Upload the file buffer to Azure Blob Storage
     await blockBlobClient.uploadData(fileBuffer, {
-      blobHTTPHeaders: { blobContentType: req.fileType },
+      blobHTTPHeaders: { blobContentType: req.fileType }, // Set the correct content type (e.g., "audio/mpeg")
     });
 
+    // Get the public URL of the uploaded file from Azure Blob Storage
     const fileUrl = blockBlobClient.url;
     console.log("File uploaded:", fileUrl);
 
+    // Send a success response to the client with the file URL
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ message: "File uploaded successfully", url: fileUrl }));
   } catch (error) {
+    // Log any upload errors that occur
     console.error("Upload error:", error);
+
+    // Send an error response to the client
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: "Error uploading file", details: error.message }));
   }
