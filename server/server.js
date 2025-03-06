@@ -86,16 +86,24 @@ const server = http.createServer(async (req, res) => {
   // Handle File Uploads -- function that is used for 
   // getting  file upload from user and uploading it to Azure Blob Storage
   if (req.url === "/upload" && req.method === "POST") {
-    let data = [];
-    req.on("data", (chunk) => data.push(chunk));
-    req.on("end", async () => {
-      req.fileBuffer = Buffer.concat(data);
-      req.fileName = "uploaded-song.mp3";
-      req.fileType = "audio/mpeg";
-      await uploadSong(req, res);
+    let data = []; // Store incoming file data in an array
+
+    // Listen for incoming file chunks and add them to the array
+    req.on("data", (chunk) => {
+        data.push(chunk);
     });
-    return;
-  }
+
+    // When the entire file has been received, process it
+    req.on("end", async () => {
+        req.fileBuffer = Buffer.concat(data); // Combine all chunks into a single buffer
+        req.fileName = "uploaded-song.mp3"; // Assign a filename
+        req.fileType = "audio/mpeg"; // Set the file type (MIME type)
+
+        await uploadSong(req, res); // Call the function to upload to Azure
+    });
+
+    return; // End request processing here
+}
 
 
 
