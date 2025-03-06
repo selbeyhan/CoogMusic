@@ -4,6 +4,7 @@ import './Home.css';
 
 function Home() {
   const [topSongs, setTopSongs] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
     // Fetch the top 5 songs from your backend endpoint
@@ -16,11 +17,34 @@ function Home() {
       });
   }, []);
 
+  const handleFileChange = (event) => {
+    setSelectedFile(event.target.files[0]);
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      alert('Please select a file first.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const response = await axios.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      alert('File uploaded successfully: ' + response.data.url);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Failed to upload file.');
+    }
+  };
+
   return (
     <div className="home-container">
       {/* Logo Section */}
       <div className="logo-container">
-        {/* Replace this with the path to your updated CoogMusic logo */}
         <img
           src="/coogmusiclogo-updated.png"
           alt="CoogMusic Logo"
@@ -33,6 +57,13 @@ function Home() {
       <p className="subtitle">
         The #1 place for all your UH music streaming needs.
       </p>
+
+      {/* Upload Music Section */}
+      <div className="upload-container">
+        <h2>Upload Your Music</h2>
+        <input type="file" onChange={handleFileChange} />
+        <button onClick={handleUpload}>Upload</button>
+      </div>
 
       {/* Top Songs Table */}
       <div className="top-songs-container">

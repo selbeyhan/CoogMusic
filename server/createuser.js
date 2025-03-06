@@ -1,58 +1,85 @@
-const mysql = require('mysql2/promise');
-const dbConfig = require('./dbConfig'); // Import DB config
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+const mysql = require("mysql2/promise");
+const dbConfig = require("./dbConfig");
+const express = require("express");
+const multer = require("multer");
+const { BlobServiceClient } = require("@azure/storage-blob");
+const { v4: uuidv4 } = require("uuid");
 
-async function createRandomUser() {
-  const user_id = Math.random().toString(36).substring(2, 12);
-  const names = ['Alice', 'Bob', 'Charlie', 'David', 'Eve'];
-  const name = names[Math.floor(Math.random() * names.length)];
-  const email = `${name.toLowerCase()}${Math.floor(Math.random() * 1000)}@example.com`;
-  const password = Math.random().toString(36).substring(2, 12); // Hash in production
-  const account_type = ['Listener', 'Musician'][Math.floor(Math.random() * 2)];
-  const registration_date = new Date().toISOString().slice(0, 19).replace('T', ' ');
-  const profile_picture_url = 'https://via.placeholder.com/150';
-  const bios = [
-    'Loves music and live concerts.',
-    'Passionate about playing guitar.',
-    'Enjoys singing and songwriting.',
-    'Avid concert-goer and music lover.',
-    'Music is life.'
-  ];
-  const bio = bios[Math.floor(Math.random() * bios.length)];
-  const monthly_listeners = Math.floor(Math.random() * 100001);
-  const uh_affiliations = ['Student', 'Alumni', 'Staff', 'None'];
-  const uh_affiliation = uh_affiliations[Math.floor(Math.random() * uh_affiliations.length)];
-  const verification_status = Math.random() < 0.5 ? 0 : 1;
-  const admin_role = Math.random() < 0.5 ? 0 : 1;
+const app = express();
+const PORT = process.env.PORT || 8080;
+const upload = multer({ storage: multer.memoryStorage() });
 
-  const sql = `
-    INSERT INTO Users (
-      user_id, name, email, password, account_type,
-      registration_date, profile_picture_url, bio,
-      monthly_listeners, uh_affiliation, verification_status, admin_role
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
-  const values = [
-    user_id, name, email, password, account_type,
-    registration_date, profile_picture_url, bio,
-    monthly_listeners, uh_affiliation, verification_status, admin_role
-  ];
+const AZURE_STORAGE_CONNECTION_STRING = DefaultEndpointsProtocol=https;AccountName=coogsmusicstorage;AccountKey=WPvelBoCZ6xVs39HDIoJ+aVzkNwFoo0bex+H2uG9ANc+dZOUVlz3LxlVE91SLWIA3e1X0/L1sVba+AStpYb1uw==;EndpointSuffix=core.windows.net
+const AZURE_CONTAINER_NAME = "songs" 
+if (!AZURE_STORAGE_CONNECTION_STRING) {
+  throw new Error("Azure Storage connection string is missing.");
+}
 
+const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+const containerClient = blobServiceClient.getContainerClient(AZURE_CONTAINER_NAME);
+
+async function getAllUsers() {
   let connection;
   try {
     connection = await mysql.createConnection(dbConfig);
-    await connection.execute(sql, values);
-    console.log('✅ Random user created with ID:', user_id);
+    const [rows] = await connection.execute("SELECT * FROM Users");
+    return rows;
   } catch (err) {
-    console.error('❌ Error creating random user:', err.message);
+    console.error("❌ Error fetching users:", err.message);
+    return [];
   } finally {
     if (connection) await connection.end();
   }
 }
 
-// Run only when explicitly called
-if (require.main === module) {
-  createRandomUser();
+async function getAllSongs() {
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute("SELECT * FROM Songs");
+    return rows;
+  } catch (err) {
+    console.error("❌ Error fetching songs:", err.message);
+    return [];
+  } finally {
+    if (connection) await connection.end();
+  }
 }
 
-module.exports = { createRandomUser };
+app.post("/upload", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
 
+    const fileName = `${uuidv4()}-${req.file.originalname}`;
+    const blockBlobClient = containerClient.getBlockBlobClient(fileName);
+
+    await blockBlobClient.uploadData(req.file.buffer, {
+      blobHTTPHeaders: { blobContentType: req.file.mimetype },
+    });
+
+    const fileUrl = blockBlobClient.url;
+    res.status(200).json({ message: "File uploaded successfully", url: fileUrl });
+  } catch (error) {
+    console.error("Upload error:", error);
+    res.status(500).json({ error: "Error uploading file" });
+  }
+});
+
+app.get("/top-songs", async (req, res) => {
+  try {
+    const songs = await getAllSongs();
+    res.json(songs);
+  } catch (err) {
+    res.status(500).json({ error: "Error fetching songs" });
+  }
+});
+
+app.use(express.static("build"));
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});

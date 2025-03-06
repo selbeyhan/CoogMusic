@@ -1,11 +1,19 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const mysql = require('mysql2/promise');
-const dbConfig = require('./dbConfig'); // Import DB config
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+const mysql = require("mysql2/promise");
+const dbConfig = require("./dbConfig");
+const multer = require("multer");
+const { BlobServiceClient } = require("@azure/storage-blob");
+const { v4: uuidv4 } = require("uuid");
 
 const PORT = process.env.PORT || 8080;
+const upload = multer({ storage: multer.memoryStorage() });
 
+const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
+
+
+const AZURE_CONTAINER_NAME = process.env.AZURE_CONTAINER_NAME;
 async function getAllUsers() {
   let connection;
   try {
@@ -33,7 +41,6 @@ async function getAllSongs() {
     if (connection) await connection.end();
   }
 }
-
 
 
 const server = http.createServer(async (req, res) => {
