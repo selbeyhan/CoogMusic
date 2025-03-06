@@ -75,12 +75,12 @@ async function uploadSong(req, res) {
 
       
       // FOR TESTING: Adding fake values for song metadata to go into mysql server
-      const title = "test";  // Hardcoded title for testing
+      const title = "anothertest";  // Hardcoded title for testing
       const musician_id = "test1234";  // Fake musician ID for testing (should come from frontend)
       const genre = "Unknown";  // Default genre for testing
       const duration = 200;  // Fake duration in seconds
       const cover_art_url = null;  // No cover art in testing
-      const description = "test";  // Hardcoded description for testing
+      const description = "anothertest";  // Hardcoded description for testing
 
       /* 
       Modify it for Production (Use Data from Frontend)
