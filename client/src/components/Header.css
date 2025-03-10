@@ -1,0 +1,20 @@
+/* src/components/Header.css */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.logo a {
+  text-decoration: none;
+  font-size: 1.5em;
+  color: #333;
+}
+
+.profile-area {
+  display: flex;
+  align-items: center;
+}
