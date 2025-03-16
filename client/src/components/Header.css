@@ -1,11 +1,11 @@
 /* src/components/Header.css */
 .header {
+  width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
+  padding: 0 20px; /* Add horizontal padding */
   background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .logo a {
@@ -17,4 +17,5 @@
 .profile-area {
   display: flex;
   align-items: center;
+  padding-right: 20px; /* or padding-right: 20px; */
 }

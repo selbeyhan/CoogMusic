@@ -7,7 +7,6 @@ import Profile from './components/Profile'; // Create this for the user profile 
 import './App.css';
 
 function App() {
-  // Replace with actual user data from context or props
   const user = {
     user_id: "user123",
     profilePictureUrl: "https://via.placeholder.com/150"
@@ -15,8 +14,11 @@ function App() {
 
   return (
     <Router>
+      {/* Put the header outside .app-container */}
+      <Header user={user} />
+      
+      {/* The rest of your page is in .app-container */}
       <div className="app-container">
-        <Header user={user} />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/profile/:userId" element={<Profile />} />
