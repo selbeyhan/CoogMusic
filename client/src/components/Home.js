@@ -31,6 +31,11 @@ function Home() {
     setSelectedFile(event.target.files[0]);
   };
 
+
+
+/* 
+  upload func commented out for now; move to after user logs in and is authenticated to post
+  
   const handleUpload = async () => {
     if (!title || !genre || !description || !coverArtUrl || !musicianId || !selectedFile) {
       setMessage('All fields are required.');
@@ -59,6 +64,7 @@ function Home() {
       }
     }
   };
+*/
 
   return (
     <div className="home-container">
@@ -75,21 +81,25 @@ function Home() {
       <h1 className="welcome-text">Welcome to CoogMusic!</h1>
       <p className="subtitle">The #1 place for all your UH music streaming needs.</p>
 
-      {/* Upload Music Section */}
-      <div className="upload-container">
-        <h2>Upload Your Music</h2>
-        <input type="text" placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} /><br />
-        <input type="text" placeholder="Genre" value={genre} onChange={e => setGenre(e.target.value)} /><br />
-        <textarea placeholder="Description" value={description} onChange={e => setDescription(e.target.value)}></textarea><br />
-        <input type="text" placeholder="Cover Art URL" value={coverArtUrl} onChange={e => setCoverArtUrl(e.target.value)} /><br />
-        
-        {/* ----------------- Temporary musician ID input (to be replaced with session data) ----------------- */}
-        <input type="text" placeholder="Musician User ID" value={musicianId} onChange={e => setMusicianId(e.target.value)} /><br />
-        
-        <input type="file" onChange={handleFileChange} /><br />
-        <button onClick={handleUpload}>Upload</button>
-        <p>{message}</p>
-      </div>
+{/*
+  Upload Music Section commented out for now; move to after user logs in and is authenticated to post
+
+  <div className="upload-container">
+    <h2>Upload Your Music</h2>
+    <input type="text" placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} /><br />
+    <input type="text" placeholder="Genre" value={genre} onChange={e => setGenre(e.target.value)} /><br />
+    <textarea placeholder="Description" value={description} onChange={e => setDescription(e.target.value)}></textarea><br />
+    <input type="text" placeholder="Cover Art URL" value={coverArtUrl} onChange={e => setCoverArtUrl(e.target.value)} /><br />
+    
+    {/* ----------------- Temporary musician ID input (to be replaced with session data) ----------------- */}
+    {/*<input type="text" placeholder="Musician User ID" value={musicianId} onChange={e => setMusicianId(e.target.value)} /><br />
+    
+    <input type="file" onChange={handleFileChange} /><br />
+    <button onClick={handleUpload}>Upload</button>
+    <p>{message}</p>
+  </div>
+*/}
+
 
       {/* Top Songs Table */}
       <div className="top-songs-container">
