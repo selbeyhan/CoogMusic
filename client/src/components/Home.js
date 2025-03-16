@@ -1,3 +1,16 @@
+
+/* eslint-disable no-unused-vars */
+
+
+/**
+* Disables ESLint warnings for unused variables.
+* These variables are related to the upload song functionality, which is currently
+* commented out and will be re-implemented once user authentication is in place.
+* We need authentication to ensure that only verified users can post songs.
+* Once authentication is set up, we will restore the upload feature and remove this ESLint rule.
+*/
+
+
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './Home.css';
