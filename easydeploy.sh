@@ -1,11 +1,12 @@
 #!/bin/bash
 # Automated Deployment Script for CoogMusic Application
 # This script:
-# 1. Builds the React client.
-# 2. Moves the client’s build folder into the server folder.
-# 3. Installs dependencies in the server folder.
-# 4. Runs the Node server.
-# 5. Waits for a key press to stop the server and clean up.
+# 1. Installs Clerk authentication.
+# 2. Builds the React client.
+# 3. Moves the client’s build folder into the server folder.
+# 4. Installs dependencies in the server folder.
+# 5. Runs the Node server.
+# 6. Waits for a key press to stop the server and clean up.
 
 set -e
 
@@ -16,6 +17,22 @@ echo "Navigating to client folder..."
 cd client
 echo "Installing client dependencies..."
 npm install
+
+# Ensure Clerk is installed
+echo "Ensuring Clerk is installed..."
+npm install @clerk/clerk-react
+
+# Debug: Check if the .env file exists
+if [ ! -f .env ]; then
+    echo "⚠️ ERROR: .env file not found in client folder!"
+    exit 1
+fi
+
+# Verify the .env file contents
+echo "Using existing .env file with Clerk API keys:"
+cat .env
+
+# Build the React client
 echo "Building the React client..."
 npm run build
 cd ..
@@ -54,4 +71,3 @@ echo "Removing client/node_modules..."
 rm -rf client/node_modules
 
 echo "Deployment and cleanup completed."
-

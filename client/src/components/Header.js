@@ -1,34 +1,47 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useUser, SignInButton, SignOutButton } from '@clerk/clerk-react';
 import ProfileButton from './ProfileButton';
+import HamburgerIcon from './HamburgerIcon';
+import Sidebar from './Sidebar';
 import './Header.css';
 
-// import { useClerk } from '@clerk/clerk-react'; // Clerk authentication (Commented out)
-
-function Header({ user }) {
+function Header() {
+  const { isSignedIn, user } = useUser(); // Clerk authentication hook
   console.log("User state in Header:", JSON.stringify(user, null, 2)); // Debugging log to check full user object
+  
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
 
   return (
-    <header className="header">
-      <div className="logo">
-        <Link to="/">CoogMusic</Link>
-      </div>
-      <div className="profile-area">
-        {user ? (
-          <ProfileButton
-            profilePicture={user.profilePictureUrl || '/defaultProfile.png'}
-            userId={user.user_id}
-          />
-        ) : (
-          <button 
-            className="login-button" 
-            onClick={() => console.log("Login button clicked (Clerk not set up yet)")}
-          >
-            Login
-          </button>
-        )}
-      </div>
-    </header>
+    <>
+      <header className="header">
+        <div className="hamburger-left">
+          <HamburgerIcon onClick={toggleSidebar} />
+        </div>
+
+        <div className="logo">
+          <Link to="/">CoogMusic</Link>
+        </div>
+
+        <div className="profile-area">
+          {isSignedIn ? (
+            <div className="user-info">
+              <ProfileButton
+                profilePicture={user.profileImageUrl || '/defaultProfile.png'}
+                userId={user.id}
+              />
+              <SignOutButton className="logout-button" />
+            </div>
+          ) : (
+            <SignInButton className="login-button" />
+          )}
+        </div>
+      </header>
+      
+      {/* Collapsible Sidebar */}
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+    </>
   );
 }
 
