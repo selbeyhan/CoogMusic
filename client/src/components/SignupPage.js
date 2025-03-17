@@ -4,20 +4,23 @@ import { SignUp } from '@clerk/clerk-react';
 const SignupPage = () => {
   return (
     <div className="signup-container">
+      <h2>Sign Up Page Loaded</h2> {/* Debugging Text */}
       <SignUp
         routing="path"
         path="/signup"
+        signInUrl="/login" // ✅ Allows switching to Login
+        fallbackRedirectUrl="/" // ✅ Redirect to home after successful sign-up
         appearance={{
           variables: {
-            colorPrimary: '#ff0000',
-            colorBackground: '#111',
-            colorText: '#ffffff',
-            colorInputBackground: '#333',
-            colorInputText: '#ffffff',
-            colorInputBorder: '#ff0000',
-            colorButtonText: '#ffffff',
-            colorButtonBackground: '#ff0000',
-            colorButtonBorder: '#cc0000',
+            colorPrimary: '#ff0000', // Red primary color
+            colorBackground: '#111', // Dark background
+            colorText: '#ffffff', // White text
+            colorInputBackground: '#333', // Darker input field
+            colorInputText: '#ffffff', // White text inside input
+            colorInputBorder: '#ff0000', // Red input border
+            colorButtonText: '#ffffff', // Button text color
+            colorButtonBackground: '#ff0000', // Red button background
+            colorButtonBorder: '#cc0000', // Slightly darker red border
           },
           elements: {
             rootBox: "bg-gray-900 p-6 rounded-lg shadow-xl",

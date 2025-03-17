@@ -1,7 +1,10 @@
 import React, { useEffect } from 'react';
 import { SignIn } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom'; // ✅ Import useNavigate for programmatic navigation
 
 const LoginPage = () => {
+  const navigate = useNavigate(); // ✅ Initialize useNavigate
+
   useEffect(() => {
     console.log("✅ SignIn Component should load now.");
   }, []);
@@ -13,6 +16,7 @@ const LoginPage = () => {
         routing="path"
         path="/login"
         signUpUrl="/signup" // ✅ Allows switching to SignUp
+        fallbackRedirectUrl="/" // ✅ Redirect to home after successful sign-in
         appearance={{
           variables: {
             colorPrimary: '#ff0000', // Red primary color
