@@ -204,23 +204,30 @@ const server = http.createServer(async (req, res) => {
  }
 
 
- // Serve React Frontend (Static Files)
- const buildPath = path.join(__dirname, "build");
- if (req.method === "GET") {
-   let filePath = path.join(buildPath, req.url === "/" ? "index.html" : req.url);
+// Serve React Frontend (Static Files)
+const buildPath = path.join(__dirname, "build");
+if (req.method === "GET") {
+  let filePath = path.join(buildPath, req.url === "/" ? "index.html" : req.url);
 
-
-   fs.readFile(filePath, (err, content) => {
-     if (!err) {
-       res.writeHead(200);
-       res.end(content);
-     } else {
-       res.writeHead(404, { "Content-Type": "application/json" });
-       res.end(JSON.stringify({ message: "Not Found" }));
-     }
-   });
-   return;
- }
+  fs.readFile(filePath, (err, content) => {
+    if (!err) {
+      res.writeHead(200);
+      res.end(content);
+    } else {
+      // Fallback to index.html for client-side routing
+      fs.readFile(path.join(buildPath, "index.html"), (err, content) => {
+        if (!err) {
+          res.writeHead(200);
+          res.end(content);
+        } else {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ message: "Not Found" }));
+        }
+      });
+    }
+  });
+  return;
+}
 
 
  res.writeHead(404, { "Content-Type": "application/json" });

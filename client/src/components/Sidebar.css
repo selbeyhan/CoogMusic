@@ -19,13 +19,24 @@
   }
   
   .close-btn {
-    background: transparent;
+    background: #cc3333; /* added/adjusted: ensures a visible background */
+    color: #fff;         /* added/adjusted: white text for contrast */
     border: none;
-    font-size: 1.5rem;
+    font-size: 1rem;     /* added/adjusted: smaller text size */
     cursor: pointer;
     margin: 10px;
-    float: right;
-  }
+    /* float: right; // commented out to place on left */
+
+    /* added/adjusted: absolute positioning on the left */
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+
+    padding: 5px 8px;    /* added/adjusted: some padding for better look */
+    border-radius: 4px;  /* added/adjusted: rounded corners */
+}
+
   
   .sidebar-menu {
     list-style: none;

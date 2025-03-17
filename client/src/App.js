@@ -1,20 +1,23 @@
-/* eslint-disable no-unused-vars */
-// remove in prod
-
-import React from 'react';
+import './clerk.css'; // ✅ Import clerk.css before other styles
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { SignedIn, SignedOut, SignIn, SignUp, RedirectToSignIn, useUser } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, useUser } from '@clerk/clerk-react';
 import Home from './components/Home';
 import Header from './components/Header';
 import Profile from './components/Profile';
+import LoginPage from './components/LoginPage';  // ✅ Import Login Page
+import SignupPage from './components/SignupPage'; // ✅ Import Signup Page
 import './App.css';
 
 function App() {
   const { isSignedIn, user } = useUser(); // Use Clerk's authentication
 
+  useEffect(() => {
+    console.log("✅ Custom CSS loaded: clerk.css"); // Debugging log to verify CSS is applied
+  }, []);
+
   return (
     <Router>
-      {/* Header should not depend on the user state manually */}
       <Header user={user} />
 
       <div className="app-container">
@@ -32,12 +35,19 @@ function App() {
             }
           />
 
-          {/* Redirect unauthenticated users to Sign In */}
-          <Route path="/login" element={<SignIn />} />
-          <Route path="/signup" element={<SignUp />} />
+          {/* 🔹 Load separate login and signup pages */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
 
-          {/* Catch-all route: Redirect to Sign In if trying to access a restricted page */}
-          <Route path="*" element={<RedirectToSignIn />} />
+          {/* 🔹 If an unauthenticated user visits a protected route, show Login page */}
+          <Route 
+            path="*" 
+            element={
+              <SignedOut>
+                <LoginPage />
+              </SignedOut>
+            } 
+          />
         </Routes>
       </div>
     </Router>

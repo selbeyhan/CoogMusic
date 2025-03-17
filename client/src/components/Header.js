@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useUser, SignInButton, SignOutButton } from '@clerk/clerk-react';
+import { useUser, SignOutButton } from '@clerk/clerk-react';
 import ProfileButton from './ProfileButton';
 import HamburgerIcon from './HamburgerIcon';
 import Sidebar from './Sidebar';
@@ -34,7 +34,8 @@ function Header() {
               <SignOutButton className="logout-button" />
             </div>
           ) : (
-            <SignInButton className="login-button" />
+            // 🔹 Navigate to separate login and signup pages instead of Clerk-hosted page
+            <Link to="/login" className="login-button">Sign In</Link>
           )}
         </div>
       </header>

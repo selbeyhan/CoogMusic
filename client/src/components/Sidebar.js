@@ -9,11 +9,17 @@ function Sidebar({ isOpen, onClose }) {
       <button className="close-btn" onClick={onClose}>
         &times;
       </button>
+
+
+      {/* currently not yet filled out all the way , placeholders atm */}
       <ul className="sidebar-menu">
         <li><a href="/">Home</a></li>
         <li><a href="/profile">Profile</a></li>
         <li><a href="/about">About</a></li>
-        <li><a href= "/random">These Are Just Placeholders</a></li>
+
+        {/* 🔹 Added Explore and Search links */}
+        <li><a href="/explore">Explore</a></li>
+        <li><a href="/search">Search</a></li>
       </ul>
     </div>
   );
