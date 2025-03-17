@@ -19,3 +19,20 @@
   align-items: center;
   padding-right: 20px; /* or padding-right: 20px; */
 }
+
+.login-button {
+  display: inline-block; /* Ensures the button is not hidden */
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.login-button:hover {
+  background-color: darkred;
+}
