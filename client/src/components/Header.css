@@ -20,12 +20,11 @@
   padding-right: 20px; /* or padding-right: 20px; */
 }
 
-.login-button {
-  display: inline-block; /* Ensures the button is not hidden */
+.login-button, .logout-button {
   background-color: red;
   color: white;
   border: none;
-  padding: 10px 16px;
+  padding: 8px 16px;
   font-size: 16px;
   font-weight: bold;
   border-radius: 5px;
@@ -36,3 +35,15 @@
 .login-button:hover {
   background-color: darkred;
 }
+
+.logout-button:hover {
+  background-color: darkgray;
+}
+
+/* Ensure profile picture and buttons are aligned properly */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Space between elements */
+}
+

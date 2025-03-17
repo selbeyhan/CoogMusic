@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "@clerk/clerk-react": "^5.24.2",
+    "axios": "^1.8.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.2.0",
-    "axios": "^1.8.1",
     "react-scripts": "^5.0.1",
     "web-vitals": "^2.1.4"
   },
@@ -35,4 +36,3 @@
     ]
   }
 }
-
