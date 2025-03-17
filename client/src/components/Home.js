@@ -84,7 +84,7 @@ function Home() {
       {/* Logo Section */}
       <div className="logo-container">
         <img
-          src="/coogmusiclogo-updated.png"
+          src="/coogmusiclogonobg.png"
           alt="CoogMusic Logo"
           className="coogmusic-logo"
         />
@@ -116,25 +116,27 @@ function Home() {
 
       {/* Top Songs Table */}
       <div className="top-songs-container">
-        <h2>Top 5 Most Streamed Songs</h2>
-        <table className="top-songs-table">
-          <thead>
-            <tr>
-              <th>Song</th>
-              <th>Artist</th>
-              <th>Streams</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topSongs.map((song, index) => (
-              <tr key={index}>
-                <td>{song.title}</td>
-                <td>{song.file_url}</td>
-                <td>{song.musician_id}</td>
+      <h2>Top 5 Most Streamed Songs</h2>
+        <div className="table-scroll">
+          <table className="top-songs-table">
+            <thead>
+              <tr>
+                <th>Song</th>
+                <th>Artist</th>
+                <th>Streams</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {topSongs.map((song, index) => (
+                <tr key={index}>
+                  <td>{song.title}</td>
+                  <td>{song.file_url}</td>
+                  <td>{song.musician_id}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
