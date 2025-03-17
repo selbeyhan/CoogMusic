@@ -1,5 +1,4 @@
-// src/App.js
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './components/Home';
 import Header from './components/Header';
@@ -7,10 +6,7 @@ import Profile from './components/Profile'; // Create this for the user profile 
 import './App.css';
 
 function App() {
-  const user = {
-    user_id: "user123",
-    profilePictureUrl: "https://via.placeholder.com/150"
-  };
+  const [user, setUser] = useState(null); // Set user to null initially
 
   return (
     <Router>
