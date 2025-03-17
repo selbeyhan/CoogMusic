@@ -12,7 +12,7 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const upload = multer({ storage: multer.memoryStorage() });
 
-const AZURE_STORAGE_CONNECTION_STRING = DefaultEndpointsProtocol=https;AccountName=coogsmusicstorage;AccountKey=WPvelBoCZ6xVs39HDIoJ+aVzkNwFoo0bex+H2uG9ANc+dZOUVlz3LxlVE91SLWIA3e1X0/L1sVba+AStpYb1uw==;EndpointSuffix=core.windows.net
+const AZURE_STORAGE_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=coogsmusicstorage;AccountKey=WPvelBoCZ6xVs39HDIoJ+aVzkNwFoo0bex+H2uG9ANc+dZOUVlz3LxlVE91SLWIA3e1X0/L1sVba+AStpYb1uw==;EndpointSuffix=core.windows.net"
 const AZURE_CONTAINER_NAME = "songs" 
 if (!AZURE_STORAGE_CONNECTION_STRING) {
   throw new Error("Azure Storage connection string is missing.");
