@@ -3,14 +3,14 @@
 /* Override Clerk's Theme Variables */
 :root {
   --clerk-primary-color: #ff0000; /* Changes button & primary accent color */
-  --clerk-background-color: #111; /* Background color */
-  --clerk-card-background: #222; /* Card background */
+  --clerk-background-color: #ffffff; /* Changed to white background */
+  --clerk-card-background: #ffffff;  /* Changed to white card background */
   --clerk-button-primary-color: white; /* Button text color */
   --clerk-button-primary-background: #ff0000; /* Primary button color */
   --clerk-button-primary-hover-background: #cc0000; /* Hover color */
-  --clerk-input-background: #333; /* Input fields background */
+  --clerk-input-background: #f0f0f0; /* Changed to lighter input fields background */
   --clerk-input-border-color: #ff0000; /* Input border color */
-  --clerk-text-color: white; /* Default text color */
+  --clerk-text-color: #111; /* Changed to dark text color */
   --clerk-link-color: #ff0000; /* Links */
   --clerk-link-hover-color: #cc0000; /* Links on hover */
 }

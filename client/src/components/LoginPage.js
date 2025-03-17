@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { SignIn } from '@clerk/clerk-react';
-import { useNavigate } from 'react-router-dom'; // ✅ Import useNavigate for programmatic navigation
+import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
-  const navigate = useNavigate(); // ✅ Initialize useNavigate
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.log("✅ SignIn Component should load now.");
@@ -11,29 +11,43 @@ const LoginPage = () => {
 
   return (
     <div className="login-container">
-      <h2>Login Page Loaded</h2> {/* Debugging Text */}
       <SignIn
         routing="path"
         path="/login"
-        signUpUrl="/signup" // ✅ Allows switching to SignUp
-        fallbackRedirectUrl="/" // ✅ Redirect to home after successful sign-in
+        signUpUrl="/signup"
+        fallbackRedirectUrl="/"
         appearance={{
           variables: {
-            colorPrimary: '#ff0000', // Red primary color
-            colorBackground: '#111', // Dark background
-            colorText: '#ffffff', // White text
-            colorInputBackground: '#333', // Darker input field
-            colorInputText: '#ffffff', // White text inside input
-            colorInputBorder: '#ff0000', // Red input border
-            colorButtonText: '#ffffff', // Button text color
-            colorButtonBackground: '#ff0000', // Red button background
-            colorButtonBorder: '#cc0000', // Slightly darker red border
+            colorPrimary: '#ff0000',
+            colorBackground: '#ffffff',   // White background
+            colorText: '#111111',         // Dark text
+            colorInputBackground: '#f0f0f0',
+            colorInputText: '#111111',
+            colorInputBorder: '#ff0000',
+            colorButtonText: '#ffffff',
+            colorButtonBackground: '#ff0000',
+            colorButtonBorder: '#cc0000',
           },
           elements: {
-            rootBox: "bg-gray-900 p-6 rounded-lg shadow-xl",
-            card: "border border-gray-700 bg-gray-800",
+            // Main containers
+            rootBox: "bg-white p-6 rounded-lg shadow-xl",
+            card: "bg-white border border-gray-300",
+            
+            // Header overrides
+            header: "bg-white text-black", 
+            headerTitle: "text-black", 
+            headerSubtitle: "text-black",
+
+            // Main form area
+            main: "bg-white text-black",
+            form: "bg-white text-black",
+
+            // Footer area
+            footer: "bg-white text-black",
+
+            // Buttons & fields
             primaryButton: "bg-red-500 hover:bg-red-600 text-white font-bold",
-            inputField: "bg-gray-700 text-white border border-red-500 rounded-md",
+            inputField: "bg-[#f0f0f0] text-black border border-red-500 rounded-md",
           },
         }}
       />
