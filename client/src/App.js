@@ -1,27 +1,43 @@
-
 /* eslint-disable no-unused-vars */
-//remove in prod
+// remove in prod
 
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { SignedIn, SignedOut, SignIn, SignUp, RedirectToSignIn, useUser } from '@clerk/clerk-react';
 import Home from './components/Home';
 import Header from './components/Header';
-import Profile from './components/Profile'; // Create this for the user profile page
+import Profile from './components/Profile';
 import './App.css';
 
 function App() {
-  const [user, setUser] = useState(null); // Set user to null initially
+  const { isSignedIn, user } = useUser(); // Use Clerk's authentication
 
   return (
     <Router>
-      {/* Put the header outside .app-container */}
+      {/* Header should not depend on the user state manually */}
       <Header user={user} />
-      
-      {/* The rest of your page is in .app-container */}
+
       <div className="app-container">
         <Routes>
+          {/* Public Route */}
           <Route path="/" element={<Home />} />
-          <Route path="/profile/:userId" element={<Profile />} />
+
+          {/* Protected Profile Route: Only Accessible to Signed-In Users */}
+          <Route
+            path="/profile/:userId"
+            element={
+              <SignedIn>
+                <Profile />
+              </SignedIn>
+            }
+          />
+
+          {/* Redirect unauthenticated users to Sign In */}
+          <Route path="/login" element={<SignIn />} />
+          <Route path="/signup" element={<SignUp />} />
+
+          {/* Catch-all route: Redirect to Sign In if trying to access a restricted page */}
+          <Route path="*" element={<RedirectToSignIn />} />
         </Routes>
       </div>
     </Router>
