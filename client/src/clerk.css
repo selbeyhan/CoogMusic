@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&display=swap');
+
+
+/* Custom Clerk Styling */
+.cl-internal {
+   background-color: #111 !important; /* Dark background */
+}
+
+
+.cl-header {
+   color: #ff0000 !important; /* Red header text */
+   font-size: 24px !important;
+   font-weight: bold !important;
+}
+
+
+.cl-card {
+   border-radius: 12px !important; /* Rounded corners */
+   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2) !important;
+   background-color: #222 !important; /* Darker card */
+   padding: 20px !important;
+}
+
+
+.cl-buttonPrimary {
+   background-color: #ff0000 !important; /* Change primary button color */
+   border-radius: 8px !important;
+   color: white !important;
+   font-size: 16px !important;
+   font-weight: bold !important;
+   padding: 10px 16px !important;
+}
+
+
+.cl-buttonPrimary:hover {
+   background-color: #cc0000 !important;
+   transform: scale(1.05) !important; /* Slight hover effect */
+   transition: all 0.2s ease-in-out !important;
+}
+
+
+.cl-formFieldInput {
+   border-radius: 6px !important; /* Rounded input fields */
+   background-color: #333 !important;
+   border: 1px solid #ff0000 !important; /* Red border */
+   color: white !important;
+   font-size: 14px !important;
+   padding: 8px !important;
+}
+
+
+.cl-formFieldInput::placeholder {
+   color: #aaa !important;
+}
+
+
+.cl-footer {
+   color: #bbb !important; /* Dimmed footer text */
+   font-size: 14px !important;
+}
+
+
+.cl-footer a {
+   color: #ff0000 !important; /* Red links */
+   text-decoration: none !important;
+   font-weight: bold !important;
+}
+
+
+.cl-footer a:hover {
+   text-decoration: underline !important;
+}
