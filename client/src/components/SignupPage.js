@@ -1,3 +1,4 @@
+// src/components/SignupPage.js
 import React from 'react';
 import { SignUp } from '@clerk/clerk-react';
 
@@ -5,10 +6,10 @@ const SignupPage = () => {
   return (
     <div className="signup-container">
       <SignUp
-        routing="path"
-        path="/signup"
-        signInUrl="/login" // ✅ Allows switching to Login
-        fallbackRedirectUrl="/" // ✅ Redirect to home after successful sign-up
+        routing="virtual"  // Use virtual routing so the URL remains as /signup for all steps
+        // Do not use the path prop when using virtual routing
+        signInUrl="/login"  // ✅ Allows switching to Login
+        fallbackRedirectUrl="/signup" // ✅ Fallback redirect points back to /signup after sign-up completes
         appearance={{
           variables: {
             colorPrimary: '#ff0000',            // Red primary color
