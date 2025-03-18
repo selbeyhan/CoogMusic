@@ -20,10 +20,6 @@ function Header() {
           <HamburgerIcon onClick={toggleSidebar} />
         </div>
 
-        <div className="logo">
-          <Link to="/">CoogMusic</Link>
-        </div>
-
         <div className="profile-area">
           {isSignedIn ? (
             <div className="user-info">
@@ -34,7 +30,6 @@ function Header() {
               <SignOutButton className="logout-button" />
             </div>
           ) : (
-            // 🔹 Navigate to separate login and signup pages instead of Clerk-hosted page
             <Link to="/login" className="login-button">Sign In</Link>
           )}
         </div>

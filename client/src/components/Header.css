@@ -1,38 +1,26 @@
 /* src/components/Header.css */
 
 .header {
-  /* Make the header fill the screen width with minimal padding */
   width: 100%;
   margin: 0;
   padding: 0 10px; /* small left/right padding */
   box-sizing: border-box;
 
   display: flex;
-  justify-content: space-between; /* logo left, button right */
+  justify-content: space-between;
   align-items: center;
   background-color: #fff;
 }
 
 .hamburger-left {
-  margin: 0; /* remove extra margin */
+  margin: 0;
   padding: 0;
-}
-
-.logo a {
-  text-decoration: none;
-  font-size: 1.5em;
-  color: #000000;
-  /* Optional: limit how wide the logo can get */
-  max-width: 150px; 
-  overflow: hidden;
-  text-overflow: ellipsis; 
-  white-space: nowrap;
 }
 
 .profile-area {
   display: flex;
   align-items: center;
-  margin: 0; /* remove extra margin */
+  margin: 0;
   padding: 0;
 }
 
@@ -46,8 +34,7 @@
   border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  /* Optional: if you want a bit of spacing from other elements */
-  margin-left: 10px; 
+  margin-left: 10px;
 }
 
 .login-button:hover {
@@ -58,28 +45,19 @@
   background-color: darkgray;
 }
 
-/* Ensure profile picture and buttons are aligned properly */
 .user-info {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-/* --- Responsive Media Query for Narrow Screens --- */
+/* Responsive adjustments */
 @media (max-width: 600px) {
-  /* Reduce horizontal padding */
   .header {
     padding: 0 10px;
   }
 
-  /* Let each section stack or wrap more gracefully */
   .hamburger-left, .logo, .profile-area {
     margin-bottom: 10px; 
-  }
-
-  /* If the logo is too big on small screens, reduce font-size */
-  .logo a {
-    font-size: 1.2em;
-    max-width: 120px;
   }
 }
