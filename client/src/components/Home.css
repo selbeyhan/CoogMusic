@@ -13,15 +13,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  min-height: 100vh;
+  /* min-height: 100vh; */
   background-color: #f4f4f4;
-  padding-top: 40px;
+  padding-top: 20px;
   font-family: 'Roboto', sans-serif;
 }
 
 /* Logo */
 .logo-container {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .coogmusic-logo {
@@ -32,7 +32,7 @@
 /* Headline */
 .welcome-text {
   font-size: 2rem;
-  margin-bottom: 10px;
+  margin: 0 0 10px 0; 
   color: #333;
 }
 
@@ -109,4 +109,16 @@
 
 #song-list li:hover {
   background-color: #f0f0f0;
+}
+
+/* Formatting the audio player properly */
+.audio-player {
+  margin-top: 10px;
+  text-align: center;
+}
+
+/* Underline the text in the first column on hover */
+.top-songs-table tbody tr td:nth-child(1):hover {
+  text-decoration: underline;
+  cursor: pointer; /* Optional, gives a pointer cursor on hover */
 }
