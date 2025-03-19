@@ -114,28 +114,30 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 
 
 const server = http.createServer(async (req, res) => {
-  // Set CORS headers
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+ // Set CORS headers
+ res.setHeader("Access-Control-Allow-Origin", "*");
+ res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+ res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
 
-  // Set Content Security Policy (CSP) Headers
-  res.setHeader("Content-Security-Policy",
-    "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' " +  // ✅ ALLOWED UNSAFE-EVAL
-      "https://*.clerk.dev https://clerk.dev https://accounts.clerk.dev " +
-      "https://cdn.jsdelivr.net https://unpkg.com " +
-      "https://relieved-gnat-14.clerk.accounts.dev; " + 
-      "worker-src 'self' blob:; " + // ✅ Fix: Allow Web Workers
-      "style-src 'self' 'unsafe-inline' " +
-      "https://*.clerk.dev https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://static.clerk.dev; " + 
-      "connect-src 'self' https://*.clerk.dev https://accounts.clerk.dev https://api.clerk.dev " +
-      "https://cdn.jsdelivr.net https://relieved-gnat-14.clerk.accounts.dev " +
-      "https://fonts.gstatic.com; " +  // ✅ ADDED FOR GOOGLE FONTS LOADING
-      "img-src 'self' https://*.clerk.dev https://accounts.clerk.dev data: https://cdn.jsdelivr.net; " +
-      "font-src 'self' https://fonts.gstatic.com;"
-  );
+ // Set Content Security Policy (CSP) Headers
+ res.setHeader("Content-Security-Policy",
+  "default-src 'self'; " +
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' " +  // ✅ ALLOWED UNSAFE-EVAL
+  "https://*.clerk.dev https://clerk.dev https://accounts.clerk.dev " +
+  "https://cdn.jsdelivr.net https://unpkg.com " +
+  "https://relieved-gnat-14.clerk.accounts.dev; " + 
+  "worker-src 'self' blob:; " + // ✅ Fix: Allow Web Workers
+  "style-src 'self' 'unsafe-inline' " +
+  "https://*.clerk.dev https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://static.clerk.dev; " + 
+  "connect-src 'self' https://*.clerk.dev https://accounts.clerk.dev https://api.clerk.dev " +
+  "https://cdn.jsdelivr.net https://relieved-gnat-14.clerk.accounts.dev " +
+  "https://fonts.gstatic.com; " +  // ✅ ADDED FOR GOOGLE FONTS LOADING
+  "img-src 'self' https://*.clerk.dev https://accounts.clerk.dev https://img.clerk.com data: https://cdn.jsdelivr.net; " + // ✅ FIXED IMG-SRC
+  "font-src 'self' https://fonts.gstatic.com;"
+);
+
 
 
 

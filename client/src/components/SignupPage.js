@@ -1,44 +1,43 @@
-import React from 'react';
+// src/components/SignupPage.js
+import React, { useEffect } from 'react';
 import { SignUp } from '@clerk/clerk-react';
 
 const SignupPage = () => {
+  useEffect(() => {
+    if (window.Clerk) {
+      window.Clerk.load();  // ✅ Forces Clerk to reload if missing
+    }
+  }, []);
+
   return (
     <div className="signup-container">
       <SignUp
-        routing="path"
-        path="/signup"
-        signInUrl="/login" // ✅ Allows switching to Login
-        fallbackRedirectUrl="/" // ✅ Redirect to home after successful sign-up
+        routing="virtual"  // ✅ Keeps all steps under /signup
+        signInUrl="/login"
+        fallbackRedirectUrl="/" // ✅ Redirect to home if there's an issue
+        afterSignUpUrl="/" // ✅ Redirects to home after successful sign-up - pretty sure this is outdated but keeping incase (works without this tho)
+        afterSignInUrl="/" // ✅ Ensures signed-in users go to home - pretty sure this is outdated but keeping incase (works without this tho)
         appearance={{
           variables: {
-            colorPrimary: '#ff0000',            // Red primary color
-            colorBackground: '#ffffff',         // White background
-            colorText: '#111111',               // Dark text
-            colorInputBackground: '#f0f0f0',    // Lighter input field
-            colorInputText: '#111111',          // Dark text inside input
-            colorInputBorder: '#ff0000',        // Red input border
-            colorButtonText: '#ffffff',         // Button text color
-            colorButtonBackground: '#ff0000',   // Red button background
-            colorButtonBorder: '#cc0000',       // Slightly darker red border
+            colorPrimary: '#ff0000',
+            colorBackground: '#ffffff',
+            colorText: '#111111',
+            colorInputBackground: '#f0f0f0',
+            colorInputText: '#111111',
+            colorInputBorder: '#ff0000',
+            colorButtonText: '#ffffff',
+            colorButtonBackground: '#ff0000',
+            colorButtonBorder: '#cc0000',
           },
           elements: {
-            // Main containers
             rootBox: "bg-white p-6 rounded-lg shadow-xl",
             card: "bg-white border border-gray-300",
-            
-            // Header overrides
             header: "bg-white text-black",
             headerTitle: "text-black",
             headerSubtitle: "text-black",
-
-            // Main form area
             main: "bg-white text-black",
             form: "bg-white text-black",
-
-            // Footer area
             footer: "bg-white text-black",
-
-            // Buttons & fields
             primaryButton: "bg-red-500 hover:bg-red-600 text-white font-bold",
             inputField: "bg-[#f0f0f0] text-black border border-red-500 rounded-md",
           },

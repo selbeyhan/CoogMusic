@@ -24,7 +24,7 @@ function Header() {
           {isSignedIn ? (
             <div className="user-info">
               <ProfileButton
-                profilePicture={user.profileImageUrl || '/defaultProfile.png'}
+                profilePicture={user.profileImageUrl || 'coogmusiclogonobg.png'}
                 userId={user.id}
               />
               <SignOutButton className="logout-button" />
