@@ -1,8 +1,11 @@
-// src/components/Sidebar.js
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { useUser } from '@clerk/clerk-react';
 import './Sidebar.css';
 
 function Sidebar({ isOpen, onClose }) {
+  const { isSignedIn, user } = useUser();
+
   return (
     <div className={`sidebar ${isOpen ? 'open' : ''}`}>
       {/* Optional close button */}
@@ -10,16 +13,14 @@ function Sidebar({ isOpen, onClose }) {
         &times;
       </button>
 
-
-      {/* currently not yet filled out all the way , placeholders atm */}
       <ul className="sidebar-menu">
-        <li><a href="/">Home</a></li>
-        <li><a href="/profile">Profile</a></li>
-        <li><a href="/about">About</a></li>
-
-        {/* 🔹 Added Explore and Search links */}
-        <li><a href="/explore">Explore</a></li>
-        <li><a href="/search">Search</a></li>
+        <li><Link to="/" onClick={onClose}>Home</Link></li>
+        {isSignedIn && (
+          <li><Link to={`/profile/${user.id}`} onClick={onClose}>Profile</Link></li>
+        )}
+        <li><Link to="/about" onClick={onClose}>About</Link></li>
+        <li><Link to="/explore" onClick={onClose}>Explore</Link></li>
+        <li><Link to="/search" onClick={onClose}>Search</Link></li>
       </ul>
     </div>
   );
