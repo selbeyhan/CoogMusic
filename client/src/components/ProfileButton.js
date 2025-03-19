@@ -13,10 +13,10 @@ function ProfileButton({ profilePicture, userId }) {
   return (
     <div className="profile-button" onClick={handleClick} aria-label="Go to Profile">
       <img
-        src={profilePicture || '/defaultProfile.png'} // Fallback if profilePicture is missing
+        src={profilePicture || '/coogmusiclogonobg.png'} // Fallback if profilePicture is missing
         alt="User Profile"
         className="profile-picture"
-        onError={(e) => e.target.src = '/defaultProfile.png'} // Replace broken images
+        onError={(e) => e.target.src = '/coogmusiclogonobg.png'} // Replace broken images
       />
     </div>
   );
