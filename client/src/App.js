@@ -1,19 +1,3 @@
-/* eslint-disable no-unused-vars */
-
-
-
-
-/**
-Disables ESLint warnings for unused variables.
-These variables are related to the upload song functionality, which is currently
-commented out and will be re-implemented once user authentication is in place.
-We need authentication to ensure that only verified users can post songs.
-Once authentication is set up, we will restore the upload feature and remove this ESLint rule.
-*/
-
-
-
-
 import './clerk.css'; // ✅ Import clerk.css before other styles
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -23,25 +7,24 @@ import Header from './components/Header';
 import Profile from './components/Profile';
 import LoginPage from './components/LoginPage';  // ✅ Import Login Page
 import SignupPage from './components/SignupPage'; // ✅ Import Signup Page
+import VerifyEmailRedirect from './components/VerifyEmailRedirect';
+import About from './components/About';
 import './App.css';
 
 function App() {
-  const { isSignedIn, user } = useUser(); // Use Clerk's authentication
+  const { isSignedIn, user } = useUser();
 
   useEffect(() => {
-    console.log("✅ Custom CSS loaded: clerk.css"); // Debugging log to verify CSS is applied
+    console.log("✅ Custom CSS loaded: clerk.css");
   }, []);
 
   return (
     <Router>
       <Header user={user} />
-
       <div className="app-container">
         <Routes>
-          {/* Public Route */}
           <Route path="/" element={<Home />} />
 
-          {/* Protected Profile Route: Only Accessible to Signed-In Users */}
           <Route
             path="/profile/:userId"
             element={
@@ -51,18 +34,19 @@ function App() {
             }
           />
 
-          {/* 🔹 Load separate login and signup pages */}
+          <Route path="/about" element={<About />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
 
-          {/* 🔹 If an unauthenticated user visits a protected route, show Login page */}
-          <Route 
-            path="*" 
+          <Route path="/signup/verify-email-address" element={<VerifyEmailRedirect />} />
+
+          <Route
+            path="*"
             element={
               <SignedOut>
                 <LoginPage />
               </SignedOut>
-            } 
+            }
           />
         </Routes>
       </div>
