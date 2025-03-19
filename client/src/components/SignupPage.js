@@ -15,8 +15,8 @@ const SignupPage = () => {
         routing="virtual"  // ✅ Keeps all steps under /signup
         signInUrl="/login"
         fallbackRedirectUrl="/" // ✅ Redirect to home if there's an issue
-        afterSignUpUrl="/" // ✅ Redirects to home after successful sign-up
-        afterSignInUrl="/" // ✅ Ensures signed-in users go to home
+        afterSignUpUrl="/" // ✅ Redirects to home after successful sign-up - pretty sure this is outdated but keeping incase (works without this tho)
+        afterSignInUrl="/" // ✅ Ensures signed-in users go to home - pretty sure this is outdated but keeping incase (works without this tho)
         appearance={{
           variables: {
             colorPrimary: '#ff0000',
