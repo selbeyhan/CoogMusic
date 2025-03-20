@@ -22,6 +22,10 @@ npm install
 echo "Ensuring Clerk is installed..."
 npm install @clerk/clerk-react
 
+# Ensure react-icons is installed
+echo "Ensuring react-icons is installed..."
+npm install react-icons
+
 # Debug: Check if the .env file exists
 if [ ! -f .env ]; then
     echo "⚠️ ERROR: .env file not found in client folder!"

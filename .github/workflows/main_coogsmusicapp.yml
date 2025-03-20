@@ -30,8 +30,7 @@ jobs:
         run: |
           cd client
           npm install
-          npm install @clerk/clerk-react # Ensures Clerk is installed
-          cat .env  # Debugging step to verify the .env file is detected
+          npm install @clerk/clerk-react react-icons  # Ensures Clerk & react-icons are installed          cat .env  # Debugging step to verify the .env file is detected
           npm run build
 
       - name: Move client build to server
