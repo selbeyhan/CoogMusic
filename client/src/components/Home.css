@@ -5,6 +5,9 @@
    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" />
 */
 
+/* Home.css */
+
+/* Base container and font styles */
 .home-container {
   display: flex;
   flex-direction: column;
@@ -14,7 +17,6 @@
   background-color: #f4f4f4;
   padding-top: 40px;
   font-family: 'Roboto', sans-serif;
-  /* Apply the new font */
 }
 
 /* Logo */
@@ -50,32 +52,61 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.top-songs-container h2 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  color: #333;
+/* Scrollable table wrapper */
+.table-scroll {
+  max-height: 250px;  /* Adjust as needed; if content exceeds this, scrolling is enabled */
+  overflow-y: auto;
 }
 
-/* Table */
+/* Table styles with fixed layout for column widths */
 .top-songs-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;  /* Enforces fixed widths on columns */
 }
 
+/* Optional: If you want to show ellipsis for overflowing content */
 .top-songs-table th,
 .top-songs-table td {
-  text-align: left;
   padding: 12px;
   border-bottom: 1px solid #ddd;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Table Header */
-.top-songs-table th {
+/* Define specific column widths */
+.top-songs-table th:nth-child(1),
+.top-songs-table td:nth-child(1) {
+  width: 40%;  /* Songs column */
+}
+
+.top-songs-table th:nth-child(2),
+.top-songs-table td:nth-child(2) {
+  width: 40%;  /* Artist column */
+}
+
+.top-songs-table th:nth-child(3),
+.top-songs-table td:nth-child(3) {
+  width: 20%;  /* Streams column */
+  text-align: center;
+}
+
+/* Make header row sticky so it remains visible when scrolling */
+.top-songs-table thead th {
+  position: sticky;
+  top: 0;
   background-color: #ff3b3f;
   color: #fff;
+  z-index: 1;
 }
 
-/* Hover effect on rows */
-.top-songs-table tr:hover {
-  background-color: #f5f5f5;
+#song-list li {
+  cursor: pointer;
+  padding: 5px;
+  list-style-type: none;
+}
+
+#song-list li:hover {
+  background-color: #f0f0f0;
 }

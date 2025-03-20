@@ -7,13 +7,17 @@ function ProfileButton({ profilePicture, userId }) {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    // Navigate to the user's profile page (adjust the path as needed)
     navigate(`/profile/${userId}`);
   };
 
   return (
-    <div className="profile-button" onClick={handleClick}>
-      <img src={profilePicture} alt="Profile" className="profile-picture" />
+    <div className="profile-button" onClick={handleClick} aria-label="Go to Profile">
+      <img
+        src={profilePicture || '/coogmusiclogonobg.png'} // Fallback if profilePicture is missing
+        alt="User Profile"
+        className="profile-picture"
+        onError={(e) => e.target.src = '/coogmusiclogonobg.png'} // Replace broken images
+      />
     </div>
   );
 }

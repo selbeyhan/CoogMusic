@@ -8,18 +8,23 @@ const { BlobServiceClient } = require("@azure/storage-blob");
 const { v4: uuidv4 } = require("uuid");
 const { exec } = require("child_process");
 
+
 const PORT = process.env.PORT || 8080;
 const upload = multer({ storage: multer.memoryStorage() });
 
+
 const AZURE_STORAGE_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=coogsmusicstorage;AccountKey=WPvelBoCZ6xVs39HDIoJ+aVzkNwFoo0bex+H2uG9ANc+dZOUVlz3LxlVE91SLWIA3e1X0/L1sVba+AStpYb1uw==;EndpointSuffix=core.windows.net";
 const AZURE_CONTAINER_NAME = "songs";
+
 
 if (!AZURE_STORAGE_CONNECTION_STRING) {
   throw new Error("Azure Storage connection string is missing.");
 }
 
+
 const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
 const containerClient = blobServiceClient.getContainerClient(AZURE_CONTAINER_NAME);
+
 
 async function getAllUsers() {
   let connection;
@@ -35,6 +40,7 @@ async function getAllUsers() {
   }
 }
 
+
 async function getAllSongs() {
   let connection;
   try {
@@ -49,6 +55,7 @@ async function getAllSongs() {
   }
 }
 
+
 async function uploadSong(req, res) {
   try {
     const { title, genre, description, cover_art_url, musician_id } = req.body;
@@ -56,13 +63,16 @@ async function uploadSong(req, res) {
     const fileName = `${uuidv4()}-${req.fileName}`;
     const blockBlobClient = containerClient.getBlockBlobClient(fileName);
 
+
     console.log("Uploading to Azure Blob Storage...");
     await blockBlobClient.uploadData(fileBuffer, {
       blobHTTPHeaders: { blobContentType: req.fileType },
     });
 
+
     const fileUrl = blockBlobClient.url;
     console.log("File uploaded:", fileUrl);
+
 
     // ---------------
     // Setting a default duration instead of using ffprobe
@@ -71,14 +81,16 @@ async function uploadSong(req, res) {
     console.log("Skipping ffprobe. Using default duration:", duration);
     // ---------------
 
+
     const uploadDate = new Date().toISOString().slice(0, 19).replace("T", " ");
+
 
     let connection;
     try {
       connection = await mysql.createConnection(dbConfig);
       await connection.execute(
-        `INSERT INTO Songs (title, musician_id, upload_date, genre, duration, file_url, cover_art_url, description) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO Songs (title, musician_id, upload_date, genre, duration, file_url, cover_art_url, description)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [title, musician_id, uploadDate, genre, duration, fileUrl, cover_art_url, description]
       );
       console.log("✅ File metadata stored in database.");
@@ -88,8 +100,10 @@ async function uploadSong(req, res) {
       if (connection) await connection.end();
     }
 
+
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ message: "File uploaded and saved successfully", url: fileUrl }));
+
 
   } catch (error) {
     console.error("❌ Upload error:", error);
@@ -98,17 +112,40 @@ async function uploadSong(req, res) {
   }
 }
 
+
 const server = http.createServer(async (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+ // Set CORS headers
+ res.setHeader("Access-Control-Allow-Origin", "*");
+ res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+ res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+
+ // Set Content Security Policy (CSP) Headers
+res.setHeader("Content-Security-Policy",
+  "default-src 'self'; " +
+  "media-src 'self' https://coogsmusicstorage.blob.core.windows.net; " +
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' " +
+    "https://*.clerk.dev https://clerk.dev https://accounts.clerk.dev " +
+    "https://cdn.jsdelivr.net https://unpkg.com https://relieved-gnat-14.clerk.accounts.dev; " +
+  "worker-src 'self' blob:; " +
+  "style-src 'self' 'unsafe-inline' " +
+    "https://*.clerk.dev https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://static.clerk.dev; " +
+  "connect-src 'self' https://*.clerk.dev https://accounts.clerk.dev https://api.clerk.dev " +
+    "https://cdn.jsdelivr.net https://relieved-gnat-14.clerk.accounts.dev https://fonts.gstatic.com; " +
+  "img-src 'self' https://*.clerk.dev https://accounts.clerk.dev https://img.clerk.com data: https://cdn.jsdelivr.net; " +
+  "font-src 'self' https://fonts.gstatic.com;"
+);
+
+
+
 
   if (req.method === "OPTIONS") {
     res.writeHead(204);
     res.end();
     return;
   }
-
+  // File upload route
   if (req.url === "/upload" && req.method === "POST") {
     upload.single("file")(req, res, async (err) => {
       if (err) {
@@ -118,24 +155,30 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+
       try {
         console.log("✅ File upload received");
         console.log("Received req.body:", req.body);
         console.log("Received file:", req.file);
 
+
         // Extract form metadata from req.body
         const { title, genre, description, cover_art_url, musician_id } = req.body;
+
 
         if (!title || !genre || !description || !cover_art_url || !musician_id) {
           throw new Error("Missing required metadata fields.");
         }
+
 
         // Extract uploaded file data
         req.fileBuffer = req.file.buffer;
         req.fileName = req.file.originalname;
         req.fileType = req.file.mimetype;
 
+
         console.log("✅ Processing file:", req.fileName);
+
 
         await uploadSong(req, res);
       } catch (error) {
@@ -146,6 +189,7 @@ const server = http.createServer(async (req, res) => {
     });
     return;
   }
+
 
   // Fetch Top Songs from Database
   if (req.url === "/top-songs" && req.method === "GET") {
@@ -160,6 +204,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+
   // Serve React Frontend (Static Files)
   const buildPath = path.join(__dirname, "build");
   if (req.method === "GET") {
@@ -170,16 +215,26 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200);
         res.end(content);
       } else {
-        res.writeHead(404, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ message: "Not Found" }));
+        // Fallback to index.html for client-side routing
+        fs.readFile(path.join(buildPath, "index.html"), (err, content) => {
+          if (!err) {
+            res.writeHead(200);
+            res.end(content);
+          } else {
+            res.writeHead(404, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ message: "Not Found" }));
+          }
+        });
       }
     });
     return;
   }
 
+
   res.writeHead(404, { "Content-Type": "application/json" });
   res.end(JSON.stringify({ message: "Not Found" }));
 });
+
 
 server.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);

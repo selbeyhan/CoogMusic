@@ -42,12 +42,12 @@
 .app-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-start; /* Align everything at the top */
+  align-items: center; /* Centers horizontally */
+  justify-content: flex-start;
   min-height: 100vh;
   background-color: #f8f9fa;
-  text-align: center;
-  padding-top: 50px; /* Ensure spacing at the top */
+  text-align: center;  /* Also centers text */
+  padding-top: 50px;
 }
 
 /* Adjust logo positioning */

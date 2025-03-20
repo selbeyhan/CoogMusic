@@ -1,20 +1,64 @@
 /* src/components/Header.css */
+
 .header {
+  width: 100%;
+  margin: 0;
+  padding: 0 10px; /* small left/right padding */
+  box-sizing: border-box;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
   background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.logo a {
-  text-decoration: none;
-  font-size: 1.5em;
-  color: #333;
+.hamburger-left {
+  margin: 0;
+  padding: 0;
 }
 
 .profile-area {
   display: flex;
   align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+.login-button, .logout-button {
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-left: 10px;
+  text-decoration: none;
+}
+
+.login-button:hover {
+  background-color: darkred;
+}
+
+.logout-button:hover {
+  background-color: darkgray;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .header {
+    padding: 0 10px;
+  }
+
+  .hamburger-left, .logo, .profile-area {
+    margin-bottom: 10px; 
+  }
 }
