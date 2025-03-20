@@ -1,17 +1,14 @@
-// src/contexts/AudioContext.js
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useRef, useState } from 'react';
 
 const AudioContext = createContext();
 
 export const AudioProvider = ({ children }) => {
+  const audioRef = useRef(new Audio());       // ← Add this
   const [currentSong, setCurrentSong] = useState(null);
-  // Add a queue to hold upcoming songs
   const [queue, setQueue] = useState([]);
 
-  // Optionally add helper functions here to manage the queue
-
   return (
-    <AudioContext.Provider value={{ currentSong, setCurrentSong, queue, setQueue }}>
+    <AudioContext.Provider value={{ audioRef, currentSong, setCurrentSong, queue, setQueue }}>
       {children}
     </AudioContext.Provider>
   );

@@ -12,30 +12,58 @@ import './clerk.css';
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { SignedIn, SignedOut, useUser } from '@clerk/clerk-react';
-import Home from './components/Home';
 import Header from './components/Header';
+import Home from './components/Home';
 import Profile from './components/Profile';
+import About from './components/About';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import VerifyEmailRedirect from './components/VerifyEmailRedirect';
-import About from './components/About';
-import CustomAudioPlayer from './components/CustomAudioPlayer'; // Use the custom player
-import { AudioProvider } from './contexts/AudioContext';
+
+import AudioPlayerUI from './components/AudioPlayerUI';
+import { AudioProvider, useAudio } from './contexts/AudioContext';
+
 import './App.css';
 
+function AudioPlayerWrapper() {
+  const { currentSong, queue, setCurrentSong, setQueue } = useAudio();
+
+  const playNext = () => {
+    if (queue.length) {
+      setCurrentSong(queue[0]);
+      setQueue(queue.slice(1));
+    }
+  };
+
+  const playPrev = () => {
+    // implement history if you want; placeholder no‑op for now
+  };
+
+  return (
+    <AudioPlayerUI
+      currentSong={currentSong}
+      queue={queue}
+      onNext={playNext}
+      onPrev={playPrev}
+    />
+  );
+}
+
 function App() {
-  const { isSignedIn, user } = useUser();
+  const { user } = useUser();
 
   useEffect(() => {
-    console.log("✅ Custom CSS loaded: clerk.css");
+    console.log('✅ Custom CSS loaded: clerk.css');
   }, []);
 
   return (
     <AudioProvider>
       <Router>
         <Header user={user} />
-        {/* Render custom audio player outside of Routes so it stays persistent */}
-        <CustomAudioPlayer />
+
+        {/* persistent bottom bar */}
+        <AudioPlayerWrapper />
+
         <div className="app-container">
           <Routes>
             <Route path="/" element={<Home />} />
