@@ -1,15 +1,15 @@
 /* eslint-disable no-unused-vars */
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useAudio } from '../contexts/AudioContext'; // Use the context here
 import './Home.css';
 
 function Home() {
   const [topSongs, setTopSongs] = useState([]);
-  const [currentSong, setCurrentSong] = useState(null);
-  const audioRef = useRef(null);
+  const { setCurrentSong } = useAudio(); // We only need the setter here
 
   useEffect(() => {
-    // Fetch the top 5 songs from your backend endpoint
+    // Fetch the top 5 songs from your backend
     axios.get('/top-songs')
       .then(response => setTopSongs(response.data))
       .catch(error => {
@@ -17,21 +17,10 @@ function Home() {
       });
   }, []);
 
-  // Handle song row click: pause current audio (if any) and set the new song
+  // Update the global currentSong whenever a song row is clicked
   const handleSongClick = (song) => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
     setCurrentSong(song);
   };
-
-  // When currentSong updates, load the new source and play
-  useEffect(() => {
-    if (audioRef.current && currentSong) {
-      audioRef.current.load();
-      audioRef.current.play();
-    }
-  }, [currentSong]);
 
   return (
     <div className="home-container">
@@ -75,14 +64,6 @@ function Home() {
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* Always-visible Audio Player */}
-      {/* Always-visible Audio Player */}
-      <div className="audio-player">
-        <audio ref={audioRef} controls src={currentSong ? currentSong.file_url : undefined}>
-          Your browser does not support the audio element.
-        </audio>
       </div>
     </div>
   );
