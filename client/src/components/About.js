@@ -64,7 +64,7 @@ const About = () => {
       <div className="member-photo">
         <img src="/team/nate_team_coogmusic.png" alt="Nate" />
       </div>
-      <h3>Nate</h3>
+      <h3>Nathaniel Nguyen</h3>
       <p>Computer Science Major</p>
     </div>
     <div className="team-member">
