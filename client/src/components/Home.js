@@ -1,12 +1,13 @@
 /* eslint-disable no-unused-vars */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useAudio } from '../contexts/AudioContext'; // Use the context here
 import './Home.css';
 
 function Home() {
   const [topSongs, setTopSongs] = useState([]);
-  const { setCurrentSong } = useAudio(); // We only need the setter here
+  const { currentSong, setCurrentSong } = useAudio(); // Global context for audio
+  const audioRef = useRef(null);
 
   useEffect(() => {
     // Fetch the top 5 songs from your backend
@@ -17,10 +18,22 @@ function Home() {
       });
   }, []);
 
-  // Update the global currentSong whenever a song row is clicked
+  // Handle song row click: pause current audio (if any) and set the new song
   const handleSongClick = (song) => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
     setCurrentSong(song);
   };
+
+  // When currentSong updates, load the new source and play
+  useEffect(() => {
+    if (audioRef.current && currentSong) {
+      audioRef.current.src = currentSong.file_url;
+      audioRef.current.load();
+      audioRef.current.play();
+    }
+  }, [currentSong]);
 
   return (
     <div className="home-container">

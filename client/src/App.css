@@ -122,3 +122,7 @@ button:active {
 .users-container li:last-child {
   border-bottom: none;
 }
+
+.app-container {
+  padding-bottom: 36px; /* approximate height of your audio player */
+}
