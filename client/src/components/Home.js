@@ -78,13 +78,6 @@ function Home() {
           </table>
         </div>
       </div>
-
-      {/* Always-visible Audio Player */}
-      <div className="audio-player">
-        <audio ref={audioRef} controls>
-          Your browser does not support the audio element.
-        </audio>
-      </div>
     </div>
   );
 }
