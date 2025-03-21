@@ -32,6 +32,12 @@ const Profile = () => {
     // Fetch user profile data
     const fetchUserProfile = async () => {
       try {
+        try {
+          const response = await axios.post('/getUserId', { userId });
+          const fetchedMusicianId = response.data.musician_id;
+        }
+        
+
         // Replace with actual API endpoint when available
         // const response = await axios.get(`/api/users/${userId}`);
         // setUserProfile(response.data);
@@ -39,7 +45,7 @@ const Profile = () => {
         // Mocked profile data for now
         setUserProfile({
           id: userId,
-          name: "CoogMusic User",
+          name: currentUser.firstName + " " + currentUser.lastName,
           email: "user@example.com",
           bio: "Music enthusiast and UH student.",
           profilePicture: currentUser?.profileImageUrl || 'https://via.placeholder.com/150',
@@ -48,6 +54,7 @@ const Profile = () => {
           monthlyListeners: 250,
           uhAffiliation: "Student"
         });
+
 
         // Fetch user's songs
         // Replace with actual API endpoint when available
@@ -116,12 +123,12 @@ const Profile = () => {
     formData.append('genre', uploadFormData.genre);
     formData.append('description', uploadFormData.description);
     formData.append('cover_art_url', uploadFormData.cover_art_url);
-    formData.append('musician_id', userId);
+    formData.append('musician_id', "I need to make this so this is being called from the database");
 
     try {
       setIsLoading(true);
       await axios.post('/upload', formData);
-
+  
       // Refresh songs list or add the new song to the existing list
       // In a real app, you'd fetch the updated list or add the new song with its returned data
 
