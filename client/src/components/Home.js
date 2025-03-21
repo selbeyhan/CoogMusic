@@ -1,25 +1,32 @@
 /* eslint-disable no-unused-vars */
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
-import { useAudio } from '../contexts/AudioContext'; // Global context for audio
+import { useAudio } from '../contexts/AudioContext'; // Use the context here
 import './Home.css';
 
 function Home() {
   const [topSongs, setTopSongs] = useState([]);
-  const { currentSong, setCurrentSong } = useAudio();
+  const { currentSong, setCurrentSong } = useAudio(); // Global context for audio
   const audioRef = useRef(null);
 
   useEffect(() => {
+    // Fetch the top 5 songs from your backend
     axios.get('/top-songs')
       .then(response => setTopSongs(response.data))
-      .catch(error => console.error('Error fetching top songs:', error));
+      .catch(error => {
+        console.error('Error fetching top songs:', error);
+      });
   }, []);
 
+  // Handle song row click: pause current audio (if any) and set the new song
   const handleSongClick = (song) => {
-    if (audioRef.current) audioRef.current.pause();
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
     setCurrentSong(song);
   };
 
+  // When currentSong updates, load the new source and play
   useEffect(() => {
     if (audioRef.current && currentSong) {
       audioRef.current.src = currentSong.file_url;
@@ -72,7 +79,12 @@ function Home() {
         </div>
       </div>
 
-      {/* — Removed the scrub slider — */}
+      {/* Always-visible Audio Player */}
+      <div className="audio-player">
+        <audio ref={audioRef} controls>
+          Your browser does not support the audio element.
+        </audio>
+      </div>
     </div>
   );
 }
