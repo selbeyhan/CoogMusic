@@ -362,6 +362,35 @@ res.setHeader("Content-Security-Policy",
  }
 
 
+ // Get user profile by Clerk user ID
+if (req.method === "GET" && req.url.startsWith("/user/")) {
+  const clerkUserId = decodeURIComponent(req.url.split("/user/")[1]);
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute(
+      "SELECT * FROM users WHERE clerk_user_id = ?",
+      [clerkUserId]
+    );
+    await connection.end();
+
+    if (rows.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "User not found" }));
+    } else {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ user: rows[0] }));
+    }
+  } catch (err) {
+    console.error("❌ Error fetching user by Clerk ID:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Database error" }));
+  }
+
+  return;
+}
+
+
 
 
  // Serve React Frontend (Static Files)
@@ -389,6 +418,7 @@ res.setHeader("Content-Security-Policy",
    });
    return;
  }
+
 
 
 

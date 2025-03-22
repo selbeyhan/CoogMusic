@@ -32,21 +32,22 @@ const Profile = () => {
     // Fetch user profile data
     const fetchUserProfile = async () => {
       try {
-        // Replace with actual API endpoint when available
-        // const response = await axios.get(`/api/users/${userId}`);
-        // setUserProfile(response.data);
+        // ✅ Real API call to get user data from MySQL via backend
+        const response = await axios.get(`/user/${currentUser?.id}`);
+        const userData = response.data.user;
+        console.log("🔍 MySQL user profile:", userData); // <-- ADD THIS
 
-        // Mocked profile data for now
+
         setUserProfile({
-          id: userId,
-          name: "CoogMusic User",
-          email: "user@example.com",
-          bio: "Music enthusiast and UH student.",
+          id: userData.user_id,
+          name: userData.name,
+          email: userData.email,
+          bio: userData.bio || "Music enthusiast and UH student.",
           profilePicture: currentUser?.profileImageUrl || 'https://via.placeholder.com/150',
-          accountType: "Musician",
-          registrationDate: "2023-01-15",
-          monthlyListeners: 250,
-          uhAffiliation: "Student"
+          accountType: userData.account_type || "Musician",
+          registrationDate: userData.registration_date || "2023-01-15",
+          monthlyListeners: userData.monthly_listeners || 0,
+          uhAffiliation: userData.uh_affiliation || "None"
         });
 
         // Fetch user's songs
@@ -116,7 +117,7 @@ const Profile = () => {
     formData.append('genre', uploadFormData.genre);
     formData.append('description', uploadFormData.description);
     formData.append('cover_art_url', uploadFormData.cover_art_url);
-    formData.append('musician_id', userId);
+    formData.append('musician_id', userProfile.id);
 
     try {
       setIsLoading(true);
@@ -170,7 +171,7 @@ const Profile = () => {
               <span className="stat-label">Songs</span>
             </div>
           </div>
-          {isOwner && (
+          {isOwner && userProfile.verification_status && (
             <button
               className="upload-btn"
               onClick={() => setShowUploadForm(!showUploadForm)}
@@ -178,6 +179,7 @@ const Profile = () => {
               {showUploadForm ? 'Cancel Upload' : 'Upload New Song'}
             </button>
           )}
+
         </div>
       </div>
 
