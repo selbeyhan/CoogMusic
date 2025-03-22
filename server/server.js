@@ -7,6 +7,7 @@ const multer = require("multer");
 const { BlobServiceClient } = require("@azure/storage-blob");
 const { v4: uuidv4 } = require("uuid");
 const { exec } = require("child_process");
+const { parse } = require("querystring"); // Used to parse the request body
 require('dotenv').config();  // This should automatically look for .env in the same folder as server.js
 
 const { Clerk } = require('@clerk/clerk-sdk-node'); // Import Clerk SDK
@@ -62,18 +63,50 @@ async function getAllUsers() {
 
 
 async function getAllSongs() {
- let connection;
- try {
-   connection = await mysql.createConnection(dbConfig);
-   const [rows] = await connection.execute("SELECT * FROM Songs");
-   return rows;
- } catch (err) {
-   console.error("❌ Error fetching songs:", err.message);
-   return [];
- } finally {
-   if (connection) await connection.end();
- }
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+
+    // Perform a join between the songs and users table to fetch the song details along with the musician's name
+    const [rows] = await connection.execute(`
+      SELECT songs.song_id, songs.title, songs.musician_id, songs.upload_date, songs.genre, songs.duration, songs.file_url, songs.cover_art_url, songs.description, songs.views, users.name AS musician_name
+      FROM songs
+      JOIN users ON songs.musician_id = users.user_id
+    `);
+
+    return rows;
+  } catch (err) {
+    console.error("❌ Error fetching songs:", err.message);
+    return [];
+  } finally {
+    if (connection) await connection.end();
+  }
 }
+
+
+// Fetch all songs uploaded by a specific user
+async function getUserSongs(userId) {
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute(`
+      SELECT songs.song_id, songs.title, songs.musician_id, songs.upload_date, songs.genre, songs.duration, songs.file_url, songs.cover_art_url, songs.description, songs.views, users.name AS musician_name
+      FROM songs
+      JOIN users ON songs.musician_id = users.user_id
+      WHERE songs.musician_id = ?
+    `, [userId]);  // Pass the user ID to filter songs by the user
+
+    // Ensure that we always return an array, even if it's a single song
+    return Array.isArray(rows) ? rows : [rows]; // Wrap the result in an array if it's a single object
+  } catch (err) {
+    console.error("❌ Error fetching user songs:", err.message);
+    return []; // Return an empty array in case of an error
+  } finally {
+    if (connection) await connection.end();
+  }
+}
+
+
 
 
 
@@ -356,18 +389,25 @@ res.setHeader("Content-Security-Policy",
 
 
 
- // Fetch Top Songs from Database
+ // Fetch Top Songs from Database (only the top 5)
  if (req.url === "/top-songs" && req.method === "GET") {
-   try {
-     const songs = await getAllSongs();
-     res.writeHead(200, { "Content-Type": "application/json" });
-     res.end(JSON.stringify(songs));
-   } catch (err) {
-     res.writeHead(500, { "Content-Type": "application/json" });
-     res.end(JSON.stringify({ message: "Error fetching songs", error: err.message }));
-   }
-   return;
- }
+  try {
+    const songs = await getAllSongs(); // Fetch all songs and user data
+
+    // Sort the songs by views in descending order and limit to top 5
+    const topSongs = songs
+      .sort((a, b) => b.views - a.views)  // Sort by views in descending order
+      .slice(0, 5);  // Limit to top 5 songs
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(topSongs)); // Send only top 5 songs
+  } catch (err) {
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ message: "Error fetching songs", error: err.message }));
+  }
+  return;
+}
+
 
 
  // Get user profile by Clerk user ID
@@ -397,6 +437,45 @@ if (req.method === "GET" && req.url.startsWith("/user/")) {
 
   return;
 }
+
+// Increment the view count for a song
+if (req.method === "POST" && req.url.startsWith("/increment-view/")) {
+  const songId = req.url.split("/increment-view/")[1]; // Get songId from URL
+
+  if (!songId) {
+    res.statusCode = 400;
+    return res.end(JSON.stringify({ error: "Song ID is required" }));
+  }
+
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+
+    // Increment the view count for the song in the database
+    const [result] = await connection.execute(
+      "UPDATE songs SET views = views + 1 WHERE song_id = ?",
+      [songId]
+    );
+
+    if (result.affectedRows === 0) {
+      res.statusCode = 404;
+      return res.end(JSON.stringify({ error: "Song not found" }));
+    }
+
+    console.log(`View count for song ${songId} incremented.`);
+    res.statusCode = 200;
+    return res.end(JSON.stringify({ message: "View count incremented successfully" }));
+  } catch (err) {
+    console.error("Error incrementing views:", err.message);
+    res.statusCode = 500;
+    return res.end(JSON.stringify({ error: "Failed to increment view count" }));
+  } finally {
+    if (connection) await connection.end();
+  }
+}
+
+
+
 
 // Delete user by Clerk ID from both MySQL and Clerk system
 if (req.method === "DELETE" && req.url.startsWith("/user/")) {
@@ -443,6 +522,60 @@ if (req.method === "DELETE" && req.url.startsWith("/user/")) {
 
   return;
 }
+
+
+
+// Endpoint to get songs uploaded by a specific user (profile page)
+if (req.method === "GET" && req.url.startsWith("/profile/")) {
+  const clerkUserId = req.url.split("/profile/")[1]; // Extract clerk_user_id from the URL
+
+  try {
+    // Fetch the user ID based on clerk_user_id
+    const userQuery = `SELECT user_id FROM users WHERE clerk_user_id = ?`;
+    const userConnection = await mysql.createConnection(dbConfig);
+    const [userData] = await userConnection.execute(userQuery, [clerkUserId]);
+
+    if (userData.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "User not found" }));
+      return;
+    }
+
+    const userId = userData[0].user_id; // Get the user_id
+
+    // Fetch the user's profile data
+    const profileQuery = `SELECT * FROM users WHERE user_id = ?`;
+    const [profileData] = await userConnection.execute(profileQuery, [userId]);
+
+    // Fetch songs for this user
+    const songs = await getUserSongs(userId);  // Your existing function to get songs
+
+    await userConnection.end();
+
+    // Ensure the songs are returned as an array
+    const songsArray = Array.isArray(songs) ? songs : [songs];  // If it's not an array, wrap it
+
+    // Send the profile and songs data back
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify([{
+      user: profileData[0],  // Include the user profile data
+      songs: songsArray   // Ensure songs are returned as an array
+    }]));
+
+  } catch (err) {
+    console.error("❌ Error fetching user profile and songs:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Error fetching user profile and songs", message: err.message }));
+  }
+  return;
+}
+
+
+
+
+
+
+
 
 
 

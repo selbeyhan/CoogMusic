@@ -24,6 +24,19 @@ function Home() {
       audioRef.current.pause();
     }
     setCurrentSong(song);
+
+    // Increment view count for the song when clicked
+    incrementViewCount(song.song_id);
+  };
+
+  // Function to call the backend API to increment the view count
+  const incrementViewCount = async (songId) => {
+    try {
+      const response = await axios.post(`/increment-view/${songId}`);
+      console.log(response.data.message); // Log the success message
+    } catch (error) {
+      console.error('Error incrementing view count:', error);
+    }
   };
 
   // When currentSong updates, load the new source and play
@@ -57,9 +70,9 @@ function Home() {
           <table className="top-songs-table">
             <thead>
               <tr>
-                <th>Song</th>
+                <th>Song Title</th>
                 <th>Artist</th>
-                <th>Streams</th>
+                <th>Views</th>
               </tr>
             </thead>
             <tbody>
@@ -70,8 +83,8 @@ function Home() {
                   style={{ cursor: 'pointer' }}
                 >
                   <td>{song.title}</td>
-                  <td>{song.file_url}</td>
-                  <td>{song.musician_id}</td>
+                  <td>{song.musician_name}</td> {/* Display the musician's name */}
+                  <td>{song.views}</td> {/* Display the views count */}
                 </tr>
               ))}
             </tbody>
