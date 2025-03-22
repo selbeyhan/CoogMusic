@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useClerk } from '@clerk/clerk-react';
 import axios from 'axios';
 import './Profile.css';
 
 const Profile = () => {
   const { userId } = useParams();
   const { user: currentUser } = useUser();
+  const { signOut } = useClerk(); // ✅ Use useClerk to get signOut
   const [userProfile, setUserProfile] = useState(null);
   const [userSongs, setUserSongs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [activeTab, setActiveTab] = useState('songs');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
 
   // Upload form state
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -47,7 +50,8 @@ const Profile = () => {
           accountType: userData.account_type || "Musician",
           registrationDate: userData.registration_date || "2023-01-15",
           monthlyListeners: userData.monthly_listeners || 0,
-          uhAffiliation: userData.uh_affiliation || "None"
+          uhAffiliation: userData.uh_affiliation || "None",
+          verification_status: userData.verification_status || false
         });
 
         // Fetch user's songs
@@ -179,6 +183,53 @@ const Profile = () => {
               {showUploadForm ? 'Cancel Upload' : 'Upload New Song'}
             </button>
           )}
+
+{isOwner && (
+  <>
+    <button
+      className="delete-account-btn"
+      onClick={() => setShowDeleteConfirm(true)}
+      style={{ marginTop: '10px', backgroundColor: '#ff4d4f', color: '#fff' }}
+    >
+      Delete Account
+    </button>
+
+    {showDeleteConfirm && (
+      <div className="modal-overlay">
+        <div className="modal-content">
+          <h3>Are you sure you want to delete your account?</h3>
+          <p>This action cannot be undone.</p>
+          <div className="modal-buttons">
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="cancel-btn"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  await axios.delete(`/user/${currentUser.id}`);
+                  await signOut(); // Force logout after deletion using useClerk
+                  alert("Account deleted successfully.");
+                  window.location.href = "/"; // Redirect to homepage
+                } catch (err) {
+                  console.error("Error deleting account:", err);
+                  alert("Failed to delete account.");
+                }
+              }}
+              className="confirm-btn"
+            >
+              Confirm Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </>
+)}
+
+
 
         </div>
       </div>

@@ -25,6 +25,7 @@ jobs:
         run: |
           cd server
           npm install
+          npm install dotenv @clerk/clerk-sdk-node  # Install dotenv and Clerk SDK for server
 
       - name: Install client dependencies and build
         run: |
