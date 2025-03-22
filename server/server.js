@@ -379,7 +379,7 @@ if (req.method === "GET" && req.url.startsWith("/user/")) {
       res.end(JSON.stringify({ error: "User not found" }));
     } else {
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(rows[0]));
+      res.end(JSON.stringify({ user: rows[0] }));
     }
   } catch (err) {
     console.error("❌ Error fetching user by Clerk ID:", err);

@@ -34,7 +34,9 @@ const Profile = () => {
       try {
         // ✅ Real API call to get user data from MySQL via backend
         const response = await axios.get(`/user/${currentUser?.id}`);
-        const userData = response.data;
+        const userData = response.data.user;
+        console.log("🔍 MySQL user profile:", userData); // <-- ADD THIS
+
 
         setUserProfile({
           id: userData.user_id,
@@ -115,7 +117,7 @@ const Profile = () => {
     formData.append('genre', uploadFormData.genre);
     formData.append('description', uploadFormData.description);
     formData.append('cover_art_url', uploadFormData.cover_art_url);
-    formData.append('musician_id', userId);
+    formData.append('musician_id', userProfile.id);
 
     try {
       setIsLoading(true);
