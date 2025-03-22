@@ -171,7 +171,7 @@ const Profile = () => {
               <span className="stat-label">Songs</span>
             </div>
           </div>
-          {isOwner && (
+          {isOwner && userProfile.verification_status && (
             <button
               className="upload-btn"
               onClick={() => setShowUploadForm(!showUploadForm)}
@@ -179,6 +179,7 @@ const Profile = () => {
               {showUploadForm ? 'Cancel Upload' : 'Upload New Song'}
             </button>
           )}
+
         </div>
       </div>
 
