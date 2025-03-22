@@ -29,7 +29,6 @@ const Profile = () => {
 
 
 
-  
   useEffect(() => {
     // Set if the current user is the profile owner
     if (currentUser) {
@@ -66,11 +65,12 @@ const Profile = () => {
         const songsResponse = await axios.get(`/profile/${userId}`);
         console.log("🔍 Songs fetched:", songsResponse.data); // Log the response for songs
   
-        // Check if the songs are in the expected format (array)
-        if (Array.isArray(songsResponse.data)) {
-          setUserSongs(songsResponse.data); // Assuming the backend returns an array of songs
+        // Check if the songs data is in the expected format
+        if (Array.isArray(songsResponse.data) && songsResponse.data.length > 0) {
+          const songs = songsResponse.data[0].songs;  // Access songs inside the first object
+          setUserSongs(songs); // Assuming the backend returns an array of songs
         } else {
-          console.error("❌ Songs data is not an array:", songsResponse.data);
+          console.error("❌ Songs data is not in the expected format:", songsResponse.data);
         }
   
         setIsLoading(false);
@@ -83,8 +83,6 @@ const Profile = () => {
     fetchUserProfile();
   }, [userId, currentUser]); // Ensure the fetch is triggered when either currentUser or userId changes
   
-
-
 
 
 
@@ -307,33 +305,38 @@ const Profile = () => {
         <div className="tab-content">
         {activeTab === 'songs' && (
         <div className="songs-tab">
-          <h2>Songs</h2>
-          {userSongs.length === 0 ? (
-            <p className="no-content">No songs uploaded yet.</p>
-          ) : (
-            <div className="songs-list">
-              {userSongs.map(song => (
-                <div className="song-card" key={song.id}>
-                  <div className="song-cover">
-                    <img src={song.coverArtUrl || "https://via.placeholder.com/150"} alt={song.title} />
-                  </div>
-                  <div className="song-info">
-                    <h3>{song.title}</h3>
-                    <p className="song-genre">{song.genre}</p>
-                    <p className="song-date">Uploaded: {new Date(song.uploadDate).toLocaleDateString()}</p>
-                  </div>
-                  <div className="song-controls">
-                    <button className="play-btn">Play</button>
-                    {isOwner && (
-                      <button className="delete-btn">Delete</button>
-                    )}
-                  </div>
+        <h2>Songs</h2>
+        {userSongs.length === 0 ? (
+          <p className="no-content">No songs uploaded yet.</p>
+        ) : (
+          <div className="songs-list">
+            {userSongs.map(song => (
+              <div className="song-card" key={song.song_id}>
+                <div className="song-cover">
+                  {/* img source commented out for now */}
+                  {/* <img src={song.cover_art_url || "https://via.placeholder.com/150"} alt={song.title} /> */}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <div className="song-info">
+                  <h3>{song.title}</h3>
+                  <p className="song-genre">{song.genre}</p>
+                  <p className="song-date">Uploaded: {new Date(song.upload_date).toLocaleDateString()}</p>
+                  <p className="song-views">Views: {song.views}</p> {/* Display views */}
+                </div>
+                <div className="song-controls">
+                  <button className="play-btn">Play</button>
+                  {isOwner && (
+                    <button className="delete-btn">Delete</button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
+
       )}
+
 
 
           {activeTab === 'playlists' && (
