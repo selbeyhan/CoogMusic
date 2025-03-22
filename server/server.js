@@ -365,18 +365,25 @@ res.setHeader("Content-Security-Policy",
 
 
 
- // Fetch Top Songs from Database
+ // Fetch Top Songs from Database (only the top 5)
  if (req.url === "/top-songs" && req.method === "GET") {
-   try {
-     const songs = await getAllSongs();
-     res.writeHead(200, { "Content-Type": "application/json" });
-     res.end(JSON.stringify(songs));
-   } catch (err) {
-     res.writeHead(500, { "Content-Type": "application/json" });
-     res.end(JSON.stringify({ message: "Error fetching songs", error: err.message }));
-   }
-   return;
- }
+  try {
+    const songs = await getAllSongs(); // Fetch all songs and user data
+
+    // Sort the songs by views in descending order and limit to top 5
+    const topSongs = songs
+      .sort((a, b) => b.views - a.views)  // Sort by views in descending order
+      .slice(0, 5);  // Limit to top 5 songs
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(topSongs)); // Send only top 5 songs
+  } catch (err) {
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ message: "Error fetching songs", error: err.message }));
+  }
+  return;
+}
+
 
 
  // Get user profile by Clerk user ID
