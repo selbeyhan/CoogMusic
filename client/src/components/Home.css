@@ -55,7 +55,7 @@
 
 /* Scrollable table wrapper */
 .table-scroll {
-  max-height: 250px;  /* Adjust as needed; if content exceeds this, scrolling is enabled */
+  max-height: 500px;  /* Adjust as needed; if content exceeds this, scrolling is enabled */
   overflow-y: auto;
 }
 
