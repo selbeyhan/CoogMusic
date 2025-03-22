@@ -62,18 +62,26 @@ async function getAllUsers() {
 
 
 async function getAllSongs() {
- let connection;
- try {
-   connection = await mysql.createConnection(dbConfig);
-   const [rows] = await connection.execute("SELECT * FROM Songs");
-   return rows;
- } catch (err) {
-   console.error("❌ Error fetching songs:", err.message);
-   return [];
- } finally {
-   if (connection) await connection.end();
- }
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+
+    // Perform a join between the songs and users table to fetch the song details along with the musician's name
+    const [rows] = await connection.execute(`
+      SELECT songs.song_id, songs.title, songs.musician_id, songs.upload_date, songs.genre, songs.duration, songs.file_url, songs.cover_art_url, songs.description, songs.views, users.name AS musician_name
+      FROM songs
+      JOIN users ON songs.musician_id = users.user_id
+    `);
+
+    return rows;
+  } catch (err) {
+    console.error("❌ Error fetching songs:", err.message);
+    return [];
+  } finally {
+    if (connection) await connection.end();
+  }
 }
+
 
 
 

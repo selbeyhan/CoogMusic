@@ -57,9 +57,9 @@ function Home() {
           <table className="top-songs-table">
             <thead>
               <tr>
-                <th>Song</th>
+                <th>Song Title</th>
                 <th>Artist</th>
-                <th>Streams</th>
+                <th>Views</th>
               </tr>
             </thead>
             <tbody>
@@ -70,8 +70,8 @@ function Home() {
                   style={{ cursor: 'pointer' }}
                 >
                   <td>{song.title}</td>
-                  <td>{song.file_url}</td>
-                  <td>{song.musician_id}</td>
+                  <td>{song.musician_name}</td> {/* Display the musician's name */}
+                  <td>{song.views}</td> {/* Display the views count */}
                 </tr>
               ))}
             </tbody>
