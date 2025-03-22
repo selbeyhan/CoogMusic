@@ -55,6 +55,14 @@ cd server
 echo "Installing server dependencies..."
 npm install
 
+# Ensure Clerk SDK is installed for server-side
+echo "Ensuring Clerk SDK is installed in the server..."
+npm install @clerk/clerk-sdk-node
+
+# Ensure dotenv is installed for server-side
+echo "Ensuring dotenv is installed in the server..."
+npm install dotenv
+
 echo "Starting the Node server..."
 node server.js &
 SERVER_PID=$!

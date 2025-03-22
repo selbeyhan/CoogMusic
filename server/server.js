@@ -7,9 +7,17 @@ const multer = require("multer");
 const { BlobServiceClient } = require("@azure/storage-blob");
 const { v4: uuidv4 } = require("uuid");
 const { exec } = require("child_process");
+require('dotenv').config();  // This should automatically look for .env in the same folder as server.js
 
+const { Clerk } = require('@clerk/clerk-sdk-node'); // Import Clerk SDK
 
+// Initialize Clerk SDK with the secret key from the environment
+const clerkClient = new Clerk({
+  apiKey: process.env.CLERK_API_KEY, // Use the Clerk Secret API Key from .env
+});
 
+// Ensure the environment variable is loaded
+console.log("Clerk API Key:", process.env.CLERK_API_KEY); // Debugging step to check if it's loaded correctly
 
 const PORT = process.env.PORT || 8080;
 const upload = multer({ storage: multer.memoryStorage() });
@@ -390,36 +398,51 @@ if (req.method === "GET" && req.url.startsWith("/user/")) {
   return;
 }
 
-// Delete user by Clerk ID and cascade songs
+// Delete user by Clerk ID from both MySQL and Clerk system
 if (req.method === "DELETE" && req.url.startsWith("/user/")) {
   const clerkUserId = decodeURIComponent(req.url.split("/user/")[1]);
+  console.log("Attempting to delete user with Clerk ID:", clerkUserId);
 
   try {
     const connection = await mysql.createConnection(dbConfig);
+    console.log("Connected to MySQL");
 
+    // Delete user from MySQL
     const [result] = await connection.execute(
       "DELETE FROM users WHERE clerk_user_id = ?",
       [clerkUserId]
     );
 
+    console.log("Deletion result from MySQL:", result);
     await connection.end();
+    console.log("MySQL connection closed");
 
     if (result.affectedRows === 0) {
+      console.log("No user found with that Clerk ID");
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ message: "User not found" }));
     } else {
+      console.log("User and related data deleted via CASCADE in MySQL");
+
+      // Delete user from Clerk
+      try {
+        await clerkClient.users.deleteUser(clerkUserId);
+        console.log("User deleted from Clerk dashboard");
+      } catch (clerkErr) {
+        console.error("Error deleting user from Clerk:", clerkErr);
+      }
+
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "User and songs deleted" }));
+      res.end(JSON.stringify({ message: "User deleted from MySQL and Clerk" }));
     }
   } catch (err) {
-    console.error("❌ Error deleting user:", err);
+    console.error("Error deleting user:", err);
     res.writeHead(500, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "Database error" }));
   }
 
   return;
 }
-
 
 
 

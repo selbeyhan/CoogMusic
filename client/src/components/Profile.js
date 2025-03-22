@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useClerk } from '@clerk/clerk-react';
 import axios from 'axios';
 import './Profile.css';
 
 const Profile = () => {
   const { userId } = useParams();
   const { user: currentUser } = useUser();
+  const { signOut } = useClerk(); // ✅ Use useClerk to get signOut
   const [userProfile, setUserProfile] = useState(null);
   const [userSongs, setUserSongs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [activeTab, setActiveTab] = useState('songs');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
 
   // Upload form state
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -181,26 +184,51 @@ const Profile = () => {
             </button>
           )}
 
-          {isOwner && (
+{isOwner && (
+  <>
+    <button
+      className="delete-account-btn"
+      onClick={() => setShowDeleteConfirm(true)}
+      style={{ marginTop: '10px', backgroundColor: '#ff4d4f', color: '#fff' }}
+    >
+      Delete Account
+    </button>
+
+    {showDeleteConfirm && (
+      <div className="modal-overlay">
+        <div className="modal-content">
+          <h3>Are you sure you want to delete your account?</h3>
+          <p>This action cannot be undone.</p>
+          <div className="modal-buttons">
             <button
-              className="delete-account-btn"
+              onClick={() => setShowDeleteConfirm(false)}
+              className="cancel-btn"
+            >
+              Cancel
+            </button>
+            <button
               onClick={async () => {
-                if (window.confirm("Are you sure you want to delete your account? This cannot be undone.")) {
-                  try {
-                    await axios.delete(`/user/${currentUser.id}`);
-                    alert("Account deleted successfully.");
-                    window.location.href = "/";
-                  } catch (err) {
-                    console.error("Error deleting account:", err);
-                    alert("Failed to delete account.");
-                  }
+                try {
+                  await axios.delete(`/user/${currentUser.id}`);
+                  await signOut(); // Force logout after deletion using useClerk
+                  alert("Account deleted successfully.");
+                  window.location.href = "/"; // Redirect to homepage
+                } catch (err) {
+                  console.error("Error deleting account:", err);
+                  alert("Failed to delete account.");
                 }
               }}
-              style={{ marginTop: '10px', backgroundColor: '#ff4d4f', color: '#fff' }}
+              className="confirm-btn"
             >
-              Delete Account
+              Confirm Delete
             </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </>
 )}
+
 
 
         </div>
