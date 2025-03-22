@@ -19,23 +19,6 @@
 -- Table structure for table `comments`
 --
 
-/* 
-
-current dbs schema deletes on cascade for foreign keys, 
-so if a user is deleted, all their comments, likes, and streaming history 
-are deleted as well.
-
-
-
-*/ 
-
-
-
-
-
-
-
-
 DROP TABLE IF EXISTS `comments`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -188,6 +171,7 @@ CREATE TABLE `songs` (
   `file_url` varchar(2000) NOT NULL,
   `cover_art_url` varchar(2000) DEFAULT NULL,
   `description` text,
+  `views` int unsigned DEFAULT '0',
   PRIMARY KEY (`song_id`),
   KEY `songs_musician_id_foreign` (`musician_id`),
   CONSTRAINT `songs_musician_id_foreign` FOREIGN KEY (`musician_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
@@ -200,7 +184,7 @@ CREATE TABLE `songs` (
 
 LOCK TABLES `songs` WRITE;
 /*!40000 ALTER TABLE `songs` DISABLE KEYS */;
-INSERT INTO `songs` VALUES (1,'Love Sosa',6,'2025-03-06 02:46:02','Hip-Hop',300,'https://coogsmusicstorage.blob.core.windows.net/songs/Chief Keef - Love Sosa.mp3','https://via.placeholder.com/150','Chief Keef - Love Sosa test upload.'),(3,'test',6,'2025-03-06 07:07:16','Unknown',200,'https://coogsmusicstorage.blob.core.windows.net/songs/e4c06b48-fa14-4c99-8c06-460b94f4fa09-uploaded-song.mp3',NULL,'test'),(4,'test',6,'2025-03-06 07:15:10','Unknown',200,'https://coogsmusicstorage.blob.core.windows.net/songs/830387da-5d2e-411b-b09c-6aa50f26b0bb-uploaded-song.mp3',NULL,'test'),(5,'milli',6,'2025-03-06 07:18:29','Unknown',200,'https://coogsmusicstorage.blob.core.windows.net/songs/d7f6c867-7439-48aa-80cd-82b9ab9e2988-uploaded-song.mp3',NULL,'lilwayne'),(6,'anothertest',6,'2025-03-06 07:25:10','Unknown',200,'https://coogsmusicstorage.blob.core.windows.net/songs/647acd54-51c6-4182-a1e0-2eacefb681fc-uploaded-song.mp3',NULL,'anothertest'),(7,'anothertest',6,'2025-03-06 12:46:45','Unknown',200,'https://coogsmusicstorage.blob.core.windows.net/songs/103b3af9-85ab-4827-99cf-cb7daf397b41-uploaded-song.mp3',NULL,'Test by adem before merge with main'),(8,'a milli',6,'2025-03-06 23:32:14','lil wayne',180,'https://coogsmusicstorage.blob.core.windows.net/songs/e8abfbbf-06f9-4472-b070-67fde55c474d-A%20Milli.mp3','a','a'),(9,'hate being sober',6,'2025-03-06 23:39:50','rap',180,'https://coogsmusicstorage.blob.core.windows.net/songs/af0bf23e-6005-4ac9-ad73-1eedd046e457-Hate%20Bein%27%20Sober.mp3','n/a','best song ever'),(10,'LebronJamesSong',8,'2025-03-22 15:33:12','test',180,'https://coogsmusicstorage.blob.core.windows.net/songs/40511fe4-0a4b-4bd0-99d1-d6e3acfe241b-lebronjamessongtest.mp3','https://via.placeholder.com/150','test');
+INSERT INTO `songs` VALUES (1,'Love Sosa',6,'2025-03-06 02:46:02','Hip-Hop',300,'https://coogsmusicstorage.blob.core.windows.net/songs/Chief Keef - Love Sosa.mp3','https://via.placeholder.com/150','Chief Keef - Love Sosa test upload.',0),(3,'test',6,'2025-03-06 07:07:16','Unknown',200,'https://coogsmusicstorage.blob.core.windows.net/songs/e4c06b48-fa14-4c99-8c06-460b94f4fa09-uploaded-song.mp3',NULL,'test',0),(4,'test',6,'2025-03-06 07:15:10','Unknown',200,'https://coogsmusicstorage.blob.core.windows.net/songs/830387da-5d2e-411b-b09c-6aa50f26b0bb-uploaded-song.mp3',NULL,'test',0),(5,'milli',6,'2025-03-06 07:18:29','Unknown',200,'https://coogsmusicstorage.blob.core.windows.net/songs/d7f6c867-7439-48aa-80cd-82b9ab9e2988-uploaded-song.mp3',NULL,'lilwayne',0),(6,'anothertest',6,'2025-03-06 07:25:10','Unknown',200,'https://coogsmusicstorage.blob.core.windows.net/songs/647acd54-51c6-4182-a1e0-2eacefb681fc-uploaded-song.mp3',NULL,'anothertest',0),(7,'anothertest',6,'2025-03-06 12:46:45','Unknown',200,'https://coogsmusicstorage.blob.core.windows.net/songs/103b3af9-85ab-4827-99cf-cb7daf397b41-uploaded-song.mp3',NULL,'Test by adem before merge with main',0),(8,'a milli',6,'2025-03-06 23:32:14','lil wayne',180,'https://coogsmusicstorage.blob.core.windows.net/songs/e8abfbbf-06f9-4472-b070-67fde55c474d-A%20Milli.mp3','a','a',0),(9,'hate being sober',6,'2025-03-06 23:39:50','rap',180,'https://coogsmusicstorage.blob.core.windows.net/songs/af0bf23e-6005-4ac9-ad73-1eedd046e457-Hate%20Bein%27%20Sober.mp3','n/a','best song ever',0);
 /*!40000 ALTER TABLE `songs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -285,7 +269,7 @@ CREATE TABLE `users` (
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `new_user_id` (`user_id`),
   UNIQUE KEY `clerk_user_id` (`clerk_user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
