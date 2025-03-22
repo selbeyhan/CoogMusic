@@ -47,7 +47,8 @@ const Profile = () => {
           accountType: userData.account_type || "Musician",
           registrationDate: userData.registration_date || "2023-01-15",
           monthlyListeners: userData.monthly_listeners || 0,
-          uhAffiliation: userData.uh_affiliation || "None"
+          uhAffiliation: userData.uh_affiliation || "None",
+          verification_status: userData.verification_status || false
         });
 
         // Fetch user's songs
@@ -179,6 +180,28 @@ const Profile = () => {
               {showUploadForm ? 'Cancel Upload' : 'Upload New Song'}
             </button>
           )}
+
+          {isOwner && (
+            <button
+              className="delete-account-btn"
+              onClick={async () => {
+                if (window.confirm("Are you sure you want to delete your account? This cannot be undone.")) {
+                  try {
+                    await axios.delete(`/user/${currentUser.id}`);
+                    alert("Account deleted successfully.");
+                    window.location.href = "/";
+                  } catch (err) {
+                    console.error("Error deleting account:", err);
+                    alert("Failed to delete account.");
+                  }
+                }
+              }}
+              style={{ marginTop: '10px', backgroundColor: '#ff4d4f', color: '#fff' }}
+            >
+              Delete Account
+            </button>
+)}
+
 
         </div>
       </div>

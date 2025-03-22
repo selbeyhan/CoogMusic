@@ -390,6 +390,37 @@ if (req.method === "GET" && req.url.startsWith("/user/")) {
   return;
 }
 
+// Delete user by Clerk ID and cascade songs
+if (req.method === "DELETE" && req.url.startsWith("/user/")) {
+  const clerkUserId = decodeURIComponent(req.url.split("/user/")[1]);
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    const [result] = await connection.execute(
+      "DELETE FROM users WHERE clerk_user_id = ?",
+      [clerkUserId]
+    );
+
+    await connection.end();
+
+    if (result.affectedRows === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "User not found" }));
+    } else {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "User and songs deleted" }));
+    }
+  } catch (err) {
+    console.error("❌ Error deleting user:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Database error" }));
+  }
+
+  return;
+}
+
+
 
 
 
