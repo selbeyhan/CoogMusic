@@ -84,6 +84,30 @@ async function getAllSongs() {
 }
 
 
+// Fetch all songs uploaded by a specific user
+async function getUserSongs(userId) {
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute(`
+      SELECT songs.song_id, songs.title, songs.musician_id, songs.upload_date, songs.genre, songs.duration, songs.file_url, songs.cover_art_url, songs.description, songs.views, users.name AS musician_name
+      FROM songs
+      JOIN users ON songs.musician_id = users.user_id
+      WHERE songs.musician_id = ?
+    `, [userId]);  // Pass the user ID to filter songs by the user
+
+    // Ensure that we always return an array, even if it's a single song
+    return Array.isArray(rows) ? rows : [rows]; // Wrap the result in an array if it's a single object
+  } catch (err) {
+    console.error("❌ Error fetching user songs:", err.message);
+    return []; // Return an empty array in case of an error
+  } finally {
+    if (connection) await connection.end();
+  }
+}
+
+
+
 
 
 
@@ -498,6 +522,60 @@ if (req.method === "DELETE" && req.url.startsWith("/user/")) {
 
   return;
 }
+
+
+
+// Endpoint to get songs uploaded by a specific user (profile page)
+if (req.method === "GET" && req.url.startsWith("/profile/")) {
+  const clerkUserId = req.url.split("/profile/")[1]; // Extract clerk_user_id from the URL
+
+  try {
+    // Fetch the user ID based on clerk_user_id
+    const userQuery = `SELECT user_id FROM users WHERE clerk_user_id = ?`;
+    const userConnection = await mysql.createConnection(dbConfig);
+    const [userData] = await userConnection.execute(userQuery, [clerkUserId]);
+
+    if (userData.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "User not found" }));
+      return;
+    }
+
+    const userId = userData[0].user_id; // Get the user_id
+
+    // Fetch the user's profile data
+    const profileQuery = `SELECT * FROM users WHERE user_id = ?`;
+    const [profileData] = await userConnection.execute(profileQuery, [userId]);
+
+    // Fetch songs for this user
+    const songs = await getUserSongs(userId);  // Your existing function to get songs
+
+    await userConnection.end();
+
+    // Ensure the songs are returned as an array
+    const songsArray = Array.isArray(songs) ? songs : [songs];  // If it's not an array, wrap it
+
+    // Send the profile and songs data back
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify([{
+      user: profileData[0],  // Include the user profile data
+      songs: songsArray   // Ensure songs are returned as an array
+    }]));
+
+  } catch (err) {
+    console.error("❌ Error fetching user profile and songs:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Error fetching user profile and songs", message: err.message }));
+  }
+  return;
+}
+
+
+
+
+
+
+
 
 
 

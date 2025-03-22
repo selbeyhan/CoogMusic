@@ -26,21 +26,28 @@ const Profile = () => {
   });
   const [uploadFile, setUploadFile] = useState(null);
 
+
+
+
+  
   useEffect(() => {
     // Set if the current user is the profile owner
     if (currentUser) {
-      setIsOwner(currentUser.id === userId);
+      setIsOwner(currentUser.id === userId); // Ensure this matches your currentUser data
     }
-
-    // Fetch user profile data
+  
+    // Fetch user profile data and songs
     const fetchUserProfile = async () => {
       try {
-        // ✅ Real API call to get user data from MySQL via backend
-        const response = await axios.get(`/user/${currentUser?.id}`);
+        // Log the currentUser and the userId to debug
+        console.log("🔍 Current User ID:", currentUser?.id);
+        console.log("🔍 Profile User ID:", userId);
+  
+        // Fetch user profile data from MySQL
+        const response = await axios.get(`/user/${userId}`);
         const userData = response.data.user;
-        console.log("🔍 MySQL user profile:", userData); // <-- ADD THIS
-
-
+        console.log("🔍 MySQL user profile:", userData); // Debugging step
+  
         setUserProfile({
           id: userData.user_id,
           name: userData.name,
@@ -53,43 +60,33 @@ const Profile = () => {
           uhAffiliation: userData.uh_affiliation || "None",
           verification_status: userData.verification_status || false
         });
-
+  
         // Fetch user's songs
-        // Replace with actual API endpoint when available
-        // const songsResponse = await axios.get(`/api/users/${userId}/songs`);
-        // setUserSongs(songsResponse.data);
-
-        // Mocked songs data
-        setUserSongs([
-          {
-            id: 1,
-            title: "My First Track",
-            genre: "Pop",
-            uploadDate: "2023-02-10",
-            duration: 180,
-            fileUrl: "https://coogsmusicstorage.blob.core.windows.net/songs/sample1.mp3",
-            coverArtUrl: "https://via.placeholder.com/150"
-          },
-          {
-            id: 2,
-            title: "Coog Vibes",
-            genre: "Hip-Hop",
-            uploadDate: "2023-03-15",
-            duration: 210,
-            fileUrl: "https://coogsmusicstorage.blob.core.windows.net/songs/sample2.mp3",
-            coverArtUrl: "https://via.placeholder.com/150"
-          }
-        ]);
-
+        console.log(`🔍 Fetching songs for user: ${userId}`);
+        const songsResponse = await axios.get(`/profile/${userId}`);
+        console.log("🔍 Songs fetched:", songsResponse.data); // Log the response for songs
+  
+        // Check if the songs are in the expected format (array)
+        if (Array.isArray(songsResponse.data)) {
+          setUserSongs(songsResponse.data); // Assuming the backend returns an array of songs
+        } else {
+          console.error("❌ Songs data is not an array:", songsResponse.data);
+        }
+  
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching profile data:", error);
         setIsLoading(false);
       }
     };
-
+  
     fetchUserProfile();
-  }, [userId, currentUser]);
+  }, [userId, currentUser]); // Ensure the fetch is triggered when either currentUser or userId changes
+  
+
+
+
+
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -308,35 +305,36 @@ const Profile = () => {
         </div>
 
         <div className="tab-content">
-          {activeTab === 'songs' && (
-            <div className="songs-tab">
-              <h2>Songs</h2>
-              {userSongs.length === 0 ? (
-                <p className="no-content">No songs uploaded yet.</p>
-              ) : (
-                <div className="songs-list">
-                  {userSongs.map(song => (
-                    <div className="song-card" key={song.id}>
-                      <div className="song-cover">
-                        <img src={song.coverArtUrl || "https://via.placeholder.com/150"} alt={song.title} />
-                      </div>
-                      <div className="song-info">
-                        <h3>{song.title}</h3>
-                        <p className="song-genre">{song.genre}</p>
-                        <p className="song-date">Uploaded: {new Date(song.uploadDate).toLocaleDateString()}</p>
-                      </div>
-                      <div className="song-controls">
-                        <button className="play-btn">Play</button>
-                        {isOwner && (
-                          <button className="delete-btn">Delete</button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+        {activeTab === 'songs' && (
+        <div className="songs-tab">
+          <h2>Songs</h2>
+          {userSongs.length === 0 ? (
+            <p className="no-content">No songs uploaded yet.</p>
+          ) : (
+            <div className="songs-list">
+              {userSongs.map(song => (
+                <div className="song-card" key={song.id}>
+                  <div className="song-cover">
+                    <img src={song.coverArtUrl || "https://via.placeholder.com/150"} alt={song.title} />
+                  </div>
+                  <div className="song-info">
+                    <h3>{song.title}</h3>
+                    <p className="song-genre">{song.genre}</p>
+                    <p className="song-date">Uploaded: {new Date(song.uploadDate).toLocaleDateString()}</p>
+                  </div>
+                  <div className="song-controls">
+                    <button className="play-btn">Play</button>
+                    {isOwner && (
+                      <button className="delete-btn">Delete</button>
+                    )}
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
           )}
+        </div>
+      )}
+
 
           {activeTab === 'playlists' && (
             <div className="playlists-tab">
