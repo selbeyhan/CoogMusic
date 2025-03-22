@@ -3,11 +3,16 @@ import { useParams } from 'react-router-dom';
 import { useUser, useClerk } from '@clerk/clerk-react';
 import axios from 'axios';
 import './Profile.css';
+import { useAudio } from '../contexts/AudioContext';
+
 
 const Profile = () => {
   const { userId } = useParams();
   const { user: currentUser } = useUser();
   const { signOut } = useClerk(); // ✅ Use useClerk to get signOut
+  const { setCurrentSong } = useAudio(); 
+
+  // Profile state
   const [userProfile, setUserProfile] = useState(null);
   const [userSongs, setUserSongs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -323,7 +328,16 @@ const Profile = () => {
                   <p className="song-views">Views: {song.views}</p> {/* Display views */}
                 </div>
                 <div className="song-controls">
-                  <button className="play-btn">Play</button>
+                <button
+                    className="play-btn"
+                    onClick={() => {
+                      setCurrentSong(song); // Set song globally
+                      axios.post(`/increment-view/${song.song_id}`).catch(console.error); // Increment view count
+                    }}
+                  >
+                    Play
+                  </button>
+
                   {isOwner && (
                     <button className="delete-btn">Delete</button>
                   )}
