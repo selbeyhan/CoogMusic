@@ -7,6 +7,7 @@ const multer = require("multer");
 const { BlobServiceClient } = require("@azure/storage-blob");
 const { v4: uuidv4 } = require("uuid");
 const { exec } = require("child_process");
+const { parse } = require("querystring"); // Used to parse the request body
 require('dotenv').config();  // This should automatically look for .env in the same folder as server.js
 
 const { Clerk } = require('@clerk/clerk-sdk-node'); // Import Clerk SDK
@@ -405,6 +406,45 @@ if (req.method === "GET" && req.url.startsWith("/user/")) {
 
   return;
 }
+
+// Increment the view count for a song
+if (req.method === "POST" && req.url.startsWith("/increment-view/")) {
+  const songId = req.url.split("/increment-view/")[1]; // Get songId from URL
+
+  if (!songId) {
+    res.statusCode = 400;
+    return res.end(JSON.stringify({ error: "Song ID is required" }));
+  }
+
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+
+    // Increment the view count for the song in the database
+    const [result] = await connection.execute(
+      "UPDATE songs SET views = views + 1 WHERE song_id = ?",
+      [songId]
+    );
+
+    if (result.affectedRows === 0) {
+      res.statusCode = 404;
+      return res.end(JSON.stringify({ error: "Song not found" }));
+    }
+
+    console.log(`View count for song ${songId} incremented.`);
+    res.statusCode = 200;
+    return res.end(JSON.stringify({ message: "View count incremented successfully" }));
+  } catch (err) {
+    console.error("Error incrementing views:", err.message);
+    res.statusCode = 500;
+    return res.end(JSON.stringify({ error: "Failed to increment view count" }));
+  } finally {
+    if (connection) await connection.end();
+  }
+}
+
+
+
 
 // Delete user by Clerk ID from both MySQL and Clerk system
 if (req.method === "DELETE" && req.url.startsWith("/user/")) {

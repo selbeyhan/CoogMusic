@@ -24,6 +24,19 @@ function Home() {
       audioRef.current.pause();
     }
     setCurrentSong(song);
+
+    // Increment view count for the song when clicked
+    incrementViewCount(song.song_id);
+  };
+
+  // Function to call the backend API to increment the view count
+  const incrementViewCount = async (songId) => {
+    try {
+      const response = await axios.post(`/increment-view/${songId}`);
+      console.log(response.data.message); // Log the success message
+    } catch (error) {
+      console.error('Error incrementing view count:', error);
+    }
   };
 
   // When currentSong updates, load the new source and play
