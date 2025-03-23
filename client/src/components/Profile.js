@@ -23,6 +23,8 @@ const Profile = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [playlists, setPlaylists] = useState([]);
+  const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false);
+
 
 
 
@@ -40,22 +42,18 @@ const Profile = () => {
 
 
   useEffect(() => {
-    // Set if the current user is the profile owner
     if (currentUser) {
-      setIsOwner(currentUser.id === userId); // Ensure this matches your currentUser data
+      setIsOwner(currentUser.id === userId);
     }
   
-    // Fetch user profile data and songs
     const fetchUserProfile = async () => {
       try {
-        // Log the currentUser and the userId to debug
         console.log("🔍 Current User ID:", currentUser?.id);
         console.log("🔍 Profile User ID:", userId);
   
-        // Fetch user profile data from MySQL
         const response = await axios.get(`/user/${userId}`);
         const userData = response.data.user;
-        console.log("🔍 MySQL user profile:", userData); // Debugging step
+        console.log("🔍 MySQL user profile:", userData);
   
         setUserProfile({
           id: userData.user_id,
@@ -70,28 +68,42 @@ const Profile = () => {
           verification_status: userData.verification_status || false
         });
   
-        // Fetch user's songs
         console.log(`🔍 Fetching songs for user: ${userId}`);
         const songsResponse = await axios.get(`/api/profile/${userId}`);
-        console.log("🔍 Songs fetched:", songsResponse.data); // Log the response for songs
+        console.log("🔍 Songs fetched:", songsResponse.data);
   
-        // Check if the songs data is in the expected format
         if (Array.isArray(songsResponse.data) && songsResponse.data.length > 0) {
-          const songs = songsResponse.data[0].songs;  // Access songs inside the first object
-          setUserSongs(songs); // Assuming the backend returns an array of songs
+          const songs = songsResponse.data[0].songs;
+          setUserSongs(songs);
         } else {
           console.error("❌ Songs data is not in the expected format:", songsResponse.data);
         }
-  
-        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching profile data:", error);
-        setIsLoading(false);
       }
     };
   
-    fetchUserProfile();
-  }, [userId, currentUser]); // Ensure the fetch is triggered when either currentUser or userId changes
+    const fetchUserPlaylists = async () => {
+      try {
+        const response = await axios.get(`/api/getuserplaylists/${userId}`);
+        console.log("📀 Playlists fetched:", response.data.playlists);
+        setPlaylists(response.data.playlists || []);
+      } catch (error) {
+        console.error("❌ Error fetching playlists:", error);
+      }
+    };
+  
+    const fetchAll = async () => {
+      await fetchUserProfile();
+      await fetchUserPlaylists();
+      setIsLoading(false);
+    };
+  
+    fetchAll();
+  }, [userId, currentUser]);
+  
+
+
   
 
   const handleSaveBio = async () => {
@@ -417,17 +429,34 @@ const Profile = () => {
           <h2>Playlists</h2>
 
           {isOwner && (
-            <div className="create-playlist-form">
-              <input
-                type="text"
-                placeholder="Enter playlist name"
-                value={newPlaylistName}
-                onChange={(e) => setNewPlaylistName(e.target.value)}
-                className="playlist-name-input" // <-- Add this line
-              />
-              <button onClick={handleCreatePlaylist}>Create Playlist</button>
-            </div>
-          )}
+          <>
+            {!showCreatePlaylistInput ? (
+              <button onClick={() => setShowCreatePlaylistInput(true)} style={{ marginBottom: '1rem' }}>
+                Create Playlist
+              </button>
+            ) : (
+              <div className="create-playlist-form">
+                <input
+                  type="text"
+                  placeholder="Enter playlist name"
+                  value={newPlaylistName}
+                  onChange={(e) => setNewPlaylistName(e.target.value)}
+                  className="playlist-name-input"
+                />
+                <button onClick={handleCreatePlaylist}>Save</button>
+                <button
+                  onClick={() => {
+                    setShowCreatePlaylistInput(false);
+                    setNewPlaylistName('');
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
 
           {playlists.length === 0 ? (
             <p className="no-content">No playlists created yet.</p>

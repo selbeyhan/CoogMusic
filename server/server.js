@@ -669,6 +669,48 @@ if (req.method === "POST" && req.url === "/api/createPlaylist") {
 
 
 
+// Get all playlists for a specific user by Clerk user ID
+if (req.method === "GET" && req.url.startsWith("/api/getuserplaylists/")) {
+  const clerkUserId = decodeURIComponent(req.url.split("/api/getuserplaylists/")[1]);
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    // Get the user's internal user_id using Clerk ID
+    const [users] = await connection.execute(
+      "SELECT user_id FROM users WHERE clerk_user_id = ?",
+      [clerkUserId]
+    );
+
+    if (users.length === 0) {
+      await connection.end();
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "User not found" }));
+    }
+
+    const userId = users[0].user_id;
+
+    // Fetch playlists created by the user
+    const [playlists] = await connection.execute(
+      "SELECT * FROM playlists WHERE user_id = ?",
+      [userId]
+    );
+
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ playlists }));
+  } catch (err) {
+    console.error("❌ Error fetching playlists:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to fetch playlists" }));
+  }
+
+  return;
+}
+
+
+
 
 
 
