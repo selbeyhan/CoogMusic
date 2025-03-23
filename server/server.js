@@ -625,6 +625,49 @@ if (req.method === "PATCH" && req.url.startsWith("/update-bio/")) {
 
 
 
+// Create a new playlist
+if (req.method === "POST" && req.url === "/api/createPlaylist") {
+  let body = "";
+
+  req.on("data", (chunk) => {
+    body += chunk.toString();
+  });
+
+  req.on("end", async () => {
+    try {
+      const { name, user_id } = JSON.parse(body);
+
+      if (!name || !user_id) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Missing name or user_id" }));
+      }
+
+      const connection = await mysql.createConnection(dbConfig);
+
+      const [result] = await connection.execute(
+        `INSERT INTO playlists (user_id, name, creation_date) VALUES (?, ?, NOW())`,
+        [user_id, name]
+      );
+
+      await connection.end();
+
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        message: "Playlist created successfully",
+        playlist_id: result.insertId
+      }));
+    } catch (err) {
+      console.error("❌ Error creating playlist:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Internal Server Error" }));
+    }
+  });
+
+  return;
+}
+
+
+
 
 
 

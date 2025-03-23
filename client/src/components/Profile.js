@@ -21,6 +21,9 @@ const Profile = () => {
   const [isOwner, setIsOwner] = useState(false);
   const [activeTab, setActiveTab] = useState('songs');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [playlists, setPlaylists] = useState([]);
+
 
 
   // Upload form state
@@ -106,6 +109,44 @@ const Profile = () => {
     }
   };
   
+  
+
+  const handleCreatePlaylist = async () => {
+    if (!newPlaylistName.trim()) {
+      alert("Playlist name cannot be empty.");
+      return;
+    }
+  
+    try {
+      const payload = {
+        name: newPlaylistName,
+        user_id: userProfile.id
+      };
+  
+      console.log("🛠 Creating playlist with payload:", payload); // Log user_id and name
+  
+      const response = await axios.post('/api/createPlaylist', payload); // send to backend
+  
+      console.log("✅ Playlist created with response:", response.data); // Log server response
+  
+      // Update playlist state
+      setPlaylists(prev => [
+        ...prev,
+        {
+          playlist_id: response.data.playlist_id, // backend should return the new id
+          name: newPlaylistName,
+          creation_date: new Date().toISOString(),
+          is_public: 0
+        }
+      ]);
+  
+      setNewPlaylistName('');
+      alert("Playlist created!");
+    } catch (error) {
+      console.error("❌ Error creating playlist:", error);
+      alert("Failed to create playlist.");
+    }
+  };
   
 
 
@@ -371,13 +412,39 @@ const Profile = () => {
 
 
 
-          {activeTab === 'playlists' && (
-            <div className="playlists-tab">
-              <h2>Playlists</h2>
-              <p className="no-content">No playlists created yet.</p>
-              {/* Add playlist content when feature is implemented */}
+      {activeTab === 'playlists' && (
+        <div className="playlists-tab">
+          <h2>Playlists</h2>
+
+          {isOwner && (
+            <div className="create-playlist-form">
+              <input
+                type="text"
+                placeholder="Enter playlist name"
+                value={newPlaylistName}
+                onChange={(e) => setNewPlaylistName(e.target.value)}
+                className="playlist-name-input" // <-- Add this line
+              />
+              <button onClick={handleCreatePlaylist}>Create Playlist</button>
             </div>
           )}
+
+          {playlists.length === 0 ? (
+            <p className="no-content">No playlists created yet.</p>
+          ) : (
+            <div className="playlists-list">
+              {playlists.map((playlist) => (
+                <div className="playlist-card" key={playlist.playlist_id}>
+                  <h3>{playlist.name}</h3>
+                  <p>Created: {new Date(playlist.creation_date || Date.now()).toLocaleDateString()}</p>
+                  {/* Optional: Add "View" or "Edit" buttons later */}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
 
 
 
