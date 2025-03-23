@@ -803,6 +803,35 @@ if (req.method === "GET" && req.url.startsWith("/api/playlist/")) {
 
 
 
+
+//get the 20 newest songs
+if (req.url === '/newest-songs' && req.method === 'GET') {
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [results] = await connection.execute(`
+      SELECT songs.song_id, songs.title, songs.musician_id, songs.upload_date, songs.genre, songs.duration,
+             songs.file_url, songs.cover_art_url, songs.description, songs.views, users.name AS musician_name
+      FROM songs
+      JOIN users ON songs.musician_id = users.user_id
+      ORDER BY songs.upload_date DESC
+      LIMIT 20
+    `);
+    await connection.end();
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(results));
+  } catch (err) {
+    console.error("❌ Error fetching newest songs:", err.message);
+    res.writeHead(500);
+    res.end(JSON.stringify({ error: 'Failed to fetch newest songs' }));
+  }
+  return;
+}
+
+
+
+
+
 // Serve React Frontend (Static Files)
 const buildPath = path.join(__dirname, "build");
 
