@@ -8,6 +8,8 @@ import './Home.css';
 
 function Home() {
   const [topSongs, setTopSongs] = useState([]);
+  const [newestSongs, setNewestSongs] = useState([]);
+
   const { currentSong, setCurrentSong } = useAudio();
   const { user: currentUser } = useUser();
 
@@ -25,6 +27,18 @@ function Home() {
         console.error('Error fetching top songs:', error);
       });
   }, []);
+
+
+
+  //get newest songs
+  useEffect(() => {
+    axios.get('/newest-songs')
+      .then(response => setNewestSongs(response.data))
+      .catch(error => {
+        console.error('Error fetching newest songs:', error);
+      });
+  }, []);
+  
 
   // 2. Fetch user playlists if currentUser is available
   useEffect(() => {
@@ -177,51 +191,51 @@ function Home() {
         </div>
       </div>
 
-      {/* Newest Songs Section */}
-      <div className="newest-songs-container" style={{ marginTop: '40px' }}>
-        <h2>Newest Songs</h2>
-        <div className="table-scroll">
-          <table className="top-songs-table">
-            <thead>
-              <tr>
-                <th>Song Title</th>
-                <th>Artist</th>
-                <th>Uploaded</th>
-                <th>Views</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topSongs
-                .slice()
-                .sort((a, b) => new Date(b.upload_date) - new Date(a.upload_date))
-                .slice(0, 20)
-                .map((song, index) => (
-                  <tr
-                    key={index}
-                    onClick={() => handleSongClick(song)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <td>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddToPlaylist(song.song_id);
-                        }}
-                        style={{ marginRight: '8px' }}
-                      >
-                        +
-                      </button>
-                      {song.title}
-                    </td>
-                    <td>{song.musician_name}</td>
-                    <td>{new Date(song.upload_date).toLocaleDateString()}</td>
-                    <td>{song.views}</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+
+
+
+{/* Newest Songs Section */}
+<div className="newest-songs-container" style={{ marginTop: '40px' }}>
+  <h2>Newest Songs</h2>
+  <div className="table-scroll">
+    <table className="top-songs-table">
+      <thead>
+        <tr>
+          <th>Song Title</th>
+          <th>Artist</th>
+          <th>Uploaded</th>
+          <th>Views</th>
+        </tr>
+      </thead>
+      <tbody>
+        {newestSongs.map((song, index) => (
+          <tr
+            key={index}
+            onClick={() => handleSongClick(song)}
+            style={{ cursor: 'pointer' }}
+          >
+            <td>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddToPlaylist(song.song_id);
+                }}
+                style={{ marginRight: '8px' }}
+              >
+                +
+              </button>
+              {song.title}
+            </td>
+            <td>{song.musician_name}</td>
+            <td>{new Date(song.upload_date).toLocaleDateString()}</td>
+            <td>{song.views}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 
       {/* Dropdown for adding song to a playlist */}
       {showPlaylistDropdown && (
