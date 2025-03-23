@@ -394,3 +394,38 @@
   border-radius: 4px;
   min-width: 250px;
 }
+
+.playlists-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.playlist-card {
+  display: block;
+  text-decoration: none;
+  color: #333;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 1rem;
+  background: white;
+  transition: transform 0.3s, box-shadow 0.3s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.playlist-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.playlist-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+  color: #ff0000;
+}
+
+.playlist-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #555;
+}
