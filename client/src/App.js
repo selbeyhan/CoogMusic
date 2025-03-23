@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-vars */
-
 /**
  * Disables ESLint warnings for unused variables.
  * These variables are related to the upload song functionality, which is currently
@@ -36,7 +35,7 @@ function AudioPlayerWrapper() {
   };
 
   const playPrev = () => {
-    // implement history if you want; placeholder no‑op for now
+    // Implement history if desired; placeholder no‑op for now.
   };
 
   return (
@@ -61,7 +60,7 @@ function App() {
       <Router>
         <Header user={user} />
 
-        {/* persistent bottom bar */}
+        {/* Persistent bottom audio player across all routes */}
         <AudioPlayerWrapper />
 
         <div className="app-container">

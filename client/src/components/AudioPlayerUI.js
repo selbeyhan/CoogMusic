@@ -31,11 +31,18 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
     const handleEnded = () => {
       if (repeatMode === 'all') {
         onNext();
+      } else if (repeatMode === 'one') {
+        // Replay the same song if in one-repeat mode.
+        audio.currentTime = 0;
+        audio.play().catch(err => console.error("Playback error:", err));
+      } else {
+        setPlaying(false);
       }
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('ended', handleEnded);
+
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('ended', handleEnded);
@@ -43,19 +50,36 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
   }, [repeatMode, onNext]);
 
   useEffect(() => {
-    if (currentSong) {
-      const audio = audioRef.current;
-      audio.src = currentSong.file_url;
-      audio.play();
-      setPlaying(true);
+    if (!currentSong) return;
+    const audio = audioRef.current;
+
+    // Only reload if the song is different.
+    if (audio.src === currentSong.file_url) {
+      console.log("Same song clicked, not reloading.");
+      return;
     }
+
+    console.log("Loading new song:", currentSong.title);
+    // Pause any current playback
+    audio.pause();
+    audio.src = currentSong.file_url;
+    audio.load();
+    audio.play().catch(err => console.error("Playback error:", err));
+    setPlaying(true);
   }, [currentSong]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
-    if (playing) audio.pause();
-    else audio.play();
-    setPlaying(!playing);
+    // Use audio.paused to check if audio is currently paused.
+    if (!audio.paused) {
+      console.log("Pausing audio.");
+      audio.pause();
+      setPlaying(false);
+    } else {
+      console.log("Resuming audio.");
+      audio.play().catch(err => console.error("Playback error:", err));
+      setPlaying(true);
+    }
   };
 
   const seek = (e) => {
@@ -78,6 +102,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
         audio.loop = false;
         return 'all';
       }
+      audio.loop = false;
       return 'off';
     });
   };
@@ -86,6 +111,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
 
   return (
     <div className="player-container">
+      {/* We keep the audio element hidden as we use custom controls */}
       <audio ref={audioRef} style={{ display: 'none' }} />
 
       <div className="player-controls">

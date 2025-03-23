@@ -1,17 +1,17 @@
 /* eslint-disable no-unused-vars */
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAudio } from '../contexts/AudioContext';
-import { useUser } from '@clerk/clerk-react'; // Added to access current user
+import { useUser } from '@clerk/clerk-react'; // Access current user
+import AudioPlayerUI from './AudioPlayerUI'; // Custom audio player
 import './Home.css';
 
 function Home() {
   const [topSongs, setTopSongs] = useState([]);
   const { currentSong, setCurrentSong } = useAudio();
-  const audioRef = useRef(null);
   const { user: currentUser } = useUser();
 
-  // New state for playlist dropdown functionality
+  // Playlist dropdown states
   const [playlists, setPlaylists] = useState([]);
   const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
   const [selectedSongId, setSelectedSongId] = useState(null);
@@ -26,7 +26,7 @@ function Home() {
       });
   }, []);
 
-  // 2. Fetch user playlists if we have a currentUser
+  // 2. Fetch user playlists if currentUser is available
   useEffect(() => {
     console.log("Current user ID:", currentUser?.id);
 
@@ -40,11 +40,8 @@ function Home() {
     }
   }, [currentUser]);
 
-  // Plays the clicked song and increments view count
+  // Play the clicked song & increment views
   const handleSongClick = (song) => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
     setCurrentSong(song);
     incrementViewCount(song.song_id);
   };
@@ -58,14 +55,14 @@ function Home() {
     }
   };
 
-  // Opens dropdown to add a song to a playlist
+  // Show dropdown to add a song to a playlist
   const handleAddToPlaylist = (songId) => {
     console.log("handleAddToPlaylist called for songId:", songId);
     console.log("Current playlists length:", playlists.length);
 
     if (playlists.length === 0) {
       if (window.confirm("You have no playlists. Would you like to create one now?")) {
-        window.location.href = "/profile"; // Redirect to profile page for creating a playlist
+        window.location.href = "/profile"; // or your profile route
       }
       return;
     }
@@ -74,16 +71,13 @@ function Home() {
     setShowPlaylistDropdown(true);
   };
 
-
-
-  // Confirms adding the selected song to the selected playlist
+  // Confirm adding the song to the chosen playlist
   const confirmAddToPlaylist = async () => {
-    // Guard against empty playlist selection
     if (!selectedPlaylistId) {
       alert("Please select a playlist first.");
       return;
     }
-  
+
     if (selectedPlaylistId === "create_new") {
       alert("Please create a new playlist in your profile.");
       setShowPlaylistDropdown(false);
@@ -91,13 +85,13 @@ function Home() {
       setSelectedPlaylistId("");
       return;
     }
-  
+
     try {
       const payload = {
         playlist_id: selectedPlaylistId,
         song_id: selectedSongId
       };
-      console.log("Sending payload:", payload); // Log payload
+      console.log("Sending payload:", payload);
       const response = await axios.post('/api/addToPlaylist', payload);
       alert(response.data.message || "Song added to playlist!");
     } catch (error) {
@@ -114,19 +108,21 @@ function Home() {
     setSelectedSongId(null);
     setSelectedPlaylistId("");
   };
-  
 
+  // Basic next/prev handlers for AudioPlayerUI
+  const onNext = () => {
+    if (!currentSong || topSongs.length === 0) return;
+    const currentIndex = topSongs.findIndex(song => song.song_id === currentSong.song_id);
+    const nextIndex = (currentIndex + 1) % topSongs.length;
+    setCurrentSong(topSongs[nextIndex]);
+  };
 
-
-
-  // Auto-play the newly selected song
-  useEffect(() => {
-    if (audioRef.current && currentSong) {
-      audioRef.current.src = currentSong.file_url;
-      audioRef.current.load();
-      audioRef.current.play();
-    }
-  }, [currentSong]);
+  const onPrev = () => {
+    if (!currentSong || topSongs.length === 0) return;
+    const currentIndex = topSongs.findIndex(song => song.song_id === currentSong.song_id);
+    const prevIndex = (currentIndex - 1 + topSongs.length) % topSongs.length;
+    setCurrentSong(topSongs[prevIndex]);
+  };
 
   return (
     <div className="home-container">
@@ -227,39 +223,39 @@ function Home() {
         </div>
       </div>
 
-{/* Dropdown for adding song to a playlist */}
-{showPlaylistDropdown && (
-  <div className="playlist-dropdown-overlay">
-    <div className="playlist-dropdown">
-      <label>Select a Playlist:</label>
-      <select
-        value={selectedPlaylistId}
-        onChange={(e) => {
-          const value = e.target.value;
-          console.log("Dropdown changed, selected playlist_id:", value);
-          setSelectedPlaylistId(value);
-        }}
-      >
-        <option value="">-- Select a Playlist --</option>
-        {playlists.map((pl) => (
-          <option key={pl.playlist_id} value={pl.playlist_id}>
-            {pl.name}
-          </option>
-        ))}
-        <option value="create_new">Create New Playlist</option>
-      </select>
-      <div style={{ marginTop: '8px' }}>
-        <button onClick={confirmAddToPlaylist} style={{ marginRight: '8px' }}>
-          Add Song
-        </button>
-        <button onClick={cancelPlaylistDropdown}>Cancel</button>
-      </div>
-    </div>
-  </div>
-)}
+      {/* Dropdown for adding song to a playlist */}
+      {showPlaylistDropdown && (
+        <div className="playlist-dropdown-overlay">
+          <div className="playlist-dropdown">
+            <label>Select a Playlist:</label>
+            <select
+              value={selectedPlaylistId}
+              onChange={(e) => {
+                const value = e.target.value;
+                console.log("Dropdown changed, selected playlist_id:", value);
+                setSelectedPlaylistId(value);
+              }}
+            >
+              <option value="">-- Select a Playlist --</option>
+              {playlists.map((pl) => (
+                <option key={pl.playlist_id} value={pl.playlist_id}>
+                  {pl.name}
+                </option>
+              ))}
+              <option value="create_new">Create New Playlist</option>
+            </select>
+            <div style={{ marginTop: '8px' }}>
+              <button onClick={confirmAddToPlaylist} style={{ marginRight: '8px' }}>
+                Add Song
+              </button>
+              <button onClick={cancelPlaylistDropdown}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
-
-      <audio ref={audioRef} style={{ display: 'none' }} />
+      {/* Render AudioPlayerUI to control playback */}
+      
     </div>
   );
 }
