@@ -193,3 +193,26 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+
+
+.playlist-dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.playlist-dropdown {
+  background: #fff;
+  padding: 1rem;
+  border-radius: 8px;
+  max-width: 300px;
+  width: 90%;
+}

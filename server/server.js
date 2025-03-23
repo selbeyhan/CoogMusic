@@ -712,6 +712,46 @@ if (req.method === "GET" && req.url.startsWith("/api/getuserplaylists/")) {
 
 
 
+if (req.method === "POST" && req.url === "/api/addToPlaylist") {
+  let body = "";
+
+  req.on("data", (chunk) => {
+    body += chunk.toString();
+  });
+
+  req.on("end", async () => {
+    try {
+      const { playlist_id, song_id } = JSON.parse(body);
+
+      if (!playlist_id || !song_id) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Missing playlist_id or song_id" }));
+      }
+
+      const connection = await mysql.createConnection(dbConfig);
+      const addedDate = new Date().toISOString().slice(0, 19).replace("T", " ");
+
+      await connection.execute(
+        `INSERT IGNORE INTO \`playlist songs\` (playlist_id, song_id, added_date) VALUES (?, ?, ?)`,
+        [playlist_id, song_id, addedDate]
+      );
+
+      await connection.end();
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Song added to playlist successfully" }));
+    } catch (err) {
+      console.error("❌ Error adding song to playlist:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Internal Server Error" }));
+    }
+  });
+
+  return;
+}
+
+
+
 
 
 
