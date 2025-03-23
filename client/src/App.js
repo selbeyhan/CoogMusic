@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-vars */
-
 /**
  * Disables ESLint warnings for unused variables.
  * These variables are related to the upload song functionality, which is currently
@@ -19,6 +18,8 @@ import About from './components/About';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import VerifyEmailRedirect from './components/VerifyEmailRedirect';
+import PlaylistView from './components/PlaylistView';
+
 
 import AudioPlayerUI from './components/AudioPlayerUI';
 import { AudioProvider, useAudio } from './contexts/AudioContext';
@@ -36,7 +37,7 @@ function AudioPlayerWrapper() {
   };
 
   const playPrev = () => {
-    // implement history if you want; placeholder no‑op for now
+    // Implement history if desired; placeholder no‑op for now.
   };
 
   return (
@@ -61,7 +62,7 @@ function App() {
       <Router>
         <Header user={user} />
 
-        {/* persistent bottom bar */}
+        {/* Persistent bottom audio player across all routes */}
         <AudioPlayerWrapper />
 
         <div className="app-container">
@@ -75,6 +76,7 @@ function App() {
                 </SignedIn>
               }
             />
+            <Route path="/playlist/:playlistId" element={<PlaylistView />} />
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />

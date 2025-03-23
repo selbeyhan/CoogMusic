@@ -1,19 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useUser, useClerk } from '@clerk/clerk-react';
 import axios from 'axios';
 import './Profile.css';
+import { useAudio } from '../contexts/AudioContext';
+import { FaPencilAlt } from 'react-icons/fa'; // import at the top
+
+
 
 const Profile = () => {
   const { userId } = useParams();
   const { user: currentUser } = useUser();
   const { signOut } = useClerk(); // ✅ Use useClerk to get signOut
+  const { setCurrentSong } = useAudio(); 
+
+  // Profile state
   const [userProfile, setUserProfile] = useState(null);
   const [userSongs, setUserSongs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [activeTab, setActiveTab] = useState('songs');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [playlists, setPlaylists] = useState([]);
+  const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false);
+
+
 
 
   // Upload form state
@@ -30,22 +42,18 @@ const Profile = () => {
 
 
   useEffect(() => {
-    // Set if the current user is the profile owner
     if (currentUser) {
-      setIsOwner(currentUser.id === userId); // Ensure this matches your currentUser data
+      setIsOwner(currentUser.id === userId);
     }
   
-    // Fetch user profile data and songs
     const fetchUserProfile = async () => {
       try {
-        // Log the currentUser and the userId to debug
         console.log("🔍 Current User ID:", currentUser?.id);
         console.log("🔍 Profile User ID:", userId);
   
-        // Fetch user profile data from MySQL
         const response = await axios.get(`/user/${userId}`);
         const userData = response.data.user;
-        console.log("🔍 MySQL user profile:", userData); // Debugging step
+        console.log("🔍 MySQL user profile:", userData);
   
         setUserProfile({
           id: userData.user_id,
@@ -60,30 +68,98 @@ const Profile = () => {
           verification_status: userData.verification_status || false
         });
   
-        // Fetch user's songs
         console.log(`🔍 Fetching songs for user: ${userId}`);
-        const songsResponse = await axios.get(`/profile/${userId}`);
-        console.log("🔍 Songs fetched:", songsResponse.data); // Log the response for songs
+        const songsResponse = await axios.get(`/api/profile/${userId}`);
+        console.log("🔍 Songs fetched:", songsResponse.data);
   
-        // Check if the songs data is in the expected format
         if (Array.isArray(songsResponse.data) && songsResponse.data.length > 0) {
-          const songs = songsResponse.data[0].songs;  // Access songs inside the first object
-          setUserSongs(songs); // Assuming the backend returns an array of songs
+          const songs = songsResponse.data[0].songs;
+          setUserSongs(songs);
         } else {
           console.error("❌ Songs data is not in the expected format:", songsResponse.data);
         }
-  
-        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching profile data:", error);
-        setIsLoading(false);
       }
     };
   
-    fetchUserProfile();
-  }, [userId, currentUser]); // Ensure the fetch is triggered when either currentUser or userId changes
+    const fetchUserPlaylists = async () => {
+      try {
+        const response = await axios.get(`/api/getuserplaylists/${userId}`);
+        console.log("📀 Playlists fetched:", response.data.playlists);
+        setPlaylists(response.data.playlists || []);
+      } catch (error) {
+        console.error("❌ Error fetching playlists:", error);
+      }
+    };
+  
+    const fetchAll = async () => {
+      await fetchUserProfile();
+      await fetchUserPlaylists();
+      setIsLoading(false);
+    };
+  
+    fetchAll();
+  }, [userId, currentUser]);
   
 
+
+  
+
+  const handleSaveBio = async () => {
+    try {
+      await axios.patch(`/update-bio/${userId}`, { bio: userProfile.newBio });
+      setUserProfile(prev => ({
+        ...prev,
+        bio: prev.newBio,
+        editingBio: false
+      }));
+      alert("Bio updated successfully!");
+    } catch (err) {
+      console.error("Error updating bio:", err);
+      alert("Failed to update bio.");
+    }
+  };
+  
+  
+
+  const handleCreatePlaylist = async () => {
+    if (!newPlaylistName.trim()) {
+      alert("Playlist name cannot be empty.");
+      return;
+    }
+  
+    try {
+      const payload = {
+        name: newPlaylistName,
+        user_id: userProfile.id
+      };
+  
+      console.log("🛠 Creating playlist with payload:", payload); // Log user_id and name
+  
+      const response = await axios.post('/api/createPlaylist', payload); // send to backend
+  
+      console.log("✅ Playlist created with response:", response.data); // Log server response
+  
+      // Update playlist state
+      setPlaylists(prev => [
+        ...prev,
+        {
+          playlist_id: response.data.playlist_id, // backend should return the new id
+          name: newPlaylistName,
+          creation_date: new Date().toISOString(),
+          is_public: 0
+        }
+      ]);
+  
+      setNewPlaylistName('');
+      alert("Playlist created!");
+    } catch (error) {
+      console.error("❌ Error creating playlist:", error);
+      alert("Failed to create playlist.");
+    }
+  };
+  
 
 
   const handleTabChange = (tab) => {
@@ -323,7 +399,16 @@ const Profile = () => {
                   <p className="song-views">Views: {song.views}</p> {/* Display views */}
                 </div>
                 <div className="song-controls">
-                  <button className="play-btn">Play</button>
+                <button
+                    className="play-btn"
+                    onClick={() => {
+                      setCurrentSong(song); // Set song globally
+                      axios.post(`/increment-view/${song.song_id}`).catch(console.error); // Increment view count
+                    }}
+                  >
+                    Play
+                  </button>
+
                   {isOwner && (
                     <button className="delete-btn">Delete</button>
                   )}
@@ -339,13 +424,62 @@ const Profile = () => {
 
 
 
-          {activeTab === 'playlists' && (
-            <div className="playlists-tab">
-              <h2>Playlists</h2>
-              <p className="no-content">No playlists created yet.</p>
-              {/* Add playlist content when feature is implemented */}
+      {activeTab === 'playlists' && (
+        <div className="playlists-tab">
+          <h2>Playlists</h2>
+
+          {isOwner && (
+          <>
+            {!showCreatePlaylistInput ? (
+              <button onClick={() => setShowCreatePlaylistInput(true)} style={{ marginBottom: '1rem' }}>
+                Create Playlist
+              </button>
+            ) : (
+              <div className="create-playlist-form">
+                <input
+                  type="text"
+                  placeholder="Enter playlist name"
+                  value={newPlaylistName}
+                  onChange={(e) => setNewPlaylistName(e.target.value)}
+                  className="playlist-name-input"
+                />
+                <button onClick={handleCreatePlaylist}>Save</button>
+                <button
+                  onClick={() => {
+                    setShowCreatePlaylistInput(false);
+                    setNewPlaylistName('');
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+
+          {playlists.length === 0 ? (
+            <p className="no-content">No playlists created yet.</p>
+          ) : (
+            <div className="playlists-list">
+              {playlists.map((playlist) => (
+                <Link 
+                  to={`/playlist/${playlist.playlist_id}`} 
+                  key={playlist.playlist_id} 
+                  className="playlist-card"
+                >
+                  <h3>{playlist.name}</h3>
+                  <p>Created: {new Date(playlist.creation_date || Date.now()).toLocaleDateString()}</p>
+                </Link>
+              ))}
             </div>
           )}
+        </div>
+      )}
+
+
+
+
 
           {activeTab === 'about' && (
             <div className="about-tab">
@@ -362,12 +496,55 @@ const Profile = () => {
                 <span className="label">Member Since:</span>
                 <span className="value">{new Date(userProfile.registrationDate).toLocaleDateString()}</span>
               </div>
-              <div className="bio-section">
-                <h3>Bio</h3>
-                <p>{userProfile.bio || "No bio provided."}</p>
+
+              <div className="bio-section" style={{ textAlign: 'center' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <h3 style={{ margin: 0, color: 'red' }}>Bio</h3>
+                  {isOwner && !userProfile.editingBio && (
+                    <FaPencilAlt
+                      style={{ cursor: 'pointer', fontSize: '14px', color: '#555' }}
+                      title="Edit Bio"
+                      onClick={() =>
+                        setUserProfile((prev) => ({ ...prev, editingBio: true, newBio: prev.bio }))
+                      }
+                    />
+                  )}
+                </div>
+
+                {isOwner && userProfile.editingBio ? (
+                  <div style={{ marginTop: '10px' }}>
+                    <textarea
+                      rows="4"
+                      style={{ width: '100%', maxWidth: '500px' }}
+                      value={userProfile.newBio}
+                      onChange={(e) =>
+                        setUserProfile((prev) => ({ ...prev, newBio: e.target.value }))
+                      }
+                    />
+                    <div style={{ marginTop: '10px' }}>
+                      <button style={{ marginRight: '10px' }} onClick={handleSaveBio}>
+                        Save
+                      </button>
+                      <button
+                        onClick={() =>
+                          setUserProfile((prev) => ({ ...prev, editingBio: false }))
+                        }
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p>{userProfile.bio || "No bio provided."}</p>
+                )}
               </div>
             </div>
           )}
+
+
+
+
+
         </div>
       </div>
     </div>

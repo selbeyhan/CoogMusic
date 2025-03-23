@@ -526,8 +526,8 @@ if (req.method === "DELETE" && req.url.startsWith("/user/")) {
 
 
 // Endpoint to get songs uploaded by a specific user (profile page)
-if (req.method === "GET" && req.url.startsWith("/profile/")) {
-  const clerkUserId = req.url.split("/profile/")[1]; // Extract clerk_user_id from the URL
+if (req.method === "GET" && req.url.startsWith("/api/profile/")) {
+  const clerkUserId = req.url.split("/api/profile/")[1];
 
   try {
     // Fetch the user ID based on clerk_user_id
@@ -570,41 +570,272 @@ if (req.method === "GET" && req.url.startsWith("/profile/")) {
   return;
 }
 
+// Update bio using Clerk user ID
+if (req.method === "PATCH" && req.url.startsWith("/update-bio/")) {
+  const clerkUserId = decodeURIComponent(req.url.split("/update-bio/")[1]);
+  let body = "";
+
+  req.on("data", chunk => {
+    body += chunk.toString();
+  });
+
+  req.on("end", async () => {
+    try {
+      const { bio } = JSON.parse(body);
+      if (!bio || !clerkUserId) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Missing bio or clerk_user_id." }));
+      }
+
+      const connection = await mysql.createConnection(dbConfig);
+
+      // Get user_id from clerk_user_id
+      const [users] = await connection.execute(
+        "SELECT user_id FROM users WHERE clerk_user_id = ?",
+        [clerkUserId]
+      );
+
+      if (users.length === 0) {
+        await connection.end();
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "User not found." }));
+      }
+
+      const userId = users[0].user_id;
+
+      // Update bio
+      const [result] = await connection.execute(
+        "UPDATE users SET bio = ? WHERE user_id = ?",
+        [bio, userId]
+      );
+
+      await connection.end();
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Bio updated successfully." }));
+    } catch (err) {
+      console.error("❌ Error updating bio:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Internal Server Error" }));
+    }
+  });
+
+  return;
+}
+
+
+
+// Create a new playlist
+if (req.method === "POST" && req.url === "/api/createPlaylist") {
+  let body = "";
+
+  req.on("data", (chunk) => {
+    body += chunk.toString();
+  });
+
+  req.on("end", async () => {
+    try {
+      const { name, user_id } = JSON.parse(body);
+
+      if (!name || !user_id) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Missing name or user_id" }));
+      }
+
+      const connection = await mysql.createConnection(dbConfig);
+
+      const [result] = await connection.execute(
+        `INSERT INTO playlists (user_id, name, creation_date) VALUES (?, ?, NOW())`,
+        [user_id, name]
+      );
+
+      await connection.end();
+
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        message: "Playlist created successfully",
+        playlist_id: result.insertId
+      }));
+    } catch (err) {
+      console.error("❌ Error creating playlist:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Internal Server Error" }));
+    }
+  });
+
+  return;
+}
+
+
+
+
+// Get all playlists for a specific user by Clerk user ID
+if (req.method === "GET" && req.url.startsWith("/api/getuserplaylists/")) {
+  const clerkUserId = decodeURIComponent(req.url.split("/api/getuserplaylists/")[1]);
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    // Get the user's internal user_id using Clerk ID
+    const [users] = await connection.execute(
+      "SELECT user_id FROM users WHERE clerk_user_id = ?",
+      [clerkUserId]
+    );
+
+    if (users.length === 0) {
+      await connection.end();
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "User not found" }));
+    }
+
+    const userId = users[0].user_id;
+
+    // Fetch playlists created by the user
+    const [playlists] = await connection.execute(
+      "SELECT * FROM playlists WHERE user_id = ?",
+      [userId]
+    );
+
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ playlists }));
+  } catch (err) {
+    console.error("❌ Error fetching playlists:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to fetch playlists" }));
+  }
+
+  return;
+}
+
+
+
+
+if (req.method === "POST" && req.url === "/api/addToPlaylist") {
+  let body = "";
+
+  req.on("data", (chunk) => {
+    body += chunk.toString();
+  });
+
+  req.on("end", async () => {
+    try {
+      const { playlist_id, song_id } = JSON.parse(body);
+
+      if (!playlist_id || !song_id) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Missing playlist_id or song_id" }));
+      }
+
+      const connection = await mysql.createConnection(dbConfig);
+      const addedDate = new Date().toISOString().slice(0, 19).replace("T", " ");
+
+      await connection.execute(
+        `INSERT IGNORE INTO \`playlist songs\` (playlist_id, song_id, added_date) VALUES (?, ?, ?)`,
+        [playlist_id, song_id, addedDate]
+      );
+
+      await connection.end();
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Song added to playlist successfully" }));
+    } catch (err) {
+      console.error("❌ Error adding song to playlist:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Internal Server Error" }));
+    }
+  });
+
+  return;
+}
+
+
+
+// Get a playlist and its songs
+if (req.method === "GET" && req.url.startsWith("/api/playlist/")) {
+  const playlistId = decodeURIComponent(req.url.split("/api/playlist/")[1]);
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    // Fetch playlist info
+    const [playlistData] = await connection.execute(
+      "SELECT * FROM playlists WHERE playlist_id = ?",
+      [playlistId]
+    );
+
+    if (playlistData.length === 0) {
+      await connection.end();
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Playlist not found" }));
+    }
+
+    // Fetch songs in the playlist
+    const [songs] = await connection.execute(`
+      SELECT s.song_id, s.title, s.genre, s.upload_date, s.views, s.file_url, s.cover_art_url, s.description,
+             u.name AS musician_name
+      FROM \`playlist songs\` ps
+      JOIN songs s ON ps.song_id = s.song_id
+      JOIN users u ON s.musician_id = u.user_id
+      WHERE ps.playlist_id = ?
+      ORDER BY ps.added_date ASC
+    `, [playlistId]);
+
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      playlist: playlistData[0],
+      songs
+    }));
+  } catch (err) {
+    console.error("❌ Error fetching playlist and songs:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Internal Server Error" }));
+  }
+
+  return;
+}
 
 
 
 
 
 
+// Serve React Frontend (Static Files)
+const buildPath = path.join(__dirname, "build");
 
+if (req.method === "GET") {
+  let requestedPath = req.url.split("?")[0]; // Remove query string if present
+  let filePath = path.join(buildPath, requestedPath);
 
+  // If the request does not have a file extension, fallback to index.html (React route)
+  if (!path.extname(requestedPath)) {
+    filePath = path.join(buildPath, "index.html");
+  }
 
+  fs.readFile(filePath, (err, content) => {
+    if (!err) {
+      res.writeHead(200);
+      res.end(content);
+    } else {
+      // Fallback to index.html if file not found, assuming it's a React route
+      fs.readFile(path.join(buildPath, "index.html"), (indexErr, indexContent) => {
+        if (!indexErr) {
+          res.writeHead(200);
+          res.end(indexContent);
+        } else {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ message: "Not Found" }));
+        }
+      });
+    }
+  });
 
- // Serve React Frontend (Static Files)
- const buildPath = path.join(__dirname, "build");
- if (req.method === "GET") {
-   let filePath = path.join(buildPath, req.url === "/" ? "index.html" : req.url);
+  return;
+}
 
-
-   fs.readFile(filePath, (err, content) => {
-     if (!err) {
-       res.writeHead(200);
-       res.end(content);
-     } else {
-       // Fallback to index.html for client-side routing
-       fs.readFile(path.join(buildPath, "index.html"), (err, content) => {
-         if (!err) {
-           res.writeHead(200);
-           res.end(content);
-         } else {
-           res.writeHead(404, { "Content-Type": "application/json" });
-           res.end(JSON.stringify({ message: "Not Found" }));
-         }
-       });
-     }
-   });
-   return;
- }
 
 
 
