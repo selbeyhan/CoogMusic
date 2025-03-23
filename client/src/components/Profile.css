@@ -254,6 +254,31 @@
   gap: 0.5rem;
 }
 
+.playlist-card-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.delete-playlist-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #ff4d4f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.playlist-card-container:hover .delete-playlist-btn {
+  opacity: 1;
+}
+
 .play-btn, .delete-btn {
   flex: 1;
   padding: 0.5rem;
