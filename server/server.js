@@ -643,10 +643,29 @@ if (req.method === "POST" && req.url === "/api/createPlaylist") {
       }
 
       const connection = await mysql.createConnection(dbConfig);
+      
+      // Check if user_id is a Clerk ID (starts with 'user_')
+      let internalUserId = user_id;
+      
+      if (typeof user_id === 'string' && user_id.startsWith('user_')) {
+        // Find the internal user_id from the Clerk ID
+        const [userRow] = await connection.execute(
+          "SELECT user_id FROM users WHERE clerk_user_id = ?",
+          [user_id]
+        );
+        
+        if (userRow.length === 0) {
+          await connection.end();
+          res.writeHead(404, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "User not found" }));
+        }
+        
+        internalUserId = userRow[0].user_id;
+      }
 
       const [result] = await connection.execute(
         `INSERT INTO playlists (user_id, name, creation_date) VALUES (?, ?, NOW())`,
-        [user_id, name]
+        [internalUserId, name]
       );
 
       await connection.end();
@@ -666,7 +685,49 @@ if (req.method === "POST" && req.url === "/api/createPlaylist") {
   return;
 }
 
+// Update the DELETE endpoint for playlists (around line 659)
+if (req.method === "DELETE" && req.url.startsWith("/api/playlist/")) {
+  const playlistId = decodeURIComponent(req.url.split("/api/playlist/")[1]);
 
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    // First, verify if the playlist exists
+    const [playlist] = await connection.execute(
+      "SELECT * FROM playlists WHERE playlist_id = ?",
+      [playlistId]
+    );
+
+    if (playlist.length === 0) {
+      await connection.end();
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Playlist not found" }));
+    }
+
+    // First delete entries from the playlist_songs table
+    await connection.execute(
+      "DELETE FROM `playlist songs` WHERE playlist_id = ?",
+      [playlistId]
+    );
+
+    // Then delete the playlist itself
+    await connection.execute(
+      "DELETE FROM playlists WHERE playlist_id = ?",
+      [playlistId]
+    );
+
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ message: "Playlist deleted successfully" }));
+  } catch (err) {
+    console.error("❌ Error deleting playlist:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Internal Server Error" }));
+  }
+
+  return;
+}
 
 
 // Get all playlists for a specific user by Clerk user ID

@@ -458,22 +458,43 @@ const Profile = () => {
         )}
 
 
-          {playlists.length === 0 ? (
-            <p className="no-content">No playlists created yet.</p>
-          ) : (
-            <div className="playlists-list">
-              {playlists.map((playlist) => (
+        {playlists.length === 0 ? (
+          <p className="no-content">No playlists created yet.</p>
+        ) : (
+          <div className="playlists-list">
+            {playlists.map((playlist) => (
+              <div key={playlist.playlist_id} className="playlist-card-container">
                 <Link 
                   to={`/playlist/${playlist.playlist_id}`} 
-                  key={playlist.playlist_id} 
                   className="playlist-card"
                 >
                   <h3>{playlist.name}</h3>
                   <p>Created: {new Date(playlist.creation_date || Date.now()).toLocaleDateString()}</p>
                 </Link>
-              ))}
-            </div>
-          )}
+                {isOwner && (
+                  <button 
+                    onClick={async () => {
+                      if (window.confirm(`Are you sure you want to delete playlist "${playlist.name}"?`)) {
+                        try {
+                          await axios.delete(`/api/playlist/${playlist.playlist_id}`);
+                          setPlaylists(playlists.filter(pl => pl.playlist_id !== playlist.playlist_id));
+                          alert('Playlist deleted successfully!');
+                        } catch (error) {
+                          console.error('Error deleting playlist:', error);
+                          alert('Failed to delete playlist. Please try again.');
+                        }
+                      }
+                    }}
+                    className="delete-playlist-btn"
+                    title="Delete Playlist"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
         </div>
       )}
 
