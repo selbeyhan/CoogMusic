@@ -570,8 +570,58 @@ if (req.method === "GET" && req.url.startsWith("/api/profile/")) {
   return;
 }
 
+// Update bio using Clerk user ID
+if (req.method === "PATCH" && req.url.startsWith("/update-bio/")) {
+  const clerkUserId = decodeURIComponent(req.url.split("/update-bio/")[1]);
+  let body = "";
 
+  req.on("data", chunk => {
+    body += chunk.toString();
+  });
 
+  req.on("end", async () => {
+    try {
+      const { bio } = JSON.parse(body);
+      if (!bio || !clerkUserId) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Missing bio or clerk_user_id." }));
+      }
+
+      const connection = await mysql.createConnection(dbConfig);
+
+      // Get user_id from clerk_user_id
+      const [users] = await connection.execute(
+        "SELECT user_id FROM users WHERE clerk_user_id = ?",
+        [clerkUserId]
+      );
+
+      if (users.length === 0) {
+        await connection.end();
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "User not found." }));
+      }
+
+      const userId = users[0].user_id;
+
+      // Update bio
+      const [result] = await connection.execute(
+        "UPDATE users SET bio = ? WHERE user_id = ?",
+        [bio, userId]
+      );
+
+      await connection.end();
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Bio updated successfully." }));
+    } catch (err) {
+      console.error("❌ Error updating bio:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Internal Server Error" }));
+    }
+  });
+
+  return;
+}
 
 
 

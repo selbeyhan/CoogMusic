@@ -91,6 +91,22 @@ const Profile = () => {
   }, [userId, currentUser]); // Ensure the fetch is triggered when either currentUser or userId changes
   
 
+  const handleSaveBio = async () => {
+    try {
+      await axios.patch(`/update-bio/${userId}`, { bio: userProfile.newBio });
+      setUserProfile(prev => ({
+        ...prev,
+        bio: prev.newBio,
+        editingBio: false
+      }));
+      alert("Bio updated successfully!");
+    } catch (err) {
+      console.error("Error updating bio:", err);
+      alert("Failed to update bio.");
+    }
+  };
+  
+  
 
 
   const handleTabChange = (tab) => {
@@ -407,23 +423,7 @@ const Profile = () => {
                       }
                     />
                     <div style={{ marginTop: '10px' }}>
-                      <button
-                        style={{ marginRight: '10px' }}
-                        onClick={async () => {
-                          try {
-                            await axios.patch(`/user/${userId}`, { bio: userProfile.newBio });
-                            setUserProfile((prev) => ({
-                              ...prev,
-                              bio: prev.newBio,
-                              editingBio: false,
-                            }));
-                            alert('Bio updated successfully!');
-                          } catch (err) {
-                            console.error("Failed to update bio:", err);
-                            alert('Failed to update bio.');
-                          }
-                        }}
-                      >
+                      <button style={{ marginRight: '10px' }} onClick={handleSaveBio}>
                         Save
                       </button>
                       <button
