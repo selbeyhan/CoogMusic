@@ -67,7 +67,7 @@ const Profile = () => {
   
         // Fetch user's songs
         console.log(`🔍 Fetching songs for user: ${userId}`);
-        const songsResponse = await axios.get(`/profile/${userId}`);
+        const songsResponse = await axios.get(`/api/profile/${userId}`);
         console.log("🔍 Songs fetched:", songsResponse.data); // Log the response for songs
   
         // Check if the songs data is in the expected format

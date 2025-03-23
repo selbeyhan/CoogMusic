@@ -526,8 +526,8 @@ if (req.method === "DELETE" && req.url.startsWith("/user/")) {
 
 
 // Endpoint to get songs uploaded by a specific user (profile page)
-if (req.method === "GET" && req.url.startsWith("/profile/")) {
-  const clerkUserId = req.url.split("/profile/")[1]; // Extract clerk_user_id from the URL
+if (req.method === "GET" && req.url.startsWith("/api/profile/")) {
+  const clerkUserId = req.url.split("/api/profile/")[1];
 
   try {
     // Fetch the user ID based on clerk_user_id
@@ -580,31 +580,39 @@ if (req.method === "GET" && req.url.startsWith("/profile/")) {
 
 
 
- // Serve React Frontend (Static Files)
- const buildPath = path.join(__dirname, "build");
- if (req.method === "GET") {
-   let filePath = path.join(buildPath, req.url === "/" ? "index.html" : req.url);
+// Serve React Frontend (Static Files)
+const buildPath = path.join(__dirname, "build");
 
+if (req.method === "GET") {
+  let requestedPath = req.url.split("?")[0]; // Remove query string if present
+  let filePath = path.join(buildPath, requestedPath);
 
-   fs.readFile(filePath, (err, content) => {
-     if (!err) {
-       res.writeHead(200);
-       res.end(content);
-     } else {
-       // Fallback to index.html for client-side routing
-       fs.readFile(path.join(buildPath, "index.html"), (err, content) => {
-         if (!err) {
-           res.writeHead(200);
-           res.end(content);
-         } else {
-           res.writeHead(404, { "Content-Type": "application/json" });
-           res.end(JSON.stringify({ message: "Not Found" }));
-         }
-       });
-     }
-   });
-   return;
- }
+  // If the request does not have a file extension, fallback to index.html (React route)
+  if (!path.extname(requestedPath)) {
+    filePath = path.join(buildPath, "index.html");
+  }
+
+  fs.readFile(filePath, (err, content) => {
+    if (!err) {
+      res.writeHead(200);
+      res.end(content);
+    } else {
+      // Fallback to index.html if file not found, assuming it's a React route
+      fs.readFile(path.join(buildPath, "index.html"), (indexErr, indexContent) => {
+        if (!indexErr) {
+          res.writeHead(200);
+          res.end(indexContent);
+        } else {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ message: "Not Found" }));
+        }
+      });
+    }
+  });
+
+  return;
+}
+
 
 
 
