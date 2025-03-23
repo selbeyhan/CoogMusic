@@ -4,6 +4,8 @@ import { useUser, useClerk } from '@clerk/clerk-react';
 import axios from 'axios';
 import './Profile.css';
 import { useAudio } from '../contexts/AudioContext';
+import { FaPencilAlt } from 'react-icons/fa'; // import at the top
+
 
 
 const Profile = () => {
@@ -361,6 +363,9 @@ const Profile = () => {
             </div>
           )}
 
+
+
+
           {activeTab === 'about' && (
             <div className="about-tab">
               <h2>About {userProfile.name}</h2>
@@ -376,12 +381,71 @@ const Profile = () => {
                 <span className="label">Member Since:</span>
                 <span className="value">{new Date(userProfile.registrationDate).toLocaleDateString()}</span>
               </div>
-              <div className="bio-section">
-                <h3>Bio</h3>
-                <p>{userProfile.bio || "No bio provided."}</p>
+
+              <div className="bio-section" style={{ textAlign: 'center' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <h3 style={{ margin: 0, color: 'red' }}>Bio</h3>
+                  {isOwner && !userProfile.editingBio && (
+                    <FaPencilAlt
+                      style={{ cursor: 'pointer', fontSize: '14px', color: '#555' }}
+                      title="Edit Bio"
+                      onClick={() =>
+                        setUserProfile((prev) => ({ ...prev, editingBio: true, newBio: prev.bio }))
+                      }
+                    />
+                  )}
+                </div>
+
+                {isOwner && userProfile.editingBio ? (
+                  <div style={{ marginTop: '10px' }}>
+                    <textarea
+                      rows="4"
+                      style={{ width: '100%', maxWidth: '500px' }}
+                      value={userProfile.newBio}
+                      onChange={(e) =>
+                        setUserProfile((prev) => ({ ...prev, newBio: e.target.value }))
+                      }
+                    />
+                    <div style={{ marginTop: '10px' }}>
+                      <button
+                        style={{ marginRight: '10px' }}
+                        onClick={async () => {
+                          try {
+                            await axios.patch(`/user/${userId}`, { bio: userProfile.newBio });
+                            setUserProfile((prev) => ({
+                              ...prev,
+                              bio: prev.newBio,
+                              editingBio: false,
+                            }));
+                            alert('Bio updated successfully!');
+                          } catch (err) {
+                            console.error("Failed to update bio:", err);
+                            alert('Failed to update bio.');
+                          }
+                        }}
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() =>
+                          setUserProfile((prev) => ({ ...prev, editingBio: false }))
+                        }
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p>{userProfile.bio || "No bio provided."}</p>
+                )}
               </div>
             </div>
           )}
+
+
+
+
+
         </div>
       </div>
     </div>
