@@ -18,6 +18,8 @@ import About from './components/About';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import VerifyEmailRedirect from './components/VerifyEmailRedirect';
+import PlaylistView from './components/PlaylistView';
+
 
 import AudioPlayerUI from './components/AudioPlayerUI';
 import { AudioProvider, useAudio } from './contexts/AudioContext';
@@ -74,6 +76,7 @@ function App() {
                 </SignedIn>
               }
             />
+            <Route path="/playlist/:playlistId" element={<PlaylistView />} />
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />

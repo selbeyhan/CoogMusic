@@ -752,6 +752,54 @@ if (req.method === "POST" && req.url === "/api/addToPlaylist") {
 
 
 
+// Get a playlist and its songs
+if (req.method === "GET" && req.url.startsWith("/api/playlist/")) {
+  const playlistId = decodeURIComponent(req.url.split("/api/playlist/")[1]);
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    // Fetch playlist info
+    const [playlistData] = await connection.execute(
+      "SELECT * FROM playlists WHERE playlist_id = ?",
+      [playlistId]
+    );
+
+    if (playlistData.length === 0) {
+      await connection.end();
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Playlist not found" }));
+    }
+
+    // Fetch songs in the playlist
+    const [songs] = await connection.execute(`
+      SELECT s.song_id, s.title, s.genre, s.upload_date, s.views, s.file_url, s.cover_art_url, s.description,
+             u.name AS musician_name
+      FROM \`playlist songs\` ps
+      JOIN songs s ON ps.song_id = s.song_id
+      JOIN users u ON s.musician_id = u.user_id
+      WHERE ps.playlist_id = ?
+      ORDER BY ps.added_date ASC
+    `, [playlistId]);
+
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      playlist: playlistData[0],
+      songs
+    }));
+  } catch (err) {
+    console.error("❌ Error fetching playlist and songs:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Internal Server Error" }));
+  }
+
+  return;
+}
+
+
+
 
 
 

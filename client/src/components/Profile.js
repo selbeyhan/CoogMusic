@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useUser, useClerk } from '@clerk/clerk-react';
 import axios from 'axios';
 import './Profile.css';
@@ -463,11 +463,14 @@ const Profile = () => {
           ) : (
             <div className="playlists-list">
               {playlists.map((playlist) => (
-                <div className="playlist-card" key={playlist.playlist_id}>
+                <Link 
+                  to={`/playlist/${playlist.playlist_id}`} 
+                  key={playlist.playlist_id} 
+                  className="playlist-card"
+                >
                   <h3>{playlist.name}</h3>
                   <p>Created: {new Date(playlist.creation_date || Date.now()).toLocaleDateString()}</p>
-                  {/* Optional: Add "View" or "Edit" buttons later */}
-                </div>
+                </Link>
               ))}
             </div>
           )}
