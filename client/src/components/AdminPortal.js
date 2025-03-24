@@ -131,7 +131,7 @@ function AdminPortal() {
                 <td>{user.bio}</td>
                 <td>{user.monthly_listeners}</td>
                 <td>{user.uh_affiliation}</td>
-                <td>{user.verification_status}</td>
+                <td>{user.verification_status === 1 ? "Verified" : "Unverified"}</td>
                 <td>{user.admin_role}</td>
                 <td>{user.user_id}</td>
                 <td>{user.clerk_user_id}</td>
