@@ -4,14 +4,12 @@ import { useUser, useClerk } from '@clerk/clerk-react';
 import axios from 'axios';
 import './Profile.css';
 import { useAudio } from '../contexts/AudioContext';
-import { FaPencilAlt } from 'react-icons/fa'; // import at the top
-
-
+import { FaPencilAlt, FaPlay } from 'react-icons/fa'; // Added FaPlay
 
 const Profile = () => {
   const { userId } = useParams();
   const { user: currentUser } = useUser();
-  const { signOut } = useClerk(); // ✅ Use useClerk to get signOut
+  const { signOut } = useClerk();
   const { setCurrentSong } = useAudio(); 
 
   // Profile state
@@ -26,6 +24,8 @@ const Profile = () => {
   const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false);
   const [showUpdateProfilePicModal, setShowUpdateProfilePicModal] = useState(false);
   const [newProfilePicFile, setNewProfilePicFile] = useState(null);
+
+  // Song deletion modal
   const [showDeleteSongModal, setShowDeleteSongModal] = useState(false);
   const [songToDelete, setSongToDelete] = useState(null);
 
@@ -39,6 +39,9 @@ const Profile = () => {
   });
   const [uploadFile, setUploadFile] = useState(null);
 
+  // For the 3-dot dropdown menu on each song row
+  const [activeSongMenuId, setActiveSongMenuId] = useState(null);
+
   useEffect(() => {
     if (currentUser) {
       setIsOwner(currentUser.id === userId);
@@ -46,13 +49,8 @@ const Profile = () => {
   
     const fetchUserProfile = async () => {
       try {
-        console.log("🔍 Current User ID:", currentUser?.id);
-        console.log("🔍 Profile User ID:", userId);
-  
         const response = await axios.get(`/user/${userId}`);
         const userData = response.data.user;
-        console.log("🔍 MySQL user profile:", userData);
-  
         setUserProfile({
           id: userData.user_id,
           name: userData.name,
@@ -65,18 +63,12 @@ const Profile = () => {
           uhAffiliation: userData.uh_affiliation || "None",
           verification_status: userData.verification_status || false
         });
-        console.log("MySQL user_id (logged in):", userData.user_id);
-
   
-        console.log(`🔍 Fetching songs for user: ${userId}`);
+        // Fetch songs for user
         const songsResponse = await axios.get(`/api/profile/${userId}`);
-        console.log("🔍 Songs fetched:", songsResponse.data);
-  
         if (Array.isArray(songsResponse.data) && songsResponse.data.length > 0) {
           const songs = songsResponse.data[0].songs;
           setUserSongs(songs);
-        } else {
-          console.error("❌ Songs data is not in the expected format:", songsResponse.data);
         }
       } catch (error) {
         console.error("Error fetching profile data:", error);
@@ -86,10 +78,9 @@ const Profile = () => {
     const fetchUserPlaylists = async () => {
       try {
         const response = await axios.get(`/api/getuserplaylists/${userId}`);
-        console.log("📀 Playlists fetched:", response.data.playlists);
         setPlaylists(response.data.playlists || []);
       } catch (error) {
-        console.error("❌ Error fetching playlists:", error);
+        console.error("Error fetching playlists:", error);
       }
     };
   
@@ -102,10 +93,38 @@ const Profile = () => {
     fetchAll();
   }, [userId, currentUser]);
   
+  const handleMenuClick = (songId) => {
+    setActiveSongMenuId((prev) => (prev === songId ? null : songId));
+  };
+
+  const handleAddToQueue = (song) => {
+    alert(`Song "${song.title}" added to queue!`);
+  };
+
+  const handleDeleteSongClick = (song) => {
+    setSongToDelete(song);
+    setShowDeleteSongModal(true);
+  };
+
+  const confirmDeleteSong = async () => {
+    if (!songToDelete) return;
+    try {
+      await axios.delete(`/api/song/${songToDelete.song_id}`);
+      setUserSongs((prev) => prev.filter((s) => s.song_id !== songToDelete.song_id));
+      alert("Song deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting song:", error);
+      alert("Failed to delete song.");
+    } finally {
+      setShowDeleteSongModal(false);
+      setSongToDelete(null);
+    }
+  };
+
   const handleSaveBio = async () => {
     try {
       await axios.patch(`/update-bio/${userId}`, { bio: userProfile.newBio });
-      setUserProfile(prev => ({
+      setUserProfile((prev) => ({
         ...prev,
         bio: prev.newBio,
         editingBio: false
@@ -122,39 +141,28 @@ const Profile = () => {
       alert("Playlist name cannot be empty.");
       return;
     }
-  
     try {
       const payload = {
         name: newPlaylistName,
         user_id: userProfile.id
       };
-  
-      console.log("🛠 Creating playlist with payload:", payload); // Log user_id and name
-  
-      const response = await axios.post('/api/createPlaylist', payload); // send to backend
-  
-      console.log("✅ Playlist created with response:", response.data); // Log server response
-  
-      // Update playlist state
-      setPlaylists(prev => [
+      const response = await axios.post('/api/createPlaylist', payload);
+      setPlaylists((prev) => [
         ...prev,
         {
-          playlist_id: response.data.playlist_id, // backend should return the new id
+          playlist_id: response.data.playlist_id,
           name: newPlaylistName,
           creation_date: new Date().toISOString(),
           is_public: 0
         }
       ]);
-  
       setNewPlaylistName('');
       alert("Playlist created!");
     } catch (error) {
-      console.error("❌ Error creating playlist:", error);
+      console.error("Error creating playlist:", error);
       alert("Failed to create playlist.");
     }
   };
-  
-
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -162,10 +170,7 @@ const Profile = () => {
 
   const handleUploadFormChange = (e) => {
     const { name, value } = e.target;
-    setUploadFormData({
-      ...uploadFormData,
-      [name]: value
-    });
+    setUploadFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleFileChange = (e) => {
@@ -174,12 +179,10 @@ const Profile = () => {
 
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
-
     if (!uploadFile) {
       alert('Please select a file to upload');
       return;
     }
-
     const formData = new FormData();
     formData.append('file', uploadFile);
     formData.append('title', uploadFormData.title);
@@ -187,14 +190,9 @@ const Profile = () => {
     formData.append('description', uploadFormData.description);
     formData.append('cover_art_url', uploadFormData.cover_art_url);
     formData.append('musician_id', userProfile.id);
-
     try {
       setIsLoading(true);
       await axios.post('/upload', formData);
-
-      // Refresh songs list or add the new song to the existing list
-      // In a real app, you'd fetch the updated list or add the new song with its returned data
-
       alert('Song uploaded successfully!');
       setShowUploadForm(false);
       setUploadFormData({
@@ -204,10 +202,10 @@ const Profile = () => {
         cover_art_url: 'https://via.placeholder.com/150'
       });
       setUploadFile(null);
-      setIsLoading(false);
     } catch (error) {
       console.error('Error uploading song:', error);
       alert('Failed to upload song. Please try again.');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -226,7 +224,6 @@ const Profile = () => {
             onError={(e) => (e.target.src = '/coogmusiclogonobg.png')}
             onClick={() => {
               if (isOwner) {
-                console.log("🖼 Profile image clicked");
                 setShowUpdateProfilePicModal(true);
               }
             }}
@@ -247,22 +244,18 @@ const Profile = () => {
                 accept="image/*"
                 onChange={(e) => {
                   setNewProfilePicFile(e.target.files[0]);
-                  console.log("📁 Selected profile picture:", e.target.files[0]);
                 }}
               />
-
               <div className="modal-buttons">
                 <button
                   className="cancel-btn"
                   onClick={() => {
                     setShowUpdateProfilePicModal(false);
                     setNewProfilePicFile(null);
-                    console.log("❌ Cancel profile picture change");
                   }}
                 >
                   Cancel
                 </button>
-
                 <button
                   className="confirm-btn"
                   onClick={async () => {
@@ -270,23 +263,18 @@ const Profile = () => {
                       alert("Please select an image first.");
                       return;
                     }
-
                     const formData = new FormData();
                     formData.append("file", newProfilePicFile);
                     formData.append("user_id", userProfile.id);
-
                     try {
-                      console.log("⬆️ Uploading new profile picture...");
                       const response = await axios.post("/upload-profile-picture", formData);
-                      console.log("✅ Server response:", response.data);
-
                       alert("Profile picture updated!");
                       setUserProfile((prev) => ({
                         ...prev,
                         profilePicture: response.data.url
                       }));
                     } catch (err) {
-                      console.error("❌ Error uploading profile picture:", err);
+                      console.error("Error uploading profile picture:", err);
                       alert("Failed to upload profile picture.");
                     } finally {
                       setShowUpdateProfilePicModal(false);
@@ -300,7 +288,6 @@ const Profile = () => {
             </div>
           </div>
         )}
-
         <div className="profile-info">
           <h1>{userProfile.name}</h1>
           <p className="account-type">{userProfile.accountType}</p>
@@ -323,54 +310,49 @@ const Profile = () => {
               {showUploadForm ? 'Cancel Upload' : 'Upload New Song'}
             </button>
           )}
-
-{isOwner && (
-  <>
-    <button
-      className="delete-account-btn"
-      onClick={() => setShowDeleteConfirm(true)}
-      style={{ marginTop: '10px', backgroundColor: '#ff4d4f', color: '#fff' }}
-    >
-      Delete Account
-    </button>
-
-    {showDeleteConfirm && (
-      <div className="modal-overlay">
-        <div className="modal-content">
-          <h3>Are you sure you want to delete your account?</h3>
-          <p>This action cannot be undone.</p>
-          <div className="modal-buttons">
-            <button
-              onClick={() => setShowDeleteConfirm(false)}
-              className="cancel-btn"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={async () => {
-                try {
-                  await axios.delete(`/user/${currentUser.id}`);
-                  await signOut(); // Force logout after deletion using useClerk
-                  alert("Account deleted successfully.");
-                  window.location.href = "/"; // Redirect to homepage
-                } catch (err) {
-                  console.error("Error deleting account:", err);
-                  alert("Failed to delete account.");
-                }
-              }}
-              className="confirm-btn"
-            >
-              Confirm Delete
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-  </>
-)}
-
-
-
+          {isOwner && (
+            <>
+              <button
+                className="delete-account-btn"
+                onClick={() => setShowDeleteConfirm(true)}
+                style={{ marginTop: '10px', backgroundColor: '#ff4d4f', color: '#fff' }}
+              >
+                Delete Account
+              </button>
+              {showDeleteConfirm && (
+                <div className="modal-overlay">
+                  <div className="modal-content">
+                    <h3>Are you sure you want to delete your account?</h3>
+                    <p>This action cannot be undone.</p>
+                    <div className="modal-buttons">
+                      <button
+                        onClick={() => setShowDeleteConfirm(false)}
+                        className="cancel-btn"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await axios.delete(`/user/${currentUser.id}`);
+                            await signOut();
+                            alert("Account deleted successfully.");
+                            window.location.href = "/";
+                          } catch (err) {
+                            console.error("Error deleting account:", err);
+                            alert("Failed to delete account.");
+                          }
+                        }}
+                        className="confirm-btn"
+                      >
+                        Confirm Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
@@ -448,136 +430,130 @@ const Profile = () => {
         </div>
 
         <div className="tab-content">
-        {activeTab === 'songs' && (
-        <div className="songs-tab">
-        <h2>Songs</h2>
-        {userSongs.length === 0 ? (
-          <p className="no-content">No songs uploaded yet.</p>
-        ) : (
-          <div className="songs-list">
-            {userSongs.map(song => (
-              <div className="song-card" key={song.song_id}>
-                <div className="song-cover">
-                  {/* img source commented out for now */}
-                  {/* <img src={song.cover_art_url || "https://via.placeholder.com/150"} alt={song.title} /> */}
-                </div>
-                <div className="song-info">
-                  <h3>{song.title}</h3>
-                  <p className="song-genre">{song.genre}</p>
-                  <p className="song-date">Uploaded: {new Date(song.upload_date).toLocaleDateString()}</p>
-                  <p className="song-views">Views: {song.views}</p> {/* Display views */}
-                </div>
-                <div className="song-controls">
-                <button
-                    className="play-btn"
-                    onClick={() => {
-                      setCurrentSong(song); // Set song globally
-                      axios.post(`/increment-view/${song.song_id}`).catch(console.error); // Increment view count
-                    }}
-                  >
-                    Play
-                  </button>
+          {activeTab === 'songs' && (
+            <div className="songs-tab">
+              <h2>Songs</h2>
+              {userSongs.length === 0 ? (
+                <p className="no-content">No songs uploaded yet.</p>
+              ) : (
+                <table className="songs-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Genre</th>
+                      <th>Uploaded</th>
+                      <th>Views</th>
+                      <th>Play</th>
+                      <th></th> {/* 3-dot menu column */}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {userSongs.map((song) => (
+                      <tr key={song.song_id}>
+                        <td>{song.title}</td>
+                        <td>{song.genre}</td>
+                        <td>{new Date(song.upload_date).toLocaleDateString()}</td>
+                        <td>{song.views}</td>
+                        <td>
+                          <FaPlay
+                            className="play-icon"
+                            onClick={() => {
+                              setCurrentSong(song);
+                              axios
+                                .post(`/increment-view/${song.song_id}`)
+                                .catch(console.error);
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <div className="dropdown-container">
+                            <span className="dots-icon" onClick={() => handleMenuClick(song.song_id)}>
+                              &#8942;
+                            </span>
+                            {activeSongMenuId === song.song_id && (
+                              <div className="dropdown-menu">
+                                <button onClick={() => handleAddToQueue(song)}>
+                                  Add to queue
+                                </button>
+                                {isOwner && (
+                                  <button onClick={() => handleDeleteSongClick(song)}>
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
 
-                  {isOwner && (
-                    <button
-                    className="delete-btn"
-                    onClick={() => {
-                      setSongToDelete(song);
-                      setShowDeleteSongModal(true);
-                    }}
-                  >
-                    Delete
-                  </button>                  
+          {activeTab === 'playlists' && (
+            <div className="playlists-tab">
+              <h2>Playlists</h2>
+              {isOwner && (
+                <>
+                  {!showCreatePlaylistInput ? (
+                    <button onClick={() => setShowCreatePlaylistInput(true)} style={{ marginBottom: '1rem' }}>
+                      Create Playlist
+                    </button>
+                  ) : (
+                    <div className="create-playlist-form">
+                      <input
+                        type="text"
+                        placeholder="Enter playlist name"
+                        value={newPlaylistName}
+                        onChange={(e) => setNewPlaylistName(e.target.value)}
+                        className="playlist-name-input"
+                      />
+                      <button onClick={handleCreatePlaylist}>Save</button>
+                      <button onClick={() => { setShowCreatePlaylistInput(false); setNewPlaylistName(''); }}>
+                        Cancel
+                      </button>
+                    </div>
                   )}
+                </>
+              )}
+              {playlists.length === 0 ? (
+                <p className="no-content">No playlists created yet.</p>
+              ) : (
+                <div className="playlists-list">
+                  {playlists.map((playlist) => (
+                    <div key={playlist.playlist_id} className="playlist-card-container">
+                      <Link to={`/playlist/${playlist.playlist_id}`} className="playlist-card">
+                        <h3>{playlist.name}</h3>
+                        <p>Created: {new Date(playlist.creation_date || Date.now()).toLocaleDateString()}</p>
+                      </Link>
+                      {isOwner && (
+                        <button
+                          onClick={async () => {
+                            if (window.confirm(`Are you sure you want to delete playlist "${playlist.name}"?`)) {
+                              try {
+                                await axios.delete(`/api/playlist/${playlist.playlist_id}`);
+                                setPlaylists((prev) => prev.filter((pl) => pl.playlist_id !== playlist.playlist_id));
+                                alert('Playlist deleted successfully!');
+                              } catch (error) {
+                                console.error('Error deleting playlist:', error);
+                                alert('Failed to delete playlist. Please try again.');
+                              }
+                            }
+                          }}
+                          className="delete-playlist-btn"
+                          title="Delete Playlist"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      
-
-      )}
-
-
-
-      {activeTab === 'playlists' && (
-        <div className="playlists-tab">
-          <h2>Playlists</h2>
-
-          {isOwner && (
-          <>
-            {!showCreatePlaylistInput ? (
-              <button onClick={() => setShowCreatePlaylistInput(true)} style={{ marginBottom: '1rem' }}>
-                Create Playlist
-              </button>
-            ) : (
-              <div className="create-playlist-form">
-                <input
-                  type="text"
-                  placeholder="Enter playlist name"
-                  value={newPlaylistName}
-                  onChange={(e) => setNewPlaylistName(e.target.value)}
-                  className="playlist-name-input"
-                />
-                <button onClick={handleCreatePlaylist}>Save</button>
-                <button
-                  onClick={() => {
-                    setShowCreatePlaylistInput(false);
-                    setNewPlaylistName('');
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-          </>
-        )}
-
-
-        {playlists.length === 0 ? (
-          <p className="no-content">No playlists created yet.</p>
-        ) : (
-          <div className="playlists-list">
-            {playlists.map((playlist) => (
-              <div key={playlist.playlist_id} className="playlist-card-container">
-                <Link 
-                  to={`/playlist/${playlist.playlist_id}`} 
-                  className="playlist-card"
-                >
-                  <h3>{playlist.name}</h3>
-                  <p>Created: {new Date(playlist.creation_date || Date.now()).toLocaleDateString()}</p>
-                </Link>
-                {isOwner && (
-                  <button 
-                    onClick={async () => {
-                      if (window.confirm(`Are you sure you want to delete playlist "${playlist.name}"?`)) {
-                        try {
-                          await axios.delete(`/api/playlist/${playlist.playlist_id}`);
-                          setPlaylists(playlists.filter(pl => pl.playlist_id !== playlist.playlist_id));
-                          alert('Playlist deleted successfully!');
-                        } catch (error) {
-                          console.error('Error deleting playlist:', error);
-                          alert('Failed to delete playlist. Please try again.');
-                        }
-                      }
-                    }}
-                    className="delete-playlist-btn"
-                    title="Delete Playlist"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        </div>
-      )}
-
-
-
-
+              )}
+            </div>
+          )}
 
           {activeTab === 'about' && (
             <div className="about-tab">
@@ -594,7 +570,6 @@ const Profile = () => {
                 <span className="label">Member Since:</span>
                 <span className="value">{new Date(userProfile.registrationDate).toLocaleDateString()}</span>
               </div>
-
               <div className="bio-section" style={{ textAlign: 'center' }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <h3 style={{ margin: 0, color: 'red' }}>Bio</h3>
@@ -603,12 +578,15 @@ const Profile = () => {
                       style={{ cursor: 'pointer', fontSize: '14px', color: '#555' }}
                       title="Edit Bio"
                       onClick={() =>
-                        setUserProfile((prev) => ({ ...prev, editingBio: true, newBio: prev.bio }))
+                        setUserProfile((prev) => ({
+                          ...prev,
+                          editingBio: true,
+                          newBio: prev.bio
+                        }))
                       }
                     />
                   )}
                 </div>
-
                 {isOwner && userProfile.editingBio ? (
                   <div style={{ marginTop: '10px' }}>
                     <textarea
@@ -623,11 +601,7 @@ const Profile = () => {
                       <button style={{ marginRight: '10px' }} onClick={handleSaveBio}>
                         Save
                       </button>
-                      <button
-                        onClick={() =>
-                          setUserProfile((prev) => ({ ...prev, editingBio: false }))
-                        }
-                      >
+                      <button onClick={() => setUserProfile((prev) => ({ ...prev, editingBio: false }))}>
                         Cancel
                       </button>
                     </div>
@@ -639,9 +613,7 @@ const Profile = () => {
             </div>
           )}
 
-
-
-          {showDeleteSongModal && (
+          {showDeleteSongModal && songToDelete && (
             <div className="modal-overlay">
               <div className="modal-content">
                 <h3>Are you sure you want to delete "{songToDelete.title}"?</h3>
@@ -656,34 +628,13 @@ const Profile = () => {
                   >
                     Cancel
                   </button>
-                  <button
-                    className="confirm-btn"
-                    onClick={async () => {
-                      try {
-                        console.log("🗑 Attempting to delete song with ID:", songToDelete.song_id); // Debug log
-                        await axios.delete(`/api/song/${songToDelete.song_id}`);
-                        console.log("✅ Song deleted successfully:", songToDelete.song_id); // Debug log
-
-                        setUserSongs(prev => prev.filter(s => s.song_id !== songToDelete.song_id));
-                        alert("Song deleted successfully!");
-                      } catch (error) {
-                        console.error("❌ Error deleting song:", error);
-                        alert("Failed to delete song.");
-                      } finally {
-                        setShowDeleteSongModal(false);
-                        setSongToDelete(null);
-                      }
-                    }}
-                  >
+                  <button className="confirm-btn" onClick={confirmDeleteSong}>
                     Confirm Delete
                   </button>
-
                 </div>
               </div>
             </div>
           )}
-
-
         </div>
       </div>
     </div>
