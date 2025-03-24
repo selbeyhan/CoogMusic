@@ -975,7 +975,7 @@ if (req.method === "DELETE" && req.url.startsWith("/api/song/")) {
 
       // Delete from playlist songs table first (if you don't have ON DELETE CASCADE)
       await connection.execute(
-        "DELETE FROM playlist songs WHERE song_id = ?",
+        "DELETE FROM `playlist songs` WHERE song_id = ?",
         [songId]
       );
 
