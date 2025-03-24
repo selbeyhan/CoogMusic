@@ -29,10 +29,6 @@ const Profile = () => {
   const [showDeleteSongModal, setShowDeleteSongModal] = useState(false);
   const [songToDelete, setSongToDelete] = useState(null);
 
-  
-
-
-
   // Upload form state
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [uploadFormData, setUploadFormData] = useState({
@@ -42,9 +38,6 @@ const Profile = () => {
     cover_art_url: 'https://via.placeholder.com/150'
   });
   const [uploadFile, setUploadFile] = useState(null);
-
-
-
 
   useEffect(() => {
     if (currentUser) {
@@ -109,10 +102,6 @@ const Profile = () => {
     fetchAll();
   }, [userId, currentUser]);
   
-
-
-  
-
   const handleSaveBio = async () => {
     try {
       await axios.patch(`/update-bio/${userId}`, { bio: userProfile.newBio });
@@ -127,8 +116,6 @@ const Profile = () => {
       alert("Failed to update bio.");
     }
   };
-  
-  
 
   const handleCreatePlaylist = async () => {
     if (!newPlaylistName.trim()) {
@@ -233,18 +220,23 @@ const Profile = () => {
     <div className="profile-container">
       <div className="profile-header">
         <div className="profile-image">
-        <img
-          src={userProfile.profilePicture || '/coogmusiclogonobg.png'}
-          alt={`${userProfile.name}'s profile`}
-          onError={(e) => e.target.src = '/coogmusiclogonobg.png'}
-          onClick={() => {
-            if (isOwner) {
-              console.log("🖼 Profile image clicked");
-              setShowUpdateProfilePicModal(true);
-            }
-          }}
-          style={{ cursor: isOwner ? 'pointer' : 'default' }}
-        />
+          <img
+            src={userProfile.profilePicture || '/coogmusiclogonobg.png'}
+            alt={`${userProfile.name}'s profile`}
+            onError={(e) => (e.target.src = '/coogmusiclogonobg.png')}
+            onClick={() => {
+              if (isOwner) {
+                console.log("🖼 Profile image clicked");
+                setShowUpdateProfilePicModal(true);
+              }
+            }}
+            style={{ cursor: isOwner ? 'pointer' : 'default' }}
+          />
+          {isOwner && (
+            <div className="profile-overlay">
+              <span>Upload Profile Pic</span>
+            </div>
+          )}
         </div>
         {showUpdateProfilePicModal && (
           <div className="modal-overlay">
