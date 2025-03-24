@@ -20,7 +20,7 @@ import AdminPortal from './components/AdminPortal';
 import SignupPage from './components/SignupPage';
 import VerifyEmailRedirect from './components/VerifyEmailRedirect';
 import PlaylistView from './components/PlaylistView';
-
+import Explore from './components/Explore';
 
 import AudioPlayerUI from './components/AudioPlayerUI';
 import { AudioProvider, useAudio } from './contexts/AudioContext';
@@ -82,6 +82,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/adminportal" element={<AdminPortal />} />
+            <Route path="/explore" element={<Explore />} />
             <Route path="/signup/verify-email-address" element={<VerifyEmailRedirect />} />
             <Route
               path="*"

@@ -1,100 +1,117 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAudio } from '../contexts/AudioContext';
+import axios from 'axios';
 import './Explore.css';
 
 function Explore() {
-  // Mock data - replace with actual data from your backend
-  const latestSongs = [
-    { title: "Latest Hit 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-    { title: "Latest Hit 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-    { title: "Latest Hit 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-    { title: "Latest Hit 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-    { title: "Latest Hit 5", artist: "Artist 5", imageUrl: "/placeholder.jpg" },
-    { title: "Latest Hit 6", artist: "Artist 6", imageUrl: "/placeholder.jpg" },
-  ];
+  const { setCurrentSong } = useAudio();
+  const [isLoading, setIsLoading] = useState(true);
+  const [genres, setGenres] = useState([
+    { id: 1, name: 'Hip Hop', color: '#FF4444', emoji: '🎤' },
+    { id: 2, name: 'Rock', color: '#4444FF', emoji: '🎸' },
+    { id: 3, name: 'Pop', color: '#44FF44', emoji: '🎵' },
+    { id: 4, name: 'R&B', color: '#FF44FF', emoji: '🎹' },
+    { id: 5, name: 'Jazz', color: '#FFFF44', emoji: '🎷' },
+    { id: 6, name: 'Electronic', color: '#44FFFF', emoji: '💿' }
+  ]);
 
-  const genreContent = [
-    {
-      genre: "Hip Hop",
-      songs: [
-        { title: "Hip Hop Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "Hip Hop Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "Hip Hop Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "Hip Hop Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-      ]
-    },
-    {
-      genre: "Rock",
-      songs: [
-        { title: "Rock Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "Rock Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "Rock Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "Rock Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-      ]
-    },
-    {
-      genre: "Pop",
-      songs: [
-        { title: "Pop Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "Pop Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "Pop Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "Pop Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-      ]
-    },
-    {
-      genre: "R&B",
-      songs: [
-        { title: "R&B Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "R&B Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "R&B Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "R&B Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-      ]
+  const [featuredArtists] = useState([
+    { id: 1, name: 'Artist 1', followers: '10K', imageUrl: '/coogmusiclogonobg.png' },
+    { id: 2, name: 'Artist 2', followers: '8K', imageUrl: '/coogmusiclogonobg.png' },
+    { id: 3, name: 'Artist 3', followers: '15K', imageUrl: '/coogmusiclogonobg.png' },
+    { id: 4, name: 'Artist 4', followers: '12K', imageUrl: '/coogmusiclogonobg.png' }
+  ]);
+
+  const [featuredPlaylists] = useState([
+    { id: 1, name: 'Top Hits 2024', songs: 20, imageUrl: '/coogmusiclogonobg.png' },
+    { id: 2, name: 'Chill Vibes', songs: 15, imageUrl: '/coogmusiclogonobg.png' },
+    { id: 3, name: 'Workout Mix', songs: 25, imageUrl: '/coogmusiclogonobg.png' },
+    { id: 4, name: 'Study Session', songs: 18, imageUrl: '/coogmusiclogonobg.png' }
+  ]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+  }, []);
+
+  const handlePlaySong = async (songId) => {
+    try {
+      const response = await axios.get(`/api/songs/${songId}`);
+      setCurrentSong(response.data);
+    } catch (error) {
+      console.error('Error playing song:', error);
     }
-  ];
+  };
+
+  if (isLoading) {
+    return (
+      <div className="explore-loading">
+        <div className="loading-spinner"></div>
+        <p>Loading amazing music...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="explore-container">
-      {/* Logo Section */}
-      <div className="logo-container">
-        <img
-          src="/coogmusiclogonobg.png"
-          alt="CoogMusic Logo"
-          className="coogmusic-logo"
-        />
+      {/* Header Section */}
+      <div className="explore-header">
+        <h1>Explore</h1>
       </div>
 
-      {/* Latest Songs Section */}
-      <section className="latest-songs-section">
-        <h2>Latest Releases</h2>
-        <div className="horizontal-scroll">
-          {latestSongs.map((song, index) => (
-            <div key={index} className="song-card">
-              <div className="song-image-placeholder"></div>
-              <div className="song-info">
-                <h3>{song.title}</h3>
-                <p>{song.artist}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Genre Sections */}
-      {genreContent.map((genreSection, index) => (
-        <section key={index} className="genre-section">
-          <h2>{genreSection.genre}</h2>
-          <div className="horizontal-scroll">
-            {genreSection.songs.map((song, songIndex) => (
-              <div key={songIndex} className="song-card">
-                <div className="song-image-placeholder"></div>
-                <div className="song-info">
-                  <h3>{song.title}</h3>
-                  <p>{song.artist}</p>
-                </div>
+      {/* Content Sections */}
+      <div className="explore-content">
+        {/* Genres Section */}
+        <section className="explore-section">
+          <h2>🎵 Browse by Genre</h2>
+          <div className="genres-grid">
+            {genres.map(genre => (
+              <div 
+                key={genre.id} 
+                className="genre-card"
+                style={{ backgroundColor: genre.color }}
+              >
+                <div className="genre-emoji">{genre.emoji}</div>
+                <h3>{genre.name}</h3>
+                <p>Explore {genre.name}</p>
               </div>
             ))}
           </div>
         </section>
-      ))}
+
+        {/* Artists Section */}
+        <section className="explore-section">
+          <h2>👥 Featured Artists</h2>
+          <div className="artists-grid">
+            {featuredArtists.map(artist => (
+              <div key={artist.id} className="artist-card">
+                <div className="artist-image">
+                  <img src={artist.imageUrl} alt={artist.name} />
+                </div>
+                <h3>{artist.name}</h3>
+                <p>{artist.followers} followers</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Playlists Section */}
+        <section className="explore-section">
+          <h2>📀 Popular Playlists</h2>
+          <div className="playlists-grid">
+            {featuredPlaylists.map(playlist => (
+              <div key={playlist.id} className="playlist-card">
+                <div className="playlist-image">
+                  <img src={playlist.imageUrl} alt={playlist.name} />
+                </div>
+                <h3>{playlist.name}</h3>
+                <p>{playlist.songs} songs</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
