@@ -14,7 +14,7 @@ function AdminPortal() {
         const data = await response.json();
         const userList = data.users || data;
         setUsers(userList);
-        setFilteredUsers(userList); // initial full list
+        setFilteredUsers(userList);
         console.log("📥 Fetched admin users:", userList);
       } catch (error) {
         console.error("❌ Error fetching admin users:", error);
@@ -54,6 +54,39 @@ function AdminPortal() {
       }
     } catch (err) {
       console.error("❌ Error deleting user:", err);
+    }
+  };
+
+  // ✅ Handle verification status dropdown change
+  const handleVerificationChange = async (userId, newStatus) => {
+    try {
+      const response = await fetch(`/update-verification/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ verification_status: newStatus })
+      });
+
+      if (response.ok) {
+        setUsers(prev =>
+          prev.map(user =>
+            user.user_id === userId
+              ? { ...user, verification_status: newStatus }
+              : user
+          )
+        );
+        setFilteredUsers(prev =>
+          prev.map(user =>
+            user.user_id === userId
+              ? { ...user, verification_status: newStatus }
+              : user
+          )
+        );
+        console.log(`✅ Updated verification for user_id ${userId} to ${newStatus}`);
+      } else {
+        console.error("❌ Failed to update verification");
+      }
+    } catch (err) {
+      console.error("❌ Error updating verification:", err);
     }
   };
 
@@ -131,7 +164,17 @@ function AdminPortal() {
                 <td>{user.bio}</td>
                 <td>{user.monthly_listeners}</td>
                 <td>{user.uh_affiliation}</td>
-                <td>{user.verification_status === 1 ? "Verified" : "Unverified"}</td>
+                <td>
+                  <select
+                    value={user.verification_status}
+                    onChange={(e) =>
+                      handleVerificationChange(user.user_id, parseInt(e.target.value))
+                    }
+                  >
+                    <option value={1}>Verified</option>
+                    <option value={0}>Unverified</option>
+                  </select>
+                </td>
                 <td>{user.admin_role}</td>
                 <td>{user.user_id}</td>
                 <td>{user.clerk_user_id}</td>

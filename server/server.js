@@ -1004,7 +1004,7 @@ if (req.method === "DELETE" && req.url.startsWith("/api/song/")) {
   }
 
 
-  
+
 
 // Deleting user by user_id (for admin portal -- for users without Clerk)
 if (req.method === "DELETE" && req.url.startsWith("/delete-by-id/")) {
@@ -1048,6 +1048,50 @@ if (req.method === "DELETE" && req.url.startsWith("/delete-by-id/")) {
 }
 
   
+// Update verification status by user_id (from admin portal dropdown)
+if (req.method === "PATCH" && req.url.startsWith("/update-verification/")) {
+  const userId = decodeURIComponent(req.url.split("/update-verification/")[1]);
+  let body = "";
+
+  req.on("data", (chunk) => {
+    body += chunk.toString();
+  });
+
+  req.on("end", async () => {
+    try {
+      const { verification_status } = JSON.parse(body);
+
+      if (typeof verification_status !== "number") {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Invalid verification_status" }));
+      }
+
+      const connection = await mysql.createConnection(dbConfig);
+
+      const [result] = await connection.execute(
+        "UPDATE users SET verification_status = ? WHERE user_id = ?",
+        [verification_status, userId]
+      );
+
+      await connection.end();
+
+      if (result.affectedRows === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "User not found" }));
+      }
+
+      console.log(`✅ user_id ${userId} verification status changed to ${verification_status}`);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Verification status updated" }));
+    } catch (err) {
+      console.error("❌ Error updating verification status:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Failed to update verification status" }));
+    }
+  });
+
+  return;
+}
 
 
 
