@@ -16,6 +16,7 @@ import Home from './components/Home';
 import Profile from './components/Profile';
 import About from './components/About';
 import LoginPage from './components/LoginPage';
+import AdminPortal from './components/AdminPortal';
 import SignupPage from './components/SignupPage';
 import VerifyEmailRedirect from './components/VerifyEmailRedirect';
 import PlaylistView from './components/PlaylistView';
@@ -80,6 +81,7 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/adminportal" element={<AdminPortal />} />
             <Route path="/signup/verify-email-address" element={<VerifyEmailRedirect />} />
             <Route
               path="*"

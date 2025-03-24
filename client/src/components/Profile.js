@@ -26,6 +26,9 @@ const Profile = () => {
   const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false);
   const [showUpdateProfilePicModal, setShowUpdateProfilePicModal] = useState(false);
   const [newProfilePicFile, setNewProfilePicFile] = useState(null);
+  const [showDeleteSongModal, setShowDeleteSongModal] = useState(false);
+  const [songToDelete, setSongToDelete] = useState(null);
+
   
 
 
@@ -332,7 +335,7 @@ const Profile = () => {
 {isOwner && (
   <>
     <button
-      className="delete-account-btn"
+      className="delete-account-btn upload-btn"
       onClick={() => setShowDeleteConfirm(true)}
       style={{ marginTop: '10px', backgroundColor: '#ff4d4f', color: '#fff' }}
     >
@@ -484,7 +487,15 @@ const Profile = () => {
                   </button>
 
                   {isOwner && (
-                    <button className="delete-btn">Delete</button>
+                    <button
+                    className="delete-btn"
+                    onClick={() => {
+                      setSongToDelete(song);
+                      setShowDeleteSongModal(true);
+                    }}
+                  >
+                    Delete
+                  </button>                  
                   )}
                 </div>
               </div>
@@ -638,6 +649,47 @@ const Profile = () => {
 
 
 
+          {showDeleteSongModal && (
+            <div className="modal-overlay">
+              <div className="modal-content">
+                <h3>Are you sure you want to delete "{songToDelete.title}"?</h3>
+                <p>This will also remove it from all playlists and comments.</p>
+                <div className="modal-buttons">
+                  <button
+                    className="cancel-btn"
+                    onClick={() => {
+                      setShowDeleteSongModal(false);
+                      setSongToDelete(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="confirm-btn"
+                    onClick={async () => {
+                      try {
+                        console.log("🗑 Attempting to delete song with ID:", songToDelete.song_id); // Debug log
+                        await axios.delete(`/api/song/${songToDelete.song_id}`);
+                        console.log("✅ Song deleted successfully:", songToDelete.song_id); // Debug log
+
+                        setUserSongs(prev => prev.filter(s => s.song_id !== songToDelete.song_id));
+                        alert("Song deleted successfully!");
+                      } catch (error) {
+                        console.error("❌ Error deleting song:", error);
+                        alert("Failed to delete song.");
+                      } finally {
+                        setShowDeleteSongModal(false);
+                        setSongToDelete(null);
+                      }
+                    }}
+                  >
+                    Confirm Delete
+                  </button>
+
+                </div>
+              </div>
+            </div>
+          )}
 
 
         </div>
