@@ -223,47 +223,46 @@ function Home() {
 
       {/* Top Songs Table */}
       <div className="top-songs-container">
-        <h2>Top 5 Most Streamed Songs</h2>
-        <div className="table-scroll">
-          <table className="top-songs-table">
-            <thead>
-              <tr>
-                <th>Song Title</th>
-                <th>Artist</th>
-                <th>Views</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topSongs.map((song, index) => (
-                <tr
-                  key={index}
-                  onClick={() => handleSongClick(song)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <td>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddToPlaylist(song.song_id);
-                      }}
-                      style={{ marginRight: '8px' }}
-                    >
-                      +
-                    </button>
-                    {song.title}
-                  </td>
-                  <td>
-                    <Link to={`/artist/${song.musician_id}`}>
-                      {song.musician_name}
-                    </Link>
-                  </td>
-                  <td>{song.views}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+  <h2>Top 5 Most Streamed Songs</h2>
+  <div className="table-scroll">
+    <table className="top-songs-table">
+      <thead>
+        <tr>
+          <th>Song Title</th>
+          <th>Artist</th>
+          <th>Views</th>
+        </tr>
+      </thead>
+      <tbody>
+        {topSongs.map((song, index) => (
+          <tr key={index}>
+            <td
+              onClick={() => handleSongClick(song)}
+              style={{ cursor: 'pointer' }}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddToPlaylist(song.song_id);
+                }}
+                style={{ marginRight: '8px' }}
+              >
+                +
+              </button>
+              {song.title}
+            </td>
+            <td>
+              <Link to={`/artist/${song.musician_id}`}>
+                {song.musician_name}
+              </Link>
+            </td>
+            <td>{song.views}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
 
 
 
@@ -283,12 +282,11 @@ function Home() {
       </thead>
       <tbody>
         {newestSongs.map((song, index) => (
-          <tr
-            key={index}
-            onClick={() => handleSongClick(song)}
-            style={{ cursor: 'pointer' }}
-          >
-            <td>
+          <tr key={index}>
+            <td
+              onClick={() => handleSongClick(song)}
+              style={{ cursor: 'pointer' }}
+            >
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -300,7 +298,11 @@ function Home() {
               </button>
               {song.title}
             </td>
-            <td>{song.musician_name}</td>
+            <td>
+              <Link to={`/artist/${song.musician_id}`}>
+                {song.musician_name}
+              </Link>
+            </td>
             <td>{new Date(song.upload_date).toLocaleDateString()}</td>
             <td>{song.views}</td>
           </tr>
