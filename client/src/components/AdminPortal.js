@@ -13,7 +13,6 @@ function AdminPortal() {
       try {
         const response = await fetch('/admin-users');
         const data = await response.json();
-        // Assuming the returned data is an array of user objects
         setUsers(data.users || data);
         console.log("📥 Fetched admin users:", data);
       } catch (error) {
@@ -29,6 +28,28 @@ function AdminPortal() {
     setSearchTerm(event.target.value);
   };
 
+  // ✅ Handle deleting a user by clerk_user_id
+  const handleDelete = async (clerkUserId) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this user?");
+    if (!confirmDelete) return;
+
+    try {
+      const response = await fetch(`/user/${encodeURIComponent(clerkUserId)}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setUsers(prev => prev.filter(user => user.clerk_user_id !== clerkUserId));
+        console.log("✅ User deleted successfully");
+      } else {
+        const data = await response.json();
+        console.error("❌ Delete failed:", data.error || data.message);
+      }
+    } catch (err) {
+      console.error("❌ Error deleting user:", err);
+    }
+  };
+
   // ✅ Filter users based on the search term (client-side search)
   const filteredUsers = users.filter(user =>
     Object.values(user).some(value =>
@@ -41,7 +62,6 @@ function AdminPortal() {
     <div className="admin-portal">
       <h1>Admin Portal: User Management</h1>
       <div className="search-container">
-        {/* Search input to filter users */}
         <input
           type="text"
           placeholder="Search users..."
@@ -90,12 +110,10 @@ function AdminPortal() {
                 <td>{user.user_id}</td>
                 <td>{user.clerk_user_id}</td>
                 <td>
-                  {/* Future functionality for editing user data */}
                   <button onClick={() => console.log("Edit user:", user.user_id)}>
                     Edit
                   </button>
-                  {/* Future functionality for deleting a user */}
-                  <button onClick={() => console.log("Delete user:", user.user_id)}>
+                  <button onClick={() => handleDelete(user.clerk_user_id)}>
                     Delete
                   </button>
                 </td>
