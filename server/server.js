@@ -97,13 +97,15 @@ WHERE songs.musician_id = ?
 }
 
 
+
+// Upload profile pic (should work by clicking the user's current profile picture)
 async function uploadProfilePicture(req, res) {
   try {
-    // Ensure the request body contains the musician_id
-    const { musician_id } = req.body;
-    if (!musician_id) {
+    // Ensure the request body contains the user_id
+    const { user_id } = req.body;
+    if (!user_id) {
       res.writeHead(400, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ error: "Missing musician_id in request body" }));
+      return res.end(JSON.stringify({ error: "Missing user_id in request body" }));
     }
 
     // Check if a file was uploaded
@@ -117,28 +119,33 @@ async function uploadProfilePicture(req, res) {
     req.fileName = req.file.originalname;
     req.fileType = req.file.mimetype;
 
-    // Generate a unique file name for the profile picture
+    // Ensure the Azure container exists or create it
+    await profilePictureContainerClient.createIfNotExists({
+      access: "container" // or "private" if you don't want public access
+    });
+    console.log("✔️ Container ready:", PROFILE_PICTURE_CONTAINER_NAME);
+
+    // Generate a unique file name and upload to Azure
     const fileName = `${uuidv4()}-${req.fileName}`;
     const blockBlobClient = profilePictureContainerClient.getBlockBlobClient(fileName);
 
-    console.log("Uploading profile picture to Azure Blob Storage...");
+    console.log("⬆️ Uploading profile picture to Azure Blob Storage...");
     await blockBlobClient.uploadData(req.fileBuffer, {
       blobHTTPHeaders: { blobContentType: req.fileType },
     });
 
     const fileUrl = blockBlobClient.url;
-    console.log("Profile picture uploaded:", fileUrl);
+    console.log("✅ Profile picture uploaded:", fileUrl);
 
-    // Update the user's profile picture URL in the database.
+    // Update the user's profile picture URL in the database
     let connection;
     try {
       connection = await mysql.createConnection(dbConfig);
-      // Adjust the column name (e.g., 'profile_picture') based on your schema.
       await connection.execute(
-        "UPDATE users SET profile_picture = ? WHERE musician_id = ?",
-        [fileUrl, musician_id]
+        "UPDATE users SET profile_picture_url = ? WHERE user_id = ?",
+        [fileUrl, user_id]
       );
-      console.log("✅ Profile picture URL updated in database for musician_id", user_id);
+      console.log("✅ Profile picture URL updated in DB for user_id:", user_id);
     } catch (dbError) {
       console.error("❌ Database error:", dbError.message);
       res.writeHead(500, { "Content-Type": "application/json" });
@@ -147,6 +154,7 @@ async function uploadProfilePicture(req, res) {
       if (connection) await connection.end();
     }
 
+    // Respond with success
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ message: "Profile picture uploaded successfully", url: fileUrl }));
   } catch (error) {
@@ -155,6 +163,10 @@ async function uploadProfilePicture(req, res) {
     res.end(JSON.stringify({ error: "Error uploading profile picture", details: error.message }));
   }
 }
+
+
+
+
 
 async function uploadSong(req, res) {
   try {
@@ -335,7 +347,7 @@ const server = http.createServer(async (req, res) => {
       "https://*.clerk.dev https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://static.clerk.dev; " +
       "connect-src 'self' https://*.clerk.dev https://accounts.clerk.dev https://api.clerk.dev " +
       "https://cdn.jsdelivr.net https://relieved-gnat-14.clerk.accounts.dev https://fonts.gstatic.com; " +
-      "img-src 'self' https://*.clerk.dev https://accounts.clerk.dev https://img.clerk.com data: https://cdn.jsdelivr.net; " +
+      "img-src 'self' https://*.clerk.dev https://accounts.clerk.dev https://img.clerk.com data: https://cdn.jsdelivr.net https://coogsmusicstorage.blob.core.windows.net; " +
       "font-src 'self' https://fonts.gstatic.com;"
   );
 
