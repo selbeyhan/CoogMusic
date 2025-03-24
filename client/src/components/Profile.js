@@ -335,7 +335,7 @@ const Profile = () => {
 {isOwner && (
   <>
     <button
-      className="delete-account-btn upload-btn"
+      className="delete-account-btn"
       onClick={() => setShowDeleteConfirm(true)}
       style={{ marginTop: '10px', backgroundColor: '#ff4d4f', color: '#fff' }}
     >

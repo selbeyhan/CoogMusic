@@ -359,7 +359,7 @@ const server = http.createServer(async (req, res) => {
 
   // Set CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
 
@@ -460,42 +460,6 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: err.message }));
     }
-    return;
-  }
-
-  if (req.method === "DELETE" && req.url.startsWith("/api/song/")) {
-    const songId = decodeURIComponent(req.url.split("/api/song/")[1]);
-
-    try {
-      const connection = await mysql.createConnection(dbConfig);
-
-      // Delete from playlist songs table first (if you don't have ON DELETE CASCADE)
-      await connection.execute(
-        "DELETE FROM playlist songs WHERE song_id = ?",
-        [songId]
-      );
-
-      // Delete from songs table
-      const [result] = await connection.execute(
-        "DELETE FROM songs WHERE song_id = ?",
-        [songId]
-      );
-
-      await connection.end();
-
-      if (result.affectedRows === 0) {
-        res.writeHead(404, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Song not found" }));
-      }
-
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "Song deleted successfully" }));
-    } catch (err) {
-      console.error("❌ Error deleting song:", err.message);
-      res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Failed to delete song" }));
-    }
-
     return;
   }
 
@@ -1003,7 +967,41 @@ LIMIT 20
     return;
   }
 
+if (req.method === "DELETE" && req.url.startsWith("/api/song/")) {
+    const songId = decodeURIComponent(req.url.split("/api/song/")[1]);
 
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+
+      // Delete from playlist songs table first (if you don't have ON DELETE CASCADE)
+      await connection.execute(
+        "DELETE FROM playlist songs WHERE song_id = ?",
+        [songId]
+      );
+
+      // Delete from songs table
+      const [result] = await connection.execute(
+        "DELETE FROM songs WHERE song_id = ?",
+        [songId]
+      );
+
+      await connection.end();
+
+      if (result.affectedRows === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Song not found" }));
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Song deleted successfully" }));
+    } catch (err) {
+      console.error("❌ Error deleting song:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Failed to delete song" }));
+    }
+
+    return;
+  }
 
 
 
@@ -1039,10 +1037,6 @@ LIMIT 20
 
     return;
   }
-
-
-
-
 
 
   res.writeHead(404, { "Content-Type": "application/json" });
