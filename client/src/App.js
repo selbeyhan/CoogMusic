@@ -20,6 +20,8 @@ import AdminPortal from './components/AdminPortal';
 import SignupPage from './components/SignupPage';
 import VerifyEmailRedirect from './components/VerifyEmailRedirect';
 import PlaylistView from './components/PlaylistView';
+import ArtistProfile from './components/ArtistProfile';
+
 
 
 import AudioPlayerUI from './components/AudioPlayerUI';
@@ -77,6 +79,7 @@ function App() {
                 </SignedIn>
               }
             />
+            <Route path="/artist/:artistId" element={<ArtistProfile />} />
             <Route path="/playlist/:playlistId" element={<PlaylistView />} />
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<LoginPage />} />

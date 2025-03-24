@@ -1094,6 +1094,61 @@ if (req.method === "PATCH" && req.url.startsWith("/update-verification/")) {
 }
 
 
+if (req.method === "GET" && req.url.startsWith("/api/user-by-id/")) {
+  const userId = req.url.split("/api/user-by-id/")[1];
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute(
+      "SELECT * FROM users WHERE user_id = ?",
+      [userId]
+    );
+    await connection.end();
+
+    if (rows.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Artist not found" }));
+    } else {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ user: rows[0] })); // ✅
+    }
+  } catch (err) {
+    console.error("❌ Error fetching user by ID:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Database error" }));
+  }
+
+  return;
+}
+
+if (req.method === "GET" && req.url.startsWith("/api/artist-songs/")) {
+  const artistId = req.url.split("/api/artist-songs/")[1];
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute(
+      `SELECT songs.*, users.name AS musician_name
+       FROM songs
+       JOIN users ON songs.musician_id = users.user_id
+       WHERE songs.musician_id = ?
+       ORDER BY songs.upload_date DESC`,
+      [artistId]
+    );
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(rows));
+  } catch (err) {
+    console.error("❌ Error fetching artist songs:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Database error" }));
+  }
+
+  return;
+}
+
+
+
 
   // Serve React Frontend (Static Files)
   const buildPath = path.join(__dirname, "build");

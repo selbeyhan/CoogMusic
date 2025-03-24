@@ -1,0 +1,235 @@
+.artist-profile-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    color: #333;
+  }
+  
+  .artist-header {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .artist-image {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-right: 2rem;
+    flex-shrink: 0;
+    background-color: #f0f0f0;
+  }
+  
+  .artist-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .artist-info {
+    flex: 1;
+  }
+  
+  .artist-info h1 {
+    margin: 0 0 0.5rem;
+    color: #ff0000;
+  }
+  
+  .artist-bio {
+    margin: 1rem 0;
+    line-height: 1.6;
+  }
+  
+  .artist-stats {
+    display: flex;
+    margin-bottom: 1.5rem;
+  }
+  
+  .stat {
+    margin-right: 2rem;
+    text-align: center;
+  }
+  
+  .stat-value {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #ff0000;
+  }
+  
+  .stat-label {
+    font-size: 0.9rem;
+    color: #666;
+  }
+  
+  .artist-content {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .tab-btn {
+    background: none;
+    border: none;
+    padding: 1rem 2rem;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+    color: #666;
+  }
+  
+  .tab-btn.active {
+    color: #ff0000;
+    border-bottom: 3px solid #ff0000;
+  }
+  
+  .tab-btn:hover {
+    background: #f9f9f9;
+  }
+  
+  .tab-content {
+    padding: 1.5rem;
+  }
+  
+  .songs-tab h2,
+  .about-tab h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #ff0000;
+  }
+  
+  .no-content {
+    text-align: center;
+    color: #666;
+    padding: 2rem 0;
+  }
+  
+  .songs-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .song-card {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  
+  .song-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  }
+  
+  .song-cover {
+    height: 150px;
+  }
+  
+  .song-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .song-info {
+    padding: 1rem;
+  }
+  
+  .song-info h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.2rem;
+  }
+  
+  .song-genre {
+    color: #666;
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .song-date, .song-views {
+    color: #999;
+    font-size: 0.8rem;
+    margin: 0;
+  }
+  
+  .song-controls {
+    display: flex;
+    padding: 0 1rem 1rem;
+  }
+  
+  .play-btn {
+    width: 100%;
+    padding: 0.5rem;
+    border: none;
+    border-radius: 4px;
+    background: #ff0000;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  
+  .play-btn:hover {
+    background: #cc0000;
+  }
+  
+  .info-item {
+    display: flex;
+    margin-bottom: 1rem;
+  }
+  
+  .label {
+    font-weight: bold;
+    width: 150px;
+  }
+  
+  .bio-section {
+    margin-top: 2rem;
+  }
+  
+  .bio-section h3 {
+    color: #ff0000;
+    margin-bottom: 0.5rem;
+  }
+  
+  .loading-container,
+  .error-container {
+    text-align: center;
+    padding: 3rem;
+    font-size: 1.2rem;
+  }
+  
+  .error-container {
+    color: #ff0000;
+  }
+  
+  @media (max-width: 768px) {
+    .artist-header {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+  
+    .artist-image {
+      margin: 0 0 1.5rem;
+    }
+  
+    .artist-stats {
+      justify-content: center;
+    }
+  
+    .songs-list {
+      grid-template-columns: 1fr;
+    }
+  }
