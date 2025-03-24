@@ -1,0 +1,104 @@
+/* PlaylistView.css */
+
+/* Base layout */
+.playlist-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Roboto', sans-serif;
+    padding: 20px;
+    background-color: #f4f4f4;
+    min-height: 100vh;
+  }
+  
+  /* Playlist title */
+  .playlist-view h2 {
+    font-size: 2rem;
+    color: #333;
+    margin-bottom: 20px;
+  }
+  
+  /* Table-style song list container (styled like newest-songs-container) */
+  .playlist-table-container {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    width: 95%;
+    max-width: 850px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 50px;
+  }
+  
+  /* Scrollable wrapper */
+  .playlist-table-scroll {
+    max-height: 500px;
+    overflow-y: auto;
+  }
+  
+  /* Song table layout */
+  .playlist-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  
+  .playlist-table th,
+  .playlist-table td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  /* Column widths */
+  .playlist-table th:nth-child(1),
+  .playlist-table td:nth-child(1) {
+    width: 40%; /* Song title */
+  }
+  
+  .playlist-table th:nth-child(2),
+  .playlist-table td:nth-child(2) {
+    width: 40%; /* Artist */
+  }
+  
+  .playlist-table th:nth-child(3),
+  .playlist-table td:nth-child(3) {
+    width: 20%; /* Upload date */
+    text-align: center;
+  }
+  
+  /* Sticky header */
+  .playlist-table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #ff3b3f;
+    color: #fff;
+    z-index: 1;
+  }
+  
+  /* Hover effect on song row */
+  .playlist-table tbody tr:hover {
+    background-color: #f9f9f9;
+    cursor: pointer;
+  }
+  
+  /* Hover underline on title only */
+  .playlist-table tbody tr td:nth-child(1):hover {
+    text-decoration: underline;
+  }
+  
+  /* Empty state */
+  .playlist-view p {
+    font-size: 1rem;
+    color: #777;
+    margin-top: 20px;
+  }
+  
+  /* Loading */
+  .loading {
+    font-size: 1.2rem;
+    color: #555;
+    margin-top: 40px;
+  }
+  
