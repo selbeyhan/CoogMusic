@@ -912,14 +912,15 @@ const server = http.createServer(async (req, res) => {
 
       // Fetch songs in the playlist
       const [songs] = await connection.execute(`
-SELECT s.song_id, s.title, s.genre, s.upload_date, s.views, s.file_url, s.cover_art_url, s.description,
-u.name AS musician_name
-FROM \`playlist songs\` ps
-JOIN songs s ON ps.song_id = s.song_id
-JOIN users u ON s.musician_id = u.user_id
-WHERE ps.playlist_id = ?
-ORDER BY ps.added_date ASC
-`, [playlistId]);
+        SELECT s.song_id, s.title, s.genre, s.upload_date, s.views, s.file_url, s.cover_art_url, s.description,
+        s.musician_id, u.name AS musician_name
+        FROM \`playlist songs\` ps
+        JOIN songs s ON ps.song_id = s.song_id
+        JOIN users u ON s.musician_id = u.user_id
+        WHERE ps.playlist_id = ?
+        ORDER BY ps.added_date ASC
+      `, [playlistId]);
+      
 
       await connection.end();
 

@@ -1,6 +1,6 @@
 // client/src/components/PlaylistView.js
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAudio } from '../contexts/AudioContext';
 import './PlaylistView.css';
@@ -50,15 +50,21 @@ const PlaylistView = () => {
               </thead>
               <tbody>
                 {songs.map((song) => (
-                  <tr
-                    key={song.song_id}
-                    onClick={() => {
-                      setCurrentSong(song);
-                      axios.post(`/increment-view/${song.song_id}`).catch(console.error);
-                    }}
-                  >
-                    <td>{song.title}</td>
-                    <td>{song.musician_name}</td>
+                  <tr key={song.song_id}>
+                    <td
+                      onClick={() => {
+                        setCurrentSong(song);
+                        axios.post(`/increment-view/${song.song_id}`).catch(console.error);
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {song.title}
+                    </td>
+                    <td>
+                      <Link to={`/artist/${song.musician_id}`}>
+                        {song.musician_name}
+                      </Link>
+                    </td>
                     <td>{new Date(song.upload_date).toLocaleDateString()}</td>
                   </tr>
                 ))}
