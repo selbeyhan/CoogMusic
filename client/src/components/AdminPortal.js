@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import './AdminPortal.css'; // Include your styling file if needed
+import './AdminPortal.css';
 
 function AdminPortal() {
-  // State to hold all admin users fetched from the backend
   const [users, setUsers] = useState([]);
-  // State to handle the search input value
   const [searchTerm, setSearchTerm] = useState('');
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [showingUnverified, setShowingUnverified] = useState(false);
 
-  // ✅ Fetch admin user data from the backend when the component mounts
   useEffect(() => {
     const fetchAdminUsers = async () => {
       try {
         const response = await fetch('/admin-users');
         const data = await response.json();
-        // Assuming the returned data is an array of user objects
-        setUsers(data.users || data);
-        console.log("📥 Fetched admin users:", data);
+        const userList = data.users || data;
+        setUsers(userList);
+        setFilteredUsers(userList);
+        console.log("📥 Fetched admin users:", userList);
       } catch (error) {
         console.error("❌ Error fetching admin users:", error);
       }
@@ -24,13 +24,83 @@ function AdminPortal() {
     fetchAdminUsers();
   }, []);
 
-  // ✅ Handle search input changes
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
   };
 
-  // ✅ Filter users based on the search term (client-side search)
-  const filteredUsers = users.filter(user =>
+  const handleDelete = async (user) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this user?");
+    if (!confirmDelete) return;
+
+    const idToDelete = user.clerk_user_id || user.user_id;
+    const endpoint = user.clerk_user_id
+      ? `/user/${encodeURIComponent(idToDelete)}`
+      : `/delete-by-id/${encodeURIComponent(idToDelete)}`;
+
+    try {
+      const response = await fetch(endpoint, { method: 'DELETE' });
+
+      if (response.ok) {
+        setUsers(prev => prev.filter(u =>
+          u.clerk_user_id !== user.clerk_user_id && u.user_id !== user.user_id
+        ));
+        setFilteredUsers(prev => prev.filter(u =>
+          u.clerk_user_id !== user.clerk_user_id && u.user_id !== user.user_id
+        ));
+        console.log("✅ User deleted successfully");
+      } else {
+        const data = await response.json();
+        console.error("❌ Delete failed:", data.error || data.message);
+      }
+    } catch (err) {
+      console.error("❌ Error deleting user:", err);
+    }
+  };
+
+  // ✅ Handle verification status dropdown change
+  const handleVerificationChange = async (userId, newStatus) => {
+    try {
+      const response = await fetch(`/update-verification/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ verification_status: newStatus })
+      });
+
+      if (response.ok) {
+        setUsers(prev =>
+          prev.map(user =>
+            user.user_id === userId
+              ? { ...user, verification_status: newStatus }
+              : user
+          )
+        );
+        setFilteredUsers(prev =>
+          prev.map(user =>
+            user.user_id === userId
+              ? { ...user, verification_status: newStatus }
+              : user
+          )
+        );
+        console.log(`✅ Updated verification for user_id ${userId} to ${newStatus}`);
+      } else {
+        console.error("❌ Failed to update verification");
+      }
+    } catch (err) {
+      console.error("❌ Error updating verification:", err);
+    }
+  };
+
+  const handleShowUnverified = () => {
+    setFilteredUsers(users.filter(user => user.verification_status === 0));
+    setShowingUnverified(true);
+  };
+
+  const handleShowAll = () => {
+    setFilteredUsers(users);
+    setShowingUnverified(false);
+  };
+
+  const searchFilteredUsers = filteredUsers.filter(user =>
     Object.values(user).some(value =>
       value &&
       value.toString().toLowerCase().includes(searchTerm.toLowerCase())
@@ -40,8 +110,16 @@ function AdminPortal() {
   return (
     <div className="admin-portal">
       <h1>Admin Portal: User Management</h1>
+
+      <div className="button-row" style={{ marginBottom: '10px' }}>
+        {!showingUnverified ? (
+          <button onClick={handleShowUnverified}>Show Unverified Users</button>
+        ) : (
+          <button onClick={handleShowAll}>Show All Users</button>
+        )}
+      </div>
+
       <div className="search-container">
-        {/* Search input to filter users */}
         <input
           type="text"
           placeholder="Search users..."
@@ -49,6 +127,7 @@ function AdminPortal() {
           onChange={handleSearchChange}
         />
       </div>
+
       <table className="users-table">
         <thead>
           <tr>
@@ -68,8 +147,8 @@ function AdminPortal() {
           </tr>
         </thead>
         <tbody>
-          {filteredUsers.length > 0 ? (
-            filteredUsers.map((user, index) => (
+          {searchFilteredUsers.length > 0 ? (
+            searchFilteredUsers.map((user, index) => (
               <tr key={index}>
                 <td>{user.name}</td>
                 <td>{user.email}</td>
@@ -85,17 +164,25 @@ function AdminPortal() {
                 <td>{user.bio}</td>
                 <td>{user.monthly_listeners}</td>
                 <td>{user.uh_affiliation}</td>
-                <td>{user.verification_status}</td>
+                <td>
+                  <select
+                    value={user.verification_status}
+                    onChange={(e) =>
+                      handleVerificationChange(user.user_id, parseInt(e.target.value))
+                    }
+                  >
+                    <option value={1}>Verified</option>
+                    <option value={0}>Unverified</option>
+                  </select>
+                </td>
                 <td>{user.admin_role}</td>
                 <td>{user.user_id}</td>
                 <td>{user.clerk_user_id}</td>
                 <td>
-                  {/* Future functionality for editing user data */}
                   <button onClick={() => console.log("Edit user:", user.user_id)}>
                     Edit
                   </button>
-                  {/* Future functionality for deleting a user */}
-                  <button onClick={() => console.log("Delete user:", user.user_id)}>
+                  <button onClick={() => handleDelete(user)}>
                     Delete
                   </button>
                 </td>
