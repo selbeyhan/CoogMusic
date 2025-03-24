@@ -13,48 +13,57 @@ function Header() {
 
 
  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+ const [mysqlUserProfile, setMysqlUserProfile] = useState(null);
  const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
 
 
  // ✅ Function to send user data to backend after sign-in
  useEffect(() => {
-   if (isSignedIn && user) {
-     console.log("✅ User is signed in. Sending data to backend...");
+  if (isSignedIn && user) {
+    console.log("✅ User is signed in. Sending data to backend...");
 
+    const sendUserDataToBackend = async () => {
+      const userData = {
+        clerk_user_id: user.id,
+        name: user.fullName || "No Name Provided",
+        email: user.primaryEmailAddress?.emailAddress || "",
+        password: "handled by Clerk auth",
+      };
 
-     const sendUserDataToBackend = async () => {
-       const userData = {
-         clerk_user_id: user.id,
-         name: user.fullName || "No Name Provided",
-         email: user.primaryEmailAddress?.emailAddress || "",
-         password: "handled by Clerk auth", // ✅ Add password field explicitly
-       };
+      console.log("📤 Sending user data to backend:", userData);
 
+      try {
+        const response = await fetch("/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(userData),
+        });
 
-       console.log("📤 Sending user data to backend:", userData); // ✅ Debug log before sending
+        const data = await response.json();
+        console.log("✅ Server response:", data);
+      } catch (error) {
+        console.error("❌ Error sending user data to backend:", error);
+      }
+    };
 
+    const fetchMySQLUser = async () => {
+      try {
+        const response = await fetch(`/user/${user.id}`);
+        const data = await response.json();
+        console.log("📥 MySQL user data:", data.user);
+        setMysqlUserProfile(data.user);
+      } catch (error) {
+        console.error("❌ Error fetching MySQL user:", error);
+      }
+    };
 
-       try {
-         const response = await fetch("/register", {
-           method: "POST",
-           headers: { "Content-Type": "application/json" },
-           body: JSON.stringify(userData),
-         });
+    sendUserDataToBackend();
+    fetchMySQLUser();
+  } else {
+    console.log("❌ No signed-in user detected.");
+  }
+}, [isSignedIn, user]);
 
-
-         const data = await response.json();
-         console.log("✅ Server response:", data); // ✅ Log server response
-       } catch (error) {
-         console.error("❌ Error sending user data to backend:", error); // ❌ Log if request fails
-       }
-     };
-
-
-     sendUserDataToBackend(); // Call the function
-   } else {
-     console.log("❌ No signed-in user detected.");
-   }
- }, [isSignedIn, user]); // Runs when `isSignedIn` or `user` changes
 
 
  return (
@@ -69,7 +78,7 @@ function Header() {
          {isSignedIn ? (
            <div className="user-info">
              <ProfileButton
-               profilePicture={user.profileImageUrl || 'coogmusiclogonobg.png'}
+               profilePicture={mysqlUserProfile?.profile_picture_url || 'coogmusiclogonobg.png'}
                userId={user.id}
              />
              <SignOutButton className="logout-button" />

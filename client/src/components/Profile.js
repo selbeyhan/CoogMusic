@@ -24,7 +24,9 @@ const Profile = () => {
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [playlists, setPlaylists] = useState([]);
   const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false);
-
+  const [showUpdateProfilePicModal, setShowUpdateProfilePicModal] = useState(false);
+  const [newProfilePicFile, setNewProfilePicFile] = useState(null);
+  
 
 
 
@@ -60,13 +62,15 @@ const Profile = () => {
           name: userData.name,
           email: userData.email,
           bio: userData.bio || "Music enthusiast and UH student.",
-          profilePicture: currentUser?.profileImageUrl || 'https://via.placeholder.com/150',
+          profilePicture: userData.profile_picture_url || currentUser?.profileImageUrl,
           accountType: userData.account_type || "Musician",
           registrationDate: userData.registration_date || "2023-01-15",
           monthlyListeners: userData.monthly_listeners || 0,
           uhAffiliation: userData.uh_affiliation || "None",
           verification_status: userData.verification_status || false
         });
+        console.log("MySQL user_id (logged in):", userData.user_id);
+
   
         console.log(`🔍 Fetching songs for user: ${userId}`);
         const songsResponse = await axios.get(`/api/profile/${userId}`);
@@ -226,12 +230,82 @@ const Profile = () => {
     <div className="profile-container">
       <div className="profile-header">
         <div className="profile-image">
-          <img
-            src={userProfile.profilePicture || '/coogmusiclogonobg.png'}
-            alt={`${userProfile.name}'s profile`}
-            onError={(e) => e.target.src = '/coogmusiclogonobg.png'}
-          />
+        <img
+          src={userProfile.profilePicture || '/coogmusiclogonobg.png'}
+          alt={`${userProfile.name}'s profile`}
+          onError={(e) => e.target.src = '/coogmusiclogonobg.png'}
+          onClick={() => {
+            if (isOwner) {
+              console.log("🖼 Profile image clicked");
+              setShowUpdateProfilePicModal(true);
+            }
+          }}
+          style={{ cursor: isOwner ? 'pointer' : 'default' }}
+        />
         </div>
+        {showUpdateProfilePicModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h3>Attach a new profile image</h3>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  setNewProfilePicFile(e.target.files[0]);
+                  console.log("📁 Selected profile picture:", e.target.files[0]);
+                }}
+              />
+
+              <div className="modal-buttons">
+                <button
+                  className="cancel-btn"
+                  onClick={() => {
+                    setShowUpdateProfilePicModal(false);
+                    setNewProfilePicFile(null);
+                    console.log("❌ Cancel profile picture change");
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="confirm-btn"
+                  onClick={async () => {
+                    if (!newProfilePicFile) {
+                      alert("Please select an image first.");
+                      return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append("file", newProfilePicFile);
+                    formData.append("user_id", userProfile.id);
+
+                    try {
+                      console.log("⬆️ Uploading new profile picture...");
+                      const response = await axios.post("/upload-profile-picture", formData);
+                      console.log("✅ Server response:", response.data);
+
+                      alert("Profile picture updated!");
+                      setUserProfile((prev) => ({
+                        ...prev,
+                        profilePicture: response.data.url
+                      }));
+                    } catch (err) {
+                      console.error("❌ Error uploading profile picture:", err);
+                      alert("Failed to upload profile picture.");
+                    } finally {
+                      setShowUpdateProfilePicModal(false);
+                      setNewProfilePicFile(null);
+                    }
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="profile-info">
           <h1>{userProfile.name}</h1>
           <p className="account-type">{userProfile.accountType}</p>
