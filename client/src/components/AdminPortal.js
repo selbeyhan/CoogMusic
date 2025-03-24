@@ -2,12 +2,9 @@ import React, { useState, useEffect } from 'react';
 import './AdminPortal.css'; // Include your styling file if needed
 
 function AdminPortal() {
-  // State to hold all admin users fetched from the backend
   const [users, setUsers] = useState([]);
-  // State to handle the search input value
   const [searchTerm, setSearchTerm] = useState('');
 
-  // ✅ Fetch admin user data from the backend when the component mounts
   useEffect(() => {
     const fetchAdminUsers = async () => {
       try {
@@ -23,23 +20,28 @@ function AdminPortal() {
     fetchAdminUsers();
   }, []);
 
-  // ✅ Handle search input changes
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
   };
 
-  // ✅ Handle deleting a user by clerk_user_id
-  const handleDelete = async (clerkUserId) => {
+  // ✅ Updated delete handler to support both clerk_user_id and user_id
+  const handleDelete = async (user) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this user?");
     if (!confirmDelete) return;
 
+    const idToDelete = user.clerk_user_id || user.user_id;
+    const endpoint = user.clerk_user_id
+      ? `/user/${encodeURIComponent(idToDelete)}`
+      : `/delete-by-id/${encodeURIComponent(idToDelete)}`;
+
     try {
-      const response = await fetch(`/user/${encodeURIComponent(clerkUserId)}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(endpoint, { method: 'DELETE' });
 
       if (response.ok) {
-        setUsers(prev => prev.filter(user => user.clerk_user_id !== clerkUserId));
+        // Remove user from list regardless of which ID was used
+        setUsers(prev => prev.filter(u =>
+          u.clerk_user_id !== user.clerk_user_id && u.user_id !== user.user_id
+        ));
         console.log("✅ User deleted successfully");
       } else {
         const data = await response.json();
@@ -50,7 +52,6 @@ function AdminPortal() {
     }
   };
 
-  // ✅ Filter users based on the search term (client-side search)
   const filteredUsers = users.filter(user =>
     Object.values(user).some(value =>
       value &&
@@ -113,7 +114,7 @@ function AdminPortal() {
                   <button onClick={() => console.log("Edit user:", user.user_id)}>
                     Edit
                   </button>
-                  <button onClick={() => handleDelete(user.clerk_user_id)}>
+                  <button onClick={() => handleDelete(user)}>
                     Delete
                   </button>
                 </td>

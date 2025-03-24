@@ -1005,6 +1005,40 @@ if (req.method === "DELETE" && req.url.startsWith("/api/song/")) {
 
 
 
+  //deleting user by user_id (for admin portal -- since some users 
+  //were created before we integrated clerk and don't have clerk_user_id)
+  if (req.method === "DELETE" && req.url.startsWith("/delete-by-id/")) {
+    const userId = decodeURIComponent(req.url.split("/delete-by-id/")[1]);
+  
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+  
+      const [result] = await connection.execute(
+        "DELETE FROM users WHERE user_id = ?",
+        [userId]
+      );
+  
+      await connection.end();
+  
+      if (result.affectedRows === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ message: "User not found" }));
+      }
+  
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "User deleted by user_id" }));
+    } catch (err) {
+      console.error("❌ Error deleting user by ID:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Failed to delete user by ID" }));
+    }
+  
+    return;
+  }
+  
+
+
+
   // Serve React Frontend (Static Files)
   const buildPath = path.join(__dirname, "build");
 
