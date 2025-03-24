@@ -60,7 +60,7 @@ const Profile = () => {
           name: userData.name,
           email: userData.email,
           bio: userData.bio || "Music enthusiast and UH student.",
-          profilePicture: currentUser?.profileImageUrl || 'https://via.placeholder.com/150',
+          profilePicture: currentUser?.profileImageUrl,
           accountType: userData.account_type || "Musician",
           registrationDate: userData.registration_date || "2023-01-15",
           monthlyListeners: userData.monthly_listeners || 0,
