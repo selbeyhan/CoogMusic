@@ -26,9 +26,8 @@ const Profile = () => {
   const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false);
   const [showUpdateProfilePicModal, setShowUpdateProfilePicModal] = useState(false);
   const [newProfilePicFile, setNewProfilePicFile] = useState(null);
-  
-
-
+  const [showDeleteSongModal, setShowDeleteSongModal] = useState(false);
+  const [songToDelete, setSongToDelete] = useState(null);
 
   // Upload form state
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -39,9 +38,6 @@ const Profile = () => {
     cover_art_url: 'https://via.placeholder.com/150'
   });
   const [uploadFile, setUploadFile] = useState(null);
-
-
-
 
   useEffect(() => {
     if (currentUser) {
@@ -106,10 +102,6 @@ const Profile = () => {
     fetchAll();
   }, [userId, currentUser]);
   
-
-
-  
-
   const handleSaveBio = async () => {
     try {
       await axios.patch(`/update-bio/${userId}`, { bio: userProfile.newBio });
@@ -124,8 +116,6 @@ const Profile = () => {
       alert("Failed to update bio.");
     }
   };
-  
-  
 
   const handleCreatePlaylist = async () => {
     if (!newPlaylistName.trim()) {
@@ -230,18 +220,23 @@ const Profile = () => {
     <div className="profile-container">
       <div className="profile-header">
         <div className="profile-image">
-        <img
-          src={userProfile.profilePicture || '/coogmusiclogonobg.png'}
-          alt={`${userProfile.name}'s profile`}
-          onError={(e) => e.target.src = '/coogmusiclogonobg.png'}
-          onClick={() => {
-            if (isOwner) {
-              console.log("🖼 Profile image clicked");
-              setShowUpdateProfilePicModal(true);
-            }
-          }}
-          style={{ cursor: isOwner ? 'pointer' : 'default' }}
-        />
+          <img
+            src={userProfile.profilePicture || '/coogmusiclogonobg.png'}
+            alt={`${userProfile.name}'s profile`}
+            onError={(e) => (e.target.src = '/coogmusiclogonobg.png')}
+            onClick={() => {
+              if (isOwner) {
+                console.log("🖼 Profile image clicked");
+                setShowUpdateProfilePicModal(true);
+              }
+            }}
+            style={{ cursor: isOwner ? 'pointer' : 'default' }}
+          />
+          {isOwner && (
+            <div className="profile-overlay">
+              <span>Upload Profile Pic</span>
+            </div>
+          )}
         </div>
         {showUpdateProfilePicModal && (
           <div className="modal-overlay">
@@ -484,7 +479,15 @@ const Profile = () => {
                   </button>
 
                   {isOwner && (
-                    <button className="delete-btn">Delete</button>
+                    <button
+                    className="delete-btn"
+                    onClick={() => {
+                      setSongToDelete(song);
+                      setShowDeleteSongModal(true);
+                    }}
+                  >
+                    Delete
+                  </button>                  
                   )}
                 </div>
               </div>
@@ -638,6 +641,47 @@ const Profile = () => {
 
 
 
+          {showDeleteSongModal && (
+            <div className="modal-overlay">
+              <div className="modal-content">
+                <h3>Are you sure you want to delete "{songToDelete.title}"?</h3>
+                <p>This will also remove it from all playlists and comments.</p>
+                <div className="modal-buttons">
+                  <button
+                    className="cancel-btn"
+                    onClick={() => {
+                      setShowDeleteSongModal(false);
+                      setSongToDelete(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="confirm-btn"
+                    onClick={async () => {
+                      try {
+                        console.log("🗑 Attempting to delete song with ID:", songToDelete.song_id); // Debug log
+                        await axios.delete(`/api/song/${songToDelete.song_id}`);
+                        console.log("✅ Song deleted successfully:", songToDelete.song_id); // Debug log
+
+                        setUserSongs(prev => prev.filter(s => s.song_id !== songToDelete.song_id));
+                        alert("Song deleted successfully!");
+                      } catch (error) {
+                        console.error("❌ Error deleting song:", error);
+                        alert("Failed to delete song.");
+                      } finally {
+                        setShowDeleteSongModal(false);
+                        setSongToDelete(null);
+                      }
+                    }}
+                  >
+                    Confirm Delete
+                  </button>
+
+                </div>
+              </div>
+            </div>
+          )}
 
 
         </div>

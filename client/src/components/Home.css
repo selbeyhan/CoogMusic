@@ -69,11 +69,7 @@
 /* Optional: If you want to show ellipsis for overflowing content */
 .top-songs-table th,
 .top-songs-table td {
-  padding: 12px;
-  border-bottom: 1px solid #ddd;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: left;
 }
 
 /* Define specific column widths */
@@ -90,7 +86,6 @@
 .top-songs-table th:nth-child(3),
 .top-songs-table td:nth-child(3) {
   width: 20%;  /* Streams column */
-  text-align: center;
 }
 
 /* Make header row sticky so it remains visible when scrolling */
@@ -115,7 +110,6 @@
 /* Formatting the audio player properly */
 .audio-player {
   margin-top: 10px;
-  text-align: center;
 }
 
 /* Underline the text in the first column on hover */
@@ -170,13 +164,11 @@
 .top-songs-table th:nth-child(3),
 .top-songs-table td:nth-child(3) {
   width: 20%; /* Uploaded Date */
-  text-align: center;
 }
 
 .top-songs-table th:nth-child(4),
 .top-songs-table td:nth-child(4) {
   width: 15%; /* Views */
-  text-align: center;
 }
 
 /* Sticky headers */

@@ -36,6 +36,36 @@ const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_ACCESS_KE
 const songContainerClient = blobServiceClient.getContainerClient(SONGS_CONTAINER_NAME);
 const profilePictureContainerClient = blobServiceClient.getContainerClient(PROFILE_PICTURE_CONTAINER_NAME);
 
+async function adminPortalUsers() {
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+    // Fetch all the fields needed for the admin portal
+    const [rows] = await connection.execute(`
+      SELECT 
+        name, 
+        email, 
+        account_type, 
+        registration_date, 
+        profile_picture_url, 
+        bio, 
+        monthly_listeners, 
+        uh_affiliation, 
+        verification_status, 
+        admin_role, 
+        user_id, 
+        clerk_user_id 
+      FROM users
+    `);
+    return rows;
+  } catch (err) {
+    console.error("❌ Error fetching admin portal users:", err.message);
+    return [];
+  } finally {
+    if (connection) await connection.end();
+  }
+}
+
 
 async function getAllUsers() {
   let connection;
@@ -329,7 +359,7 @@ const server = http.createServer(async (req, res) => {
 
   // Set CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, DELETE");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
 
@@ -418,6 +448,21 @@ const server = http.createServer(async (req, res) => {
     }
     return;
   }
+
+  // Admin Portal Users Endpoint: Fetch all users and info for the admin portal:
+  if (req.method === "GET" && req.url === "/admin-users") {
+    try {
+      const users = await adminPortalUsers();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ users }));
+    } catch (err) {
+      console.error("❌ Error fetching admin portal users:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
 
   // Get user profile by Clerk user ID
   if (req.method === "GET" && req.url.startsWith("/user/")) {
@@ -922,7 +967,41 @@ LIMIT 20
     return;
   }
 
+if (req.method === "DELETE" && req.url.startsWith("/api/song/")) {
+    const songId = decodeURIComponent(req.url.split("/api/song/")[1]);
 
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+
+      // Delete from playlist songs table first (if you don't have ON DELETE CASCADE)
+      await connection.execute(
+        "DELETE FROM `playlist songs` WHERE song_id = ?",
+        [songId]
+      );
+
+      // Delete from songs table
+      const [result] = await connection.execute(
+        "DELETE FROM songs WHERE song_id = ?",
+        [songId]
+      );
+
+      await connection.end();
+
+      if (result.affectedRows === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Song not found" }));
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Song deleted successfully" }));
+    } catch (err) {
+      console.error("❌ Error deleting song:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Failed to delete song" }));
+    }
+
+    return;
+  }
 
 
 
@@ -958,10 +1037,6 @@ LIMIT 20
 
     return;
   }
-
-
-
-
 
 
   res.writeHead(404, { "Content-Type": "application/json" });
