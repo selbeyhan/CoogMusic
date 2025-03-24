@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import './AdminPortal.css'; // Include your styling file if needed
+import './AdminPortal.css';
 
 function AdminPortal() {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [showingUnverified, setShowingUnverified] = useState(false);
 
   useEffect(() => {
     const fetchAdminUsers = async () => {
       try {
         const response = await fetch('/admin-users');
         const data = await response.json();
-        setUsers(data.users || data);
-        console.log("📥 Fetched admin users:", data);
+        const userList = data.users || data;
+        setUsers(userList);
+        setFilteredUsers(userList); // initial full list
+        console.log("📥 Fetched admin users:", userList);
       } catch (error) {
         console.error("❌ Error fetching admin users:", error);
       }
@@ -24,7 +28,6 @@ function AdminPortal() {
     setSearchTerm(event.target.value);
   };
 
-  // ✅ Updated delete handler to support both clerk_user_id and user_id
   const handleDelete = async (user) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this user?");
     if (!confirmDelete) return;
@@ -38,8 +41,10 @@ function AdminPortal() {
       const response = await fetch(endpoint, { method: 'DELETE' });
 
       if (response.ok) {
-        // Remove user from list regardless of which ID was used
         setUsers(prev => prev.filter(u =>
+          u.clerk_user_id !== user.clerk_user_id && u.user_id !== user.user_id
+        ));
+        setFilteredUsers(prev => prev.filter(u =>
           u.clerk_user_id !== user.clerk_user_id && u.user_id !== user.user_id
         ));
         console.log("✅ User deleted successfully");
@@ -52,7 +57,17 @@ function AdminPortal() {
     }
   };
 
-  const filteredUsers = users.filter(user =>
+  const handleShowUnverified = () => {
+    setFilteredUsers(users.filter(user => user.verification_status === 0));
+    setShowingUnverified(true);
+  };
+
+  const handleShowAll = () => {
+    setFilteredUsers(users);
+    setShowingUnverified(false);
+  };
+
+  const searchFilteredUsers = filteredUsers.filter(user =>
     Object.values(user).some(value =>
       value &&
       value.toString().toLowerCase().includes(searchTerm.toLowerCase())
@@ -62,6 +77,15 @@ function AdminPortal() {
   return (
     <div className="admin-portal">
       <h1>Admin Portal: User Management</h1>
+
+      <div className="button-row" style={{ marginBottom: '10px' }}>
+        {!showingUnverified ? (
+          <button onClick={handleShowUnverified}>Show Unverified Users</button>
+        ) : (
+          <button onClick={handleShowAll}>Show All Users</button>
+        )}
+      </div>
+
       <div className="search-container">
         <input
           type="text"
@@ -70,6 +94,7 @@ function AdminPortal() {
           onChange={handleSearchChange}
         />
       </div>
+
       <table className="users-table">
         <thead>
           <tr>
@@ -89,8 +114,8 @@ function AdminPortal() {
           </tr>
         </thead>
         <tbody>
-          {filteredUsers.length > 0 ? (
-            filteredUsers.map((user, index) => (
+          {searchFilteredUsers.length > 0 ? (
+            searchFilteredUsers.map((user, index) => (
               <tr key={index}>
                 <td>{user.name}</td>
                 <td>{user.email}</td>
