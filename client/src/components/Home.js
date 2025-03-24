@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAudio } from '../contexts/AudioContext';
 import { useUser } from '@clerk/clerk-react'; // Access current user
 import AudioPlayerUI from './AudioPlayerUI'; // Custom audio player
+import { Link } from 'react-router-dom';
 import './Home.css';
 
 function Home() {
@@ -251,7 +252,11 @@ function Home() {
                     </button>
                     {song.title}
                   </td>
-                  <td>{song.musician_name}</td>
+                  <td>
+                    <Link to={`/artist/${song.musician_id}`}>
+                      {song.musician_name}
+                    </Link>
+                  </td>
                   <td>{song.views}</td>
                 </tr>
               ))}
