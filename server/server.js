@@ -42,19 +42,19 @@ async function adminPortalUsers() {
     connection = await mysql.createConnection(dbConfig);
     // Fetch all the fields needed for the admin portal
     const [rows] = await connection.execute(`
-      SELECT 
-        name, 
-        email, 
-        account_type, 
-        registration_date, 
-        profile_picture_url, 
-        bio, 
-        monthly_listeners, 
-        uh_affiliation, 
-        verification_status, 
-        admin_role, 
-        user_id, 
-        clerk_user_id 
+      SELECT
+        name,
+        email,
+        account_type,
+        registration_date,
+        profile_picture_url,
+        bio,
+        monthly_listeners,
+        uh_affiliation,
+        verification_status,
+        admin_role,
+        user_id,
+        clerk_user_id
       FROM users
     `);
     return rows;
@@ -406,7 +406,7 @@ const server = http.createServer(async (req, res) => {
         console.log("✅ File upload received");
         console.log("Received req.body:", req.body);
         console.log("Received file:", req.file);
-        
+
         // Extract form metadata from req.body
         const { title, genre, description, cover_art_url, musician_id } = req.body;
         if (!title || !genre || !description || !cover_art_url || !musician_id) {
@@ -888,7 +888,60 @@ const server = http.createServer(async (req, res) => {
 
     return;
   }
+  // Get user by ID
+if (req.method === "GET" && req.url.startsWith("/api/user-by-id/")) {
+  const userId = req.url.split("/api/user-by-id/")[1];
 
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute(
+      "SELECT * FROM users WHERE user_id = ?",
+      [userId]
+    );
+    await connection.end();
+
+    if (rows.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Artist not found" }));
+    } else {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ user: rows[0] }));
+    }
+  } catch (err) {
+    console.error("❌ Error fetching user by ID:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Database error" }));
+  }
+
+  return;
+}
+
+// Get artist songs by artist ID
+if (req.method === "GET" && req.url.startsWith("/api/artist-songs/")) {
+  const artistId = req.url.split("/api/artist-songs/")[1];
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [songs] = await connection.execute(
+      `SELECT songs.*, users.name AS musician_name
+       FROM songs
+       JOIN users ON songs.musician_id = users.user_id
+       WHERE songs.musician_id = ?
+       ORDER BY songs.upload_date DESC`,
+      [artistId]
+    );
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(songs));
+  } catch (err) {
+    console.error("❌ Error fetching artist songs:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Database error" }));
+  }
+
+  return;
+}
 
 
   // Get a playlist and its songs
@@ -1049,5 +1102,3 @@ if (req.method === "DELETE" && req.url.startsWith("/api/song/")) {
 server.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });
-
-
