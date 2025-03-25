@@ -580,6 +580,8 @@
 
 /* Song edit form styles */
 .edit-song-form {
+  position: relative;
+  z-index: 10000;
   padding: 1rem;
   background: white;
   border-radius: 8px;

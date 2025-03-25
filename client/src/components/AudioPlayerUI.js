@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { useUser } from "@clerk/clerk-react";
 import {
   FaStepBackward,
   FaPlay,
@@ -20,7 +21,10 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
   const [volume, setVolume] = useState(1);
   const [repeatMode, setRepeatMode] = useState('off');
   const [shuffle, setShuffle] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const { user } = useUser(); // Clerk user object
 
+  // Update playback progress and handling song end
   useEffect(() => {
     const audio = audioRef.current;
     const handleTimeUpdate = () => {
@@ -48,37 +52,41 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
     };
   }, [repeatMode, onNext]);
 
+  // Load new song and fetch like state from backend
   useEffect(() => {
     if (!currentSong) return;
     const audio = audioRef.current;
 
-    // Only reload if the song is different.
-    if (audio.src === currentSong.file_url) {
-      console.log("Same song clicked, not reloading.");
-      return;
-    }
-
     console.log("Loading new song:", currentSong.title);
     audio.pause();
-
-    // Clear the previous source.
     audio.src = "";
     audio.load();
-
-    // Set the new source.
     audio.src = currentSong.file_url;
     audio.load();
 
-    // Wait for metadata so we know the correct duration.
     const handleLoadedMetadata = () => {
-      setProgress(0); // Reset progress for the new song
+      setProgress(0);
       audio.play().catch(err => console.error("Playback error:", err));
       setPlaying(true);
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
     };
 
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
-  }, [currentSong]);
+
+    // Fetch like state for the current song
+    const fetchLikeState = async () => {
+      if (!user?.id || !currentSong.song_id) return;
+      try {
+        const res = await fetch(`/api/isLiked?clerk_user_id=${encodeURIComponent(user.id)}&song_id=${currentSong.song_id}`);
+        const data = await res.json();
+        setLiked(data.liked);
+      } catch (err) {
+        console.error("Error fetching like state:", err);
+      }
+    };
+
+    fetchLikeState();
+  }, [currentSong, user]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
@@ -93,7 +101,6 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
     }
   };
 
-  // Use onInput for continuous updates in Chrome.
   const seek = (e) => {
     const audio = audioRef.current;
     if (audio.duration) {
@@ -121,9 +128,30 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
 
   const toggleShuffle = () => setShuffle(s => !s);
 
+  const toggleLike = async () => {
+    if (!currentSong || !user?.id) return;
+
+    // Optimistically update local like state
+    setLiked(prev => !prev);
+
+    try {
+      await fetch("/api/toggle-like", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clerk_user_id: user.id,
+          song_id: currentSong.song_id
+        })
+      });
+    } catch (err) {
+      console.error("Error toggling like:", err);
+      // Optionally revert local state if error occurs
+      setLiked(prev => !prev);
+    }
+  };
+
   return (
     <div className="player-container">
-      {/* Move audio element offscreen rather than hiding it */}
       <audio ref={audioRef} style={{ position: 'absolute', left: '-9999px' }} />
 
       <div className="player-controls">
@@ -155,7 +183,10 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
       </div>
 
       <div className="player-actions">
-        <FaHeart className="action-btn" />
+        <FaHeart
+          className={`action-btn ${liked ? 'liked' : ''}`}
+          onClick={toggleLike}
+        />
         <FaPlus className="action-btn" />
         <FaListUl className={`action-btn ${queue.length > 0 && 'active'}`} />
         <FaVolumeUp />
