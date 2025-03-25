@@ -61,7 +61,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
     audio.pause();
     audio.src = "";
     audio.load();
-    audio.src = currentSong.file_url;
+    audio.src = `/stream/${currentSong.song_id}`;
     audio.load();
 
     const handleLoadedMetadata = () => {

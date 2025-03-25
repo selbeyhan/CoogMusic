@@ -194,10 +194,6 @@ async function uploadProfilePicture(req, res) {
   }
 }
 
-
-
-
-
 async function uploadSong(req, res) {
   try {
     const { title, genre, description, cover_art_url, musician_id } = req.body;
@@ -237,14 +233,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       if (connection) await connection.end();
     }
 
-
-
-
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ message: "File uploaded and saved successfully", url: fileUrl }));
-
-
-
 
   } catch (error) {
     console.error("❌ Upload error:", error);
@@ -850,6 +840,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+
   // Create a new playlist
   if (req.method === "POST" && req.url === "/api/createPlaylist") {
     let body = "";
@@ -1060,6 +1051,72 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Audio streaming endpoint with Range support for audio seeking
+  if (req.method === "GET" && req.url.startsWith("/stream/")) {
+    const songId = req.url.split("/stream/")[1];
+    if (!songId) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Song ID is required" }));
+      return;
+    }
+
+    let connection;
+    try {
+      // Query the database for the file URL of the requested song
+      connection = await mysql.createConnection(dbConfig);
+      const [rows] = await connection.execute("SELECT file_url FROM songs WHERE song_id = ?", [songId]);
+      await connection.end();
+
+      if (rows.length === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Song not found" }));
+        return;
+      }
+
+      const fileUrl = rows[0].file_url;
+      // Extract blob name from fileUrl.
+      // Assumes URL format: https://<account>.blob.core.windows.net/songs/<blobName>
+      const urlObj = new URL(fileUrl);
+      const blobName = urlObj.pathname.split("/").pop();
+
+      // Get the block blob client for the song file from the Azure songs container
+      const blockBlobClient = songContainerClient.getBlockBlobClient(blobName);
+      const properties = await blockBlobClient.getProperties();
+      const contentLength = properties.contentLength;
+
+      const range = req.headers.range;
+      if (range) {
+        // Parse Range header, e.g., "bytes=100-"
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : contentLength - 1;
+        const chunkSize = (end - start) + 1;
+
+        const downloadResponse = await blockBlobClient.download(start, chunkSize);
+        res.writeHead(206, {
+          "Content-Range": `bytes ${start}-${end}/${contentLength}`,
+          "Accept-Ranges": "bytes",
+          "Content-Length": chunkSize,
+          "Content-Type": "audio/mpeg"  // Adjust MIME type if needed
+        });
+        downloadResponse.readableStreamBody.pipe(res);
+      } else {
+        // No Range header provided, serve entire file
+        const downloadResponse = await blockBlobClient.download(0);
+        res.writeHead(200, {
+          "Content-Length": contentLength,
+          "Content-Type": "audio/mpeg"
+        });
+        downloadResponse.readableStreamBody.pipe(res);
+      }
+    } catch (err) {
+      console.error("❌ Error streaming audio:", err.message);
+      if (connection) await connection.end();
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Error streaming audio", details: err.message }));
+    }
+    return;
+  }
 
 
   // Get a playlist and its songs
@@ -1083,15 +1140,15 @@ const server = http.createServer(async (req, res) => {
 
       // Fetch songs in the playlist
       const [songs] = await connection.execute(`
-        SELECT s.song_id, s.title, s.genre, s.upload_date, s.views, s.file_url, s.cover_art_url, s.description,
-        s.musician_id, u.name AS musician_name
-        FROM \`playlist songs\` ps
-        JOIN songs s ON ps.song_id = s.song_id
-        JOIN users u ON s.musician_id = u.user_id
-        WHERE ps.playlist_id = ?
-        ORDER BY ps.added_date ASC
-      `, [playlistId]);
-      
+SELECT s.song_id, s.title, s.genre, s.upload_date, s.views, s.file_url, s.cover_art_url, s.description,
+s.musician_id, u.name AS musician_name
+FROM \`playlist songs\` ps
+JOIN songs s ON ps.song_id = s.song_id
+JOIN users u ON s.musician_id = u.user_id
+WHERE ps.playlist_id = ?
+ORDER BY ps.added_date ASC
+`, [playlistId]);
+
 
       await connection.end();
 
@@ -1139,7 +1196,7 @@ LIMIT 20
     return;
   }
 
-if (req.method === "DELETE" && req.url.startsWith("/api/song/")) {
+  if (req.method === "DELETE" && req.url.startsWith("/api/song/")) {
     const songId = decodeURIComponent(req.url.split("/api/song/")[1]);
 
     try {
@@ -1178,164 +1235,231 @@ if (req.method === "DELETE" && req.url.startsWith("/api/song/")) {
 
 
 
-// Deleting user by user_id (for admin portal -- for users without Clerk)
-if (req.method === "DELETE" && req.url.startsWith("/delete-by-id/")) {
-  const userId = decodeURIComponent(req.url.split("/delete-by-id/")[1]);
+  // Deleting user by user_id (for admin portal -- for users without Clerk)
+  if (req.method === "DELETE" && req.url.startsWith("/delete-by-id/")) {
+    const userId = decodeURIComponent(req.url.split("/delete-by-id/")[1]);
 
-  try {
-    const connection = await mysql.createConnection(dbConfig);
-
-    // First, fetch user details to log them before deletion
-    const [userInfo] = await connection.execute(
-      "SELECT name, email FROM users WHERE user_id = ?",
-      [userId]
-    );
-
-    if (userInfo.length === 0) {
-      await connection.end();
-      res.writeHead(404, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ message: "User not found" }));
-    }
-
-    const { name, email } = userInfo[0];
-    console.log(`🗑️ Deleting user (no Clerk ID): [ID: ${userId}] Name: ${name}, Email: ${email}`);
-
-    // Now delete the user
-    const [result] = await connection.execute(
-      "DELETE FROM users WHERE user_id = ?",
-      [userId]
-    );
-
-    await connection.end();
-
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ message: "User deleted by user_id" }));
-  } catch (err) {
-    console.error("❌ Error deleting user by ID:", err);
-    res.writeHead(500, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "Failed to delete user by ID" }));
-  }
-
-  return;
-}
-
-  
-// Update verification status by user_id (from admin portal dropdown)
-if (req.method === "PATCH" && req.url.startsWith("/update-verification/")) {
-  const userId = decodeURIComponent(req.url.split("/update-verification/")[1]);
-  let body = "";
-
-  req.on("data", (chunk) => {
-    body += chunk.toString();
-  });
-
-  req.on("end", async () => {
     try {
-      const { verification_status } = JSON.parse(body);
-
-      if (typeof verification_status !== "number") {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Invalid verification_status" }));
-      }
-
       const connection = await mysql.createConnection(dbConfig);
 
+      // First, fetch user details to log them before deletion
+      const [userInfo] = await connection.execute(
+        "SELECT name, email FROM users WHERE user_id = ?",
+        [userId]
+      );
+
+      if (userInfo.length === 0) {
+        await connection.end();
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ message: "User not found" }));
+      }
+
+      const { name, email } = userInfo[0];
+      console.log(`🗑️ Deleting user (no Clerk ID): [ID: ${userId}] Name: ${name}, Email: ${email}`);
+
+      // Now delete the user
       const [result] = await connection.execute(
-        "UPDATE users SET verification_status = ? WHERE user_id = ?",
-        [verification_status, userId]
+        "DELETE FROM users WHERE user_id = ?",
+        [userId]
       );
 
       await connection.end();
 
-      if (result.affectedRows === 0) {
-        res.writeHead(404, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "User not found" }));
-      }
-
-      console.log(`✅ user_id ${userId} verification status changed to ${verification_status}`);
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "Verification status updated" }));
+      res.end(JSON.stringify({ message: "User deleted by user_id" }));
     } catch (err) {
-      console.error("❌ Error updating verification status:", err.message);
+      console.error("❌ Error deleting user by ID:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Failed to update verification status" }));
+      res.end(JSON.stringify({ error: "Failed to delete user by ID" }));
     }
-  });
 
-  return;
-}
-
-
-if (req.method === "GET" && req.url.startsWith("/api/user-by-id/")) {
-  const userId = req.url.split("/api/user-by-id/")[1];
-
-  try {
-    const connection = await mysql.createConnection(dbConfig);
-    const [rows] = await connection.execute(
-      "SELECT * FROM users WHERE user_id = ?",
-      [userId]
-    );
-    await connection.end();
-
-    if (rows.length === 0) {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Artist not found" }));
-    } else {
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ user: rows[0] })); // ✅
-    }
-  } catch (err) {
-    console.error("❌ Error fetching user by ID:", err);
-    res.writeHead(500, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "Database error" }));
+    return;
   }
 
-  return;
-}
 
-if (req.method === "GET" && req.url.startsWith("/api/artist-songs/")) {
-  const artistId = req.url.split("/api/artist-songs/")[1];
+  // Update verification status by user_id (from admin portal dropdown)
+  if (req.method === "PATCH" && req.url.startsWith("/update-verification/")) {
+    const userId = decodeURIComponent(req.url.split("/update-verification/")[1]);
+    let body = "";
 
-  try {
-    const connection = await mysql.createConnection(dbConfig);
-    const [rows] = await connection.execute(
-      `SELECT songs.*, users.name AS musician_name
-       FROM songs
-       JOIN users ON songs.musician_id = users.user_id
-       WHERE songs.musician_id = ?
-       ORDER BY songs.upload_date DESC`,
-      [artistId]
-    );
-    await connection.end();
+    req.on("data", (chunk) => {
+      body += chunk.toString();
+    });
 
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify(rows));
-  } catch (err) {
-    console.error("❌ Error fetching artist songs:", err);
-    res.writeHead(500, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "Database error" }));
-  }
+    req.on("end", async () => {
+      try {
+        const { verification_status } = JSON.parse(body);
 
-  return;
-}
+        if (typeof verification_status !== "number") {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "Invalid verification_status" }));
+        }
 
+        const connection = await mysql.createConnection(dbConfig);
 
-// Toggle like: user can like or unlike a song
-if (req.method === "POST" && req.url === "/api/toggle-like") {
-  let body = "";
-  req.on("data", chunk => body += chunk.toString());
-  req.on("end", async () => {
-    try {
-      const { clerk_user_id, song_id } = JSON.parse(body);
+        const [result] = await connection.execute(
+          "UPDATE users SET verification_status = ? WHERE user_id = ?",
+          [verification_status, userId]
+        );
 
-      if (!clerk_user_id || !song_id) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Missing clerk_user_id or song_id" }));
+        await connection.end();
+
+        if (result.affectedRows === 0) {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "User not found" }));
+        }
+
+        console.log(`✅ user_id ${userId} verification status changed to ${verification_status}`);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ message: "Verification status updated" }));
+      } catch (err) {
+        console.error("❌ Error updating verification status:", err.message);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Failed to update verification status" }));
       }
+    });
 
+    return;
+  }
+
+
+  if (req.method === "GET" && req.url.startsWith("/api/user-by-id/")) {
+    const userId = req.url.split("/api/user-by-id/")[1];
+
+    try {
       const connection = await mysql.createConnection(dbConfig);
+      const [rows] = await connection.execute(
+        "SELECT * FROM users WHERE user_id = ?",
+        [userId]
+      );
+      await connection.end();
 
-      // Look up the internal user_id based on the clerk_user_id
+      if (rows.length === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Artist not found" }));
+      } else {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ user: rows[0] })); // ✅
+      }
+    } catch (err) {
+      console.error("❌ Error fetching user by ID:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Database error" }));
+    }
+
+    return;
+  }
+
+  if (req.method === "GET" && req.url.startsWith("/api/artist-songs/")) {
+    const artistId = req.url.split("/api/artist-songs/")[1];
+
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+      const [rows] = await connection.execute(
+        `SELECT songs.*, users.name AS musician_name
+FROM songs
+JOIN users ON songs.musician_id = users.user_id
+WHERE songs.musician_id = ?
+ORDER BY songs.upload_date DESC`,
+        [artistId]
+      );
+      await connection.end();
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(rows));
+    } catch (err) {
+      console.error("❌ Error fetching artist songs:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Database error" }));
+    }
+
+    return;
+  }
+
+
+  // Toggle like: user can like or unlike a song
+  if (req.method === "POST" && req.url === "/api/toggle-like") {
+    let body = "";
+    req.on("data", chunk => body += chunk.toString());
+    req.on("end", async () => {
+      try {
+        const { clerk_user_id, song_id } = JSON.parse(body);
+
+        if (!clerk_user_id || !song_id) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "Missing clerk_user_id or song_id" }));
+        }
+
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Look up the internal user_id based on the clerk_user_id
+        const [userRows] = await connection.execute(
+          "SELECT user_id FROM users WHERE clerk_user_id = ?",
+          [clerk_user_id]
+        );
+
+        if (!userRows || userRows.length === 0) {
+          await connection.end();
+          res.writeHead(404, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "User not found" }));
+        }
+
+        const user_id = userRows[0].user_id;
+
+        // Check if the like already exists
+        const [existing] = await connection.execute(
+          "SELECT * FROM likes WHERE user_id = ? AND song_id = ?",
+          [user_id, song_id]
+        );
+
+        if (existing.length > 0) {
+          // Unlike: delete the existing like
+          await connection.execute(
+            "DELETE FROM likes WHERE user_id = ? AND song_id = ?",
+            [user_id, song_id]
+          );
+          await connection.end();
+          res.writeHead(200, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ message: "Unliked" }));
+        } else {
+          // Like: insert a new like record
+          await connection.execute(
+            "INSERT INTO likes (user_id, song_id, timestamp) VALUES (?, ?, NOW())",
+            [user_id, song_id]
+          );
+          await connection.end();
+          res.writeHead(201, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ message: "Liked" }));
+        }
+      } catch (err) {
+        console.error("❌ Error toggling like:", err.message);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Internal Server Error" }));
+      }
+    });
+    return;
+  }
+
+
+  // GET /api/isLiked?clerk_user_id=...&song_id=...
+  if (req.method === "GET" && req.url.startsWith("/api/isLiked")) {
+    // Parse query parameters using the querystring module
+    const urlParts = req.url.split("?");
+    const queryString = urlParts[1] || "";
+    const query = parse(queryString);
+    const clerk_user_id = query.clerk_user_id;
+    const song_id = query.song_id;
+
+    if (!clerk_user_id || !song_id) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Missing clerk_user_id or song_id" }));
+    }
+
+    let connection;
+    try {
+      connection = await mysql.createConnection(dbConfig);
+
+      // Look up the internal user_id from the clerk_user_id
       const [userRows] = await connection.execute(
         "SELECT user_id FROM users WHERE clerk_user_id = ?",
         [clerk_user_id]
@@ -1349,137 +1473,70 @@ if (req.method === "POST" && req.url === "/api/toggle-like") {
 
       const user_id = userRows[0].user_id;
 
-      // Check if the like already exists
-      const [existing] = await connection.execute(
+      // Check if the like exists for the given song
+      const [likeRows] = await connection.execute(
         "SELECT * FROM likes WHERE user_id = ? AND song_id = ?",
         [user_id, song_id]
       );
 
-      if (existing.length > 0) {
-        // Unlike: delete the existing like
-        await connection.execute(
-          "DELETE FROM likes WHERE user_id = ? AND song_id = ?",
-          [user_id, song_id]
-        );
-        await connection.end();
-        res.writeHead(200, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ message: "Unliked" }));
-      } else {
-        // Like: insert a new like record
-        await connection.execute(
-          "INSERT INTO likes (user_id, song_id, timestamp) VALUES (?, ?, NOW())",
-          [user_id, song_id]
-        );
-        await connection.end();
-        res.writeHead(201, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ message: "Liked" }));
-      }
+      await connection.end();
+
+      const liked = likeRows.length > 0;
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ liked }));
     } catch (err) {
-      console.error("❌ Error toggling like:", err.message);
+      console.error("❌ Error fetching like status:", err.message);
+      if (connection) await connection.end();
       res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Internal Server Error" }));
+      return res.end(JSON.stringify({ error: "Internal Server Error" }));
     }
-  });
-  return;
-}
-
-
-// GET /api/isLiked?clerk_user_id=...&song_id=...
-if (req.method === "GET" && req.url.startsWith("/api/isLiked")) {
-  // Parse query parameters using the querystring module
-  const urlParts = req.url.split("?");
-  const queryString = urlParts[1] || "";
-  const query = parse(queryString);
-  const clerk_user_id = query.clerk_user_id;
-  const song_id = query.song_id;
-
-  if (!clerk_user_id || !song_id) {
-    res.writeHead(400, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ error: "Missing clerk_user_id or song_id" }));
   }
 
-  let connection;
-  try {
-    connection = await mysql.createConnection(dbConfig);
 
-    // Look up the internal user_id from the clerk_user_id
-    const [userRows] = await connection.execute(
-      "SELECT user_id FROM users WHERE clerk_user_id = ?",
-      [clerk_user_id]
-    );
+  // GET /api/profile-likes/:clerkUserId
+  if (req.method === "GET" && req.url.startsWith("/api/profile-likes/")) {
+    const clerkUserId = decodeURIComponent(req.url.split("/api/profile-likes/")[1]);
 
-    if (!userRows || userRows.length === 0) {
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+
+      // 1) Convert clerkUserId -> user_id
+      const [users] = await connection.execute(
+        "SELECT user_id FROM users WHERE clerk_user_id = ?",
+        [clerkUserId]
+      );
+
+      if (users.length === 0) {
+        await connection.end();
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "User not found" }));
+      }
+
+      const userId = users[0].user_id;
+
+      // 2) Fetch all liked songs for that user_id
+      const [likedSongs] = await connection.execute(`
+SELECT s.song_id, s.title, s.musician_id, s.upload_date, s.genre,
+s.duration, s.file_url, s.cover_art_url, s.description,
+s.views, u.name AS musician_name
+FROM likes l
+JOIN songs s ON l.song_id = s.song_id
+JOIN users u ON s.musician_id = u.user_id
+WHERE l.user_id = ?
+ORDER BY l.timestamp DESC
+`, [userId]);
+
       await connection.end();
-      res.writeHead(404, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ error: "User not found" }));
+
+      // 3) Return liked songs
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ likedSongs }));
+    } catch (err) {
+      console.error("❌ Error fetching liked songs:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Internal Server Error" }));
     }
-
-    const user_id = userRows[0].user_id;
-
-    // Check if the like exists for the given song
-    const [likeRows] = await connection.execute(
-      "SELECT * FROM likes WHERE user_id = ? AND song_id = ?",
-      [user_id, song_id]
-    );
-
-    await connection.end();
-
-    const liked = likeRows.length > 0;
-    res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ liked }));
-  } catch (err) {
-    console.error("❌ Error fetching like status:", err.message);
-    if (connection) await connection.end();
-    res.writeHead(500, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ error: "Internal Server Error" }));
   }
-}
-
-
-// GET /api/profile-likes/:clerkUserId
-if (req.method === "GET" && req.url.startsWith("/api/profile-likes/")) {
-  const clerkUserId = decodeURIComponent(req.url.split("/api/profile-likes/")[1]);
-
-  try {
-    const connection = await mysql.createConnection(dbConfig);
-
-    // 1) Convert clerkUserId -> user_id
-    const [users] = await connection.execute(
-      "SELECT user_id FROM users WHERE clerk_user_id = ?",
-      [clerkUserId]
-    );
-
-    if (users.length === 0) {
-      await connection.end();
-      res.writeHead(404, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ error: "User not found" }));
-    }
-
-    const userId = users[0].user_id;
-
-    // 2) Fetch all liked songs for that user_id
-    const [likedSongs] = await connection.execute(`
-      SELECT s.song_id, s.title, s.musician_id, s.upload_date, s.genre,
-             s.duration, s.file_url, s.cover_art_url, s.description,
-             s.views, u.name AS musician_name
-      FROM likes l
-      JOIN songs s ON l.song_id = s.song_id
-      JOIN users u ON s.musician_id = u.user_id
-      WHERE l.user_id = ?
-      ORDER BY l.timestamp DESC
-    `, [userId]);
-
-    await connection.end();
-
-    // 3) Return liked songs
-    res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ likedSongs }));
-  } catch (err) {
-    console.error("❌ Error fetching liked songs:", err.message);
-    res.writeHead(500, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ error: "Internal Server Error" }));
-  }
-}
 
 
 
