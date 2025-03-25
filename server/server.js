@@ -1265,6 +1265,53 @@ if (req.method === "GET" && req.url.startsWith("/api/isLiked")) {
 }
 
 
+// GET /api/profile-likes/:clerkUserId
+if (req.method === "GET" && req.url.startsWith("/api/profile-likes/")) {
+  const clerkUserId = decodeURIComponent(req.url.split("/api/profile-likes/")[1]);
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    // 1) Convert clerkUserId -> user_id
+    const [users] = await connection.execute(
+      "SELECT user_id FROM users WHERE clerk_user_id = ?",
+      [clerkUserId]
+    );
+
+    if (users.length === 0) {
+      await connection.end();
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "User not found" }));
+    }
+
+    const userId = users[0].user_id;
+
+    // 2) Fetch all liked songs for that user_id
+    const [likedSongs] = await connection.execute(`
+      SELECT s.song_id, s.title, s.musician_id, s.upload_date, s.genre,
+             s.duration, s.file_url, s.cover_art_url, s.description,
+             s.views, u.name AS musician_name
+      FROM likes l
+      JOIN songs s ON l.song_id = s.song_id
+      JOIN users u ON s.musician_id = u.user_id
+      WHERE l.user_id = ?
+      ORDER BY l.timestamp DESC
+    `, [userId]);
+
+    await connection.end();
+
+    // 3) Return liked songs
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ likedSongs }));
+  } catch (err) {
+    console.error("❌ Error fetching liked songs:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Internal Server Error" }));
+  }
+}
+
+
+
 
 
   // Serve React Frontend (Static Files)

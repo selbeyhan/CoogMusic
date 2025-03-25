@@ -28,6 +28,8 @@ const Profile = () => {
   const [newProfilePicFile, setNewProfilePicFile] = useState(null);
   const [showDeleteSongModal, setShowDeleteSongModal] = useState(false);
   const [songToDelete, setSongToDelete] = useState(null);
+  const [likedSongs, setLikedSongs] = useState([]);
+
 
   // Upload form state
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -38,6 +40,8 @@ const Profile = () => {
     cover_art_url: 'https://via.placeholder.com/150'
   });
   const [uploadFile, setUploadFile] = useState(null);
+
+  
 
   useEffect(() => {
     if (currentUser) {
@@ -66,7 +70,6 @@ const Profile = () => {
           verification_status: userData.verification_status || false
         });
         console.log("MySQL user_id (logged in):", userData.user_id);
-
   
         console.log(`🔍 Fetching songs for user: ${userId}`);
         const songsResponse = await axios.get(`/api/profile/${userId}`);
@@ -93,15 +96,30 @@ const Profile = () => {
       }
     };
   
+    const fetchLikedSongs = async () => {
+      try {
+        // Using clerk_user_id (userId) instead of userProfile.id
+        console.log(`➡️ Fetching user likes from Clerk user_id: ${userId}`);
+        const response = await axios.get(`/api/profile-likes/${userId}`);
+        setLikedSongs(response.data.likedSongs || []);
+      } catch (error) {
+        console.error("❌ Error fetching liked songs:", error);
+      }
+    };
+  
     const fetchAll = async () => {
       await fetchUserProfile();
       await fetchUserPlaylists();
+      await fetchLikedSongs();
       setIsLoading(false);
     };
   
     fetchAll();
   }, [userId, currentUser]);
   
+
+
+
   const handleSaveBio = async () => {
     try {
       await axios.patch(`/update-bio/${userId}`, { bio: userProfile.newBio });
@@ -445,6 +463,13 @@ const Profile = () => {
           >
             About
           </button>
+          <button
+            className={`tab-btn ${activeTab === 'likes' ? 'active' : ''}`}
+            onClick={() => handleTabChange('likes')}
+          >
+            Likes
+          </button>
+
         </div>
 
         <div className="tab-content">
@@ -638,6 +663,41 @@ const Profile = () => {
               </div>
             </div>
           )}
+          {activeTab === 'likes' && (
+            <div className="likes-tab">
+              <h2>Liked Songs</h2>
+              {likedSongs.length === 0 ? (
+                <p className="no-content">No liked songs yet.</p>
+              ) : (
+                <div className="songs-list">
+                  {likedSongs.map(song => (
+                    <div className="song-card" key={song.song_id}>
+                      <div className="song-info">
+                        <h3>{song.title}</h3>
+                        <p className="song-genre">{song.genre}</p>
+                        <p className="song-date">
+                          Uploaded: {new Date(song.upload_date).toLocaleDateString()}
+                        </p>
+                        <p className="song-views">Views: {song.views}</p>
+                      </div>
+                      <div className="song-controls">
+                        <button
+                          className="play-btn"
+                          onClick={() => {
+                            setCurrentSong(song);
+                            axios.post(`/increment-view/${song.song_id}`).catch(console.error);
+                          }}
+                        >
+                          Play
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
 
 
 
