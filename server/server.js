@@ -1149,6 +1149,122 @@ if (req.method === "GET" && req.url.startsWith("/api/artist-songs/")) {
 }
 
 
+// Toggle like: user can like or unlike a song
+if (req.method === "POST" && req.url === "/api/toggle-like") {
+  let body = "";
+  req.on("data", chunk => body += chunk.toString());
+  req.on("end", async () => {
+    try {
+      const { clerk_user_id, song_id } = JSON.parse(body);
+
+      if (!clerk_user_id || !song_id) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Missing clerk_user_id or song_id" }));
+      }
+
+      const connection = await mysql.createConnection(dbConfig);
+
+      // Look up the internal user_id based on the clerk_user_id
+      const [userRows] = await connection.execute(
+        "SELECT user_id FROM users WHERE clerk_user_id = ?",
+        [clerk_user_id]
+      );
+
+      if (!userRows || userRows.length === 0) {
+        await connection.end();
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "User not found" }));
+      }
+
+      const user_id = userRows[0].user_id;
+
+      // Check if the like already exists
+      const [existing] = await connection.execute(
+        "SELECT * FROM likes WHERE user_id = ? AND song_id = ?",
+        [user_id, song_id]
+      );
+
+      if (existing.length > 0) {
+        // Unlike: delete the existing like
+        await connection.execute(
+          "DELETE FROM likes WHERE user_id = ? AND song_id = ?",
+          [user_id, song_id]
+        );
+        await connection.end();
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ message: "Unliked" }));
+      } else {
+        // Like: insert a new like record
+        await connection.execute(
+          "INSERT INTO likes (user_id, song_id, timestamp) VALUES (?, ?, NOW())",
+          [user_id, song_id]
+        );
+        await connection.end();
+        res.writeHead(201, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ message: "Liked" }));
+      }
+    } catch (err) {
+      console.error("❌ Error toggling like:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Internal Server Error" }));
+    }
+  });
+  return;
+}
+
+
+// GET /api/isLiked?clerk_user_id=...&song_id=...
+if (req.method === "GET" && req.url.startsWith("/api/isLiked")) {
+  // Parse query parameters using the querystring module
+  const urlParts = req.url.split("?");
+  const queryString = urlParts[1] || "";
+  const query = parse(queryString);
+  const clerk_user_id = query.clerk_user_id;
+  const song_id = query.song_id;
+
+  if (!clerk_user_id || !song_id) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Missing clerk_user_id or song_id" }));
+  }
+
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+
+    // Look up the internal user_id from the clerk_user_id
+    const [userRows] = await connection.execute(
+      "SELECT user_id FROM users WHERE clerk_user_id = ?",
+      [clerk_user_id]
+    );
+
+    if (!userRows || userRows.length === 0) {
+      await connection.end();
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "User not found" }));
+    }
+
+    const user_id = userRows[0].user_id;
+
+    // Check if the like exists for the given song
+    const [likeRows] = await connection.execute(
+      "SELECT * FROM likes WHERE user_id = ? AND song_id = ?",
+      [user_id, song_id]
+    );
+
+    await connection.end();
+
+    const liked = likeRows.length > 0;
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ liked }));
+  } catch (err) {
+    console.error("❌ Error fetching like status:", err.message);
+    if (connection) await connection.end();
+    res.writeHead(500, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Internal Server Error" }));
+  }
+}
+
+
 
 
   // Serve React Frontend (Static Files)
