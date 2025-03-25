@@ -6,14 +6,22 @@ import './Profile.css';
 import { useAudio } from '../contexts/AudioContext';
 import { FaPencilAlt } from 'react-icons/fa'; // import at the top
 
-
-
 const Profile = () => {
   const { userId } = useParams();
   const { user: currentUser } = useUser();
   const { signOut } = useClerk(); // ✅ Use useClerk to get signOut
   const { setCurrentSong } = useAudio(); 
 
+  const [editingPlaylistId, setEditingPlaylistId] = useState(null);
+  const [editedPlaylistName, setEditedPlaylistName] = useState('');
+
+  const [editingSongId, setEditingSongId] = useState(null);
+  const [editedSongData, setEditedSongData] = useState({
+    title: '',
+    genre: '',
+    description: ''
+  });
+  
   // Profile state
   const [userProfile, setUserProfile] = useState(null);
   const [userSongs, setUserSongs] = useState([]);
@@ -28,7 +36,7 @@ const Profile = () => {
   const [newProfilePicFile, setNewProfilePicFile] = useState(null);
   const [showDeleteSongModal, setShowDeleteSongModal] = useState(false);
   const [songToDelete, setSongToDelete] = useState(null);
-
+  
   // Upload form state
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [uploadFormData, setUploadFormData] = useState({
@@ -147,14 +155,72 @@ const Profile = () => {
       ]);
   
       setNewPlaylistName('');
+      setShowCreatePlaylistInput(false);
       alert("Playlist created!");
     } catch (error) {
       console.error("❌ Error creating playlist:", error);
       alert("Failed to create playlist.");
     }
   };
-  
 
+  // Handle playlist name updates
+  const handleUpdatePlaylist = async (playlistId) => {
+    if (!editedPlaylistName.trim()) {
+      alert("Playlist name cannot be empty.");
+      return;
+    }
+  
+    try {
+      await axios.patch(`/api/playlist/update/${playlistId}`, { name: editedPlaylistName });
+      
+      // Update local state
+      setPlaylists(prevPlaylists => 
+        prevPlaylists.map(pl => 
+          pl.playlist_id === playlistId 
+            ? { ...pl, name: editedPlaylistName } 
+            : pl
+        )
+      );
+      
+      // Reset edit mode
+      setEditingPlaylistId(null);
+      setEditedPlaylistName('');
+      
+      alert("Playlist updated successfully!");
+    } catch (error) {
+      console.error('Error updating playlist:', error);
+      alert('Failed to update playlist. Please try again.');
+    }
+  };
+
+  // Handle song updates
+  const handleUpdateSong = async (songId) => {
+    try {
+      await axios.patch(`/api/song/update/${songId}`, editedSongData);
+      
+      // Update local state
+      setUserSongs(prevSongs => 
+        prevSongs.map(song => 
+          song.song_id === songId 
+            ? { ...song, ...editedSongData } 
+            : song
+        )
+      );
+      
+      // Reset edit mode
+      setEditingSongId(null);
+      setEditedSongData({
+        title: '',
+        genre: '',
+        description: ''
+      });
+      
+      alert("Song updated successfully!");
+    } catch (error) {
+      console.error('Error updating song:', error);
+      alert('Failed to update song. Please try again.');
+    }
+  };
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -324,53 +390,50 @@ const Profile = () => {
             </button>
           )}
 
-{isOwner && (
-  <>
-    <button
-      className="delete-account-btn"
-      onClick={() => setShowDeleteConfirm(true)}
-      style={{ marginTop: '10px', backgroundColor: '#ff4d4f', color: '#fff' }}
-    >
-      Delete Account
-    </button>
+          {isOwner && (
+            <>
+              <button
+                className="delete-account-btn"
+                onClick={() => setShowDeleteConfirm(true)}
+                style={{ marginTop: '10px', backgroundColor: '#ff4d4f', color: '#fff' }}
+              >
+                Delete Account
+              </button>
 
-    {showDeleteConfirm && (
-      <div className="modal-overlay">
-        <div className="modal-content">
-          <h3>Are you sure you want to delete your account?</h3>
-          <p>This action cannot be undone.</p>
-          <div className="modal-buttons">
-            <button
-              onClick={() => setShowDeleteConfirm(false)}
-              className="cancel-btn"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={async () => {
-                try {
-                  await axios.delete(`/user/${currentUser.id}`);
-                  await signOut(); // Force logout after deletion using useClerk
-                  alert("Account deleted successfully.");
-                  window.location.href = "/"; // Redirect to homepage
-                } catch (err) {
-                  console.error("Error deleting account:", err);
-                  alert("Failed to delete account.");
-                }
-              }}
-              className="confirm-btn"
-            >
-              Confirm Delete
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-  </>
-)}
-
-
-
+              {showDeleteConfirm && (
+                <div className="modal-overlay">
+                  <div className="modal-content">
+                    <h3>Are you sure you want to delete your account?</h3>
+                    <p>This action cannot be undone.</p>
+                    <div className="modal-buttons">
+                      <button
+                        onClick={() => setShowDeleteConfirm(false)}
+                        className="cancel-btn"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await axios.delete(`/user/${currentUser.id}`);
+                            await signOut(); // Force logout after deletion using useClerk
+                            alert("Account deleted successfully.");
+                            window.location.href = "/"; // Redirect to homepage
+                          } catch (err) {
+                            console.error("Error deleting account:", err);
+                            alert("Failed to delete account.");
+                          }
+                        }}
+                        className="confirm-btn"
+                      >
+                        Confirm Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
@@ -448,136 +511,223 @@ const Profile = () => {
         </div>
 
         <div className="tab-content">
-        {activeTab === 'songs' && (
-        <div className="songs-tab">
-        <h2>Songs</h2>
-        {userSongs.length === 0 ? (
-          <p className="no-content">No songs uploaded yet.</p>
-        ) : (
-          <div className="songs-list">
-            {userSongs.map(song => (
-              <div className="song-card" key={song.song_id}>
-                <div className="song-cover">
-                  {/* img source commented out for now */}
-                  {/* <img src={song.cover_art_url || "https://via.placeholder.com/150"} alt={song.title} /> */}
-                </div>
-                <div className="song-info">
-                  <h3>{song.title}</h3>
-                  <p className="song-genre">{song.genre}</p>
-                  <p className="song-date">Uploaded: {new Date(song.upload_date).toLocaleDateString()}</p>
-                  <p className="song-views">Views: {song.views}</p> {/* Display views */}
-                </div>
-                <div className="song-controls">
-                <button
-                    className="play-btn"
-                    onClick={() => {
-                      setCurrentSong(song); // Set song globally
-                      axios.post(`/increment-view/${song.song_id}`).catch(console.error); // Increment view count
-                    }}
-                  >
-                    Play
-                  </button>
+          {activeTab === 'songs' && (
+            <div className="songs-tab">
+              <h2>Songs</h2>
+              {userSongs.length === 0 ? (
+                <p className="no-content">No songs uploaded yet.</p>
+              ) : (
+                <div className="songs-list">
+                  {userSongs.map(song => (
+                    <div className="song-card" key={song.song_id}>
+                      {editingSongId === song.song_id ? (
+                        <div className="edit-song-form">
+                          <h3>Edit Song</h3>
+                          <div className="form-group">
+                            <label>Title:</label>
+                            <input
+                              type="text"
+                              value={editedSongData.title}
+                              onChange={(e) => setEditedSongData({...editedSongData, title: e.target.value})}
+                              required
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Genre:</label>
+                            <input
+                              type="text"
+                              value={editedSongData.genre}
+                              onChange={(e) => setEditedSongData({...editedSongData, genre: e.target.value})}
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Description:</label>
+                            <textarea
+                              value={editedSongData.description}
+                              onChange={(e) => setEditedSongData({...editedSongData, description: e.target.value})}
+                              rows="3"
+                            />
+                          </div>
+                          <div className="edit-song-buttons">
+                            <button onClick={() => handleUpdateSong(song.song_id)}>Save</button>
+                            <button onClick={() => {
+                              setEditingSongId(null);
+                              setEditedSongData({
+                                title: '',
+                                genre: '',
+                                description: ''
+                              });
+                            }}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="song-cover">
+                            {/* img source commented out for now */}
+                            {/* <img src={song.cover_art_url || "https://via.placeholder.com/150"} alt={song.title} /> */}
+                          </div>
+                          <div className="song-info">
+                            <h3>{song.title}</h3>
+                            <p className="song-genre">{song.genre}</p>
+                            <p className="song-date">Uploaded: {new Date(song.upload_date).toLocaleDateString()}</p>
+                            <p className="song-views">Views: {song.views}</p> {/* Display views */}
+                          </div>
+                          <div className="song-controls">
+                            <button
+                              className="play-btn"
+                              onClick={() => {
+                                setCurrentSong(song); // Set song globally
+                                axios.post(`/increment-view/${song.song_id}`).catch(console.error); // Increment view count
+                              }}
+                            >
+                              Play
+                            </button>
 
-                  {isOwner && (
-                    <button
-                    className="delete-btn"
-                    onClick={() => {
-                      setSongToDelete(song);
-                      setShowDeleteSongModal(true);
-                    }}
-                  >
-                    Delete
-                  </button>                  
+                            {isOwner && (
+                              <>
+                                <button
+                                  className="edit-btn"
+                                  onClick={() => {
+                                    setEditingSongId(song.song_id);
+                                    setEditedSongData({
+                                      title: song.title,
+                                      genre: song.genre || '',
+                                      description: song.description || ''
+                                    });
+                                  }}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="delete-btn"
+                                  onClick={() => {
+                                    setSongToDelete(song);
+                                    setShowDeleteSongModal(true);
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'playlists' && (
+            <div className="playlists-tab">
+              <h2>Playlists</h2>
+
+              {isOwner && (
+                <>
+                  {!showCreatePlaylistInput ? (
+                    <button onClick={() => setShowCreatePlaylistInput(true)} style={{ marginBottom: '1rem' }}>
+                      Create Playlist
+                    </button>
+                  ) : (
+                    <div className="create-playlist-form">
+                      <input
+                        type="text"
+                        placeholder="Enter playlist name"
+                        value={newPlaylistName}
+                        onChange={(e) => setNewPlaylistName(e.target.value)}
+                        className="playlist-name-input"
+                      />
+                      <button onClick={handleCreatePlaylist}>Save</button>
+                      <button
+                        onClick={() => {
+                          setShowCreatePlaylistInput(false);
+                          setNewPlaylistName('');
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   )}
+                </>
+              )}
+
+              {playlists.length === 0 ? (
+                <p className="no-content">No playlists created yet.</p>
+              ) : (
+                <div className="playlists-list">
+                  {playlists.map((playlist) => (
+                    <div key={playlist.playlist_id} className="playlist-card-container">
+                      {editingPlaylistId === playlist.playlist_id ? (
+                        <div className="edit-playlist-form">
+                          <input
+                            type="text"
+                            value={editedPlaylistName}
+                            onChange={(e) => setEditedPlaylistName(e.target.value)}
+                            className="playlist-name-input"
+                            placeholder="Enter new playlist name"
+                          />
+                          <div className="edit-buttons">
+                            <button onClick={() => handleUpdatePlaylist(playlist.playlist_id)}>
+                              Save
+                            </button>
+                            <button onClick={() => {
+                              setEditingPlaylistId(null);
+                              setEditedPlaylistName('');
+                            }}>
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <Link 
+                            to={`/playlist/${playlist.playlist_id}`} 
+                            className="playlist-card"
+                          >
+                            <h3>{playlist.name}</h3>
+                            <p>Created: {new Date(playlist.creation_date || Date.now()).toLocaleDateString()}</p>
+                          </Link>
+                          {isOwner && (
+                            <div className="playlist-actions">
+                              <button
+                                onClick={() => {
+                                  setEditingPlaylistId(playlist.playlist_id);
+                                  setEditedPlaylistName(playlist.name);
+                                }}
+                                className="edit-playlist-btn"
+                                title="Edit Playlist"
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                onClick={async () => {
+                                  if (window.confirm(`Are you sure you want to delete playlist "${playlist.name}"?`)) {
+                                    try {
+                                      await axios.delete(`/api/playlist/${playlist.playlist_id}`);
+                                      setPlaylists(playlists.filter(pl => pl.playlist_id !== playlist.playlist_id));
+                                      alert('Playlist deleted successfully!');
+                                    } catch (error) {
+                                      console.error('Error deleting playlist:', error);
+                                      alert('Failed to delete playlist. Please try again.');
+                                    }
+                                  }
+                                }}
+                                className="delete-playlist-btn"
+                                title="Delete Playlist"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      
-
-      )}
-
-
-
-      {activeTab === 'playlists' && (
-        <div className="playlists-tab">
-          <h2>Playlists</h2>
-
-          {isOwner && (
-          <>
-            {!showCreatePlaylistInput ? (
-              <button onClick={() => setShowCreatePlaylistInput(true)} style={{ marginBottom: '1rem' }}>
-                Create Playlist
-              </button>
-            ) : (
-              <div className="create-playlist-form">
-                <input
-                  type="text"
-                  placeholder="Enter playlist name"
-                  value={newPlaylistName}
-                  onChange={(e) => setNewPlaylistName(e.target.value)}
-                  className="playlist-name-input"
-                />
-                <button onClick={handleCreatePlaylist}>Save</button>
-                <button
-                  onClick={() => {
-                    setShowCreatePlaylistInput(false);
-                    setNewPlaylistName('');
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-          </>
-        )}
-
-
-        {playlists.length === 0 ? (
-          <p className="no-content">No playlists created yet.</p>
-        ) : (
-          <div className="playlists-list">
-            {playlists.map((playlist) => (
-              <div key={playlist.playlist_id} className="playlist-card-container">
-                <Link 
-                  to={`/playlist/${playlist.playlist_id}`} 
-                  className="playlist-card"
-                >
-                  <h3>{playlist.name}</h3>
-                  <p>Created: {new Date(playlist.creation_date || Date.now()).toLocaleDateString()}</p>
-                </Link>
-                {isOwner && (
-                  <button 
-                    onClick={async () => {
-                      if (window.confirm(`Are you sure you want to delete playlist "${playlist.name}"?`)) {
-                        try {
-                          await axios.delete(`/api/playlist/${playlist.playlist_id}`);
-                          setPlaylists(playlists.filter(pl => pl.playlist_id !== playlist.playlist_id));
-                          alert('Playlist deleted successfully!');
-                        } catch (error) {
-                          console.error('Error deleting playlist:', error);
-                          alert('Failed to delete playlist. Please try again.');
-                        }
-                      }
-                    }}
-                    className="delete-playlist-btn"
-                    title="Delete Playlist"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        </div>
-      )}
-
-
-
-
+              )}
+            </div>
+          )}
 
           {activeTab === 'about' && (
             <div className="about-tab">
@@ -639,8 +789,6 @@ const Profile = () => {
             </div>
           )}
 
-
-
           {showDeleteSongModal && (
             <div className="modal-overlay">
               <div className="modal-content">
@@ -677,13 +825,10 @@ const Profile = () => {
                   >
                     Confirm Delete
                   </button>
-
                 </div>
               </div>
             </div>
           )}
-
-
         </div>
       </div>
     </div>
