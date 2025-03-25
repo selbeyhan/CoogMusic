@@ -32,7 +32,6 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
       if (repeatMode === 'all') {
         onNext();
       } else if (repeatMode === 'one') {
-        // Replay the same song if in one-repeat mode.
         audio.currentTime = 0;
         audio.play().catch(err => console.error("Playback error:", err));
       } else {
@@ -60,17 +59,29 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
     }
 
     console.log("Loading new song:", currentSong.title);
-    // Pause any current playback
     audio.pause();
+
+    // Clear the previous source.
+    audio.src = "";
+    audio.load();
+
+    // Set the new source.
     audio.src = currentSong.file_url;
     audio.load();
-    audio.play().catch(err => console.error("Playback error:", err));
-    setPlaying(true);
+
+    // Wait for metadata so we know the correct duration.
+    const handleLoadedMetadata = () => {
+      setProgress(0); // Reset progress for the new song
+      audio.play().catch(err => console.error("Playback error:", err));
+      setPlaying(true);
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+    };
+
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
   }, [currentSong]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
-    // Use audio.paused to check if audio is currently paused.
     if (!audio.paused) {
       console.log("Pausing audio.");
       audio.pause();
@@ -82,6 +93,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
     }
   };
 
+  // Use onInput for continuous updates in Chrome.
   const seek = (e) => {
     const audio = audioRef.current;
     if (audio.duration) {
@@ -111,8 +123,8 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
 
   return (
     <div className="player-container">
-      {/* We keep the audio element hidden as we use custom controls */}
-      <audio ref={audioRef} style={{ display: 'none' }} />
+      {/* Move audio element offscreen rather than hiding it */}
+      <audio ref={audioRef} style={{ position: 'absolute', left: '-9999px' }} />
 
       <div className="player-controls">
         <FaStepBackward className="control-btn" onClick={onPrev} />
@@ -138,7 +150,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
           min="0"
           max="100"
           value={progress}
-          onChange={seek}
+          onInput={seek}
         />
       </div>
 
