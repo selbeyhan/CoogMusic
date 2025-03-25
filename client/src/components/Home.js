@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAudio } from '../contexts/AudioContext';
 import { useUser } from '@clerk/clerk-react'; // Access current user
 import AudioPlayerUI from './AudioPlayerUI'; // Custom audio player
+import { Link } from 'react-router-dom';
 import './Home.css';
 
 function Home() {
@@ -28,6 +29,8 @@ function Home() {
       });
   }, []);
 
+
+
   //get newest songs
   useEffect(() => {
     axios.get('/newest-songs')
@@ -36,6 +39,7 @@ function Home() {
         console.error('Error fetching newest songs:', error);
       });
   }, []);
+  
 
   // 2. Fetch user playlists if currentUser is available
   useEffect(() => {
@@ -70,12 +74,12 @@ function Home() {
   const handleAddToPlaylist = (songId) => {
     console.log("handleAddToPlaylist called for songId:", songId);
     console.log("Current playlists length:", playlists.length);
-
+  
     if (playlists.length === 0) {
       if (window.confirm("You have no playlists. Would you like to create one now?")) {
         // Prompt for playlist name instead of redirecting
         const playlistName = prompt("Enter a name for your new playlist:");
-
+        
         if (playlistName && playlistName.trim()) {
           // Create the playlist and add the song to it
           createPlaylistAndAddSong(playlistName, songId);
@@ -83,11 +87,11 @@ function Home() {
       }
       return;
     }
-
+  
     setSelectedSongId(songId);
     setShowPlaylistDropdown(true);
   };
-
+  
   // Add a new function to create a playlist and add a song to it
   const createPlaylistAndAddSong = async (playlistName, songId) => {
     try {
@@ -96,18 +100,18 @@ function Home() {
         name: playlistName,
         user_id: currentUser.id
       });
-
+      
       if (createResponse.data && createResponse.data.playlist_id) {
         // Add the song to the playlist
         await axios.post('/api/addToPlaylist', {
           playlist_id: createResponse.data.playlist_id,
           song_id: songId
         });
-
+        
         // Refresh the playlists
         const refreshResponse = await axios.get(`/api/getuserplaylists/${currentUser.id}`);
         setPlaylists(refreshResponse.data.playlists || []);
-
+        
         alert(`Song added to your new playlist "${playlistName}"!`);
       }
     } catch (error) {
@@ -122,32 +126,32 @@ function Home() {
       alert("Please select a playlist first.");
       return;
     }
-
+  
     // Handle "create_new" option
     if (selectedPlaylistId === "create_new") {
       const newPlaylistName = prompt("Enter a name for your new playlist:");
-
+      
       if (!newPlaylistName || !newPlaylistName.trim()) {
         alert("Playlist name cannot be empty.");
         return;
       }
-
+      
       try {
         // Create the new playlist
         const createResponse = await axios.post('/api/createPlaylist', {
           name: newPlaylistName,
           user_id: currentUser.id
         });
-
+        
         if (createResponse.data && createResponse.data.playlist_id) {
           // Add song to the new playlist
           await axios.post('/api/addToPlaylist', {
             playlist_id: createResponse.data.playlist_id,
             song_id: selectedSongId
           });
-
+          
           alert(`Song added to your new playlist "${newPlaylistName}"!`);
-
+          
           // Refresh playlists
           const playlistsResponse = await axios.get(`/api/getuserplaylists/${currentUser.id}`);
           setPlaylists(playlistsResponse.data.playlists || []);
@@ -156,13 +160,13 @@ function Home() {
         console.error("Error creating playlist:", error);
         alert("Failed to create playlist.");
       }
-
+      
       setShowPlaylistDropdown(false);
       setSelectedSongId(null);
       setSelectedPlaylistId("");
       return;
     }
-
+  
     // Handle existing playlist
     try {
       const payload = {
@@ -176,7 +180,7 @@ function Home() {
       console.error("Error adding song to playlist:", error);
       alert("Failed to add song to playlist.");
     }
-
+    
     setShowPlaylistDropdown(false);
     setSelectedSongId(null);
     setSelectedPlaylistId("");
@@ -187,6 +191,7 @@ function Home() {
     setSelectedSongId(null);
     setSelectedPlaylistId("");
   };
+
 
   // Basic next/prev handlers for AudioPlayerUI
   const onNext = () => {
@@ -218,109 +223,95 @@ function Home() {
 
       {/* Top Songs Table */}
       <div className="top-songs-container">
-        <h2>Top 5 Most Streamed Songs</h2>
-        <div className="table-scroll">
-          <table className="top-songs-table">
-            <thead>
-              <tr>
-                <th>Song Title</th>
-                <th>Artist</th>
-                <th>Views</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topSongs.map((song, index) => (
-                <tr
-                  key={index}
-                  onClick={() => handleSongClick(song)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <td>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddToPlaylist(song.song_id);
-                      }}
-                      style={{ marginRight: '8px' }}
-                    >
-                      +
-                    </button>
-                    {song.title}
-                  </td>
-                  <td
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent song click
-                      window.location.href = `/artist/${song.musician_id}`;
-                    }}
-                    style={{
-                      color: '#ff3b3f',
-                      textDecoration: 'underline',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {song.musician_name}
-                  </td>
-                  <td>{song.views}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+  <h2>Top 5 Most Streamed Songs</h2>
+  <div className="table-scroll">
+    <table className="top-songs-table">
+      <thead>
+        <tr>
+          <th>Song Title</th>
+          <th>Artist</th>
+          <th>Views</th>
+        </tr>
+      </thead>
+      <tbody>
+        {topSongs.map((song, index) => (
+          <tr key={index}>
+            <td
+              onClick={() => handleSongClick(song)}
+              style={{ cursor: 'pointer' }}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddToPlaylist(song.song_id);
+                }}
+                style={{ marginRight: '8px' }}
+              >
+                +
+              </button>
+              {song.title}
+            </td>
+            <td>
+              <Link to={`/artist/${song.musician_id}`}>
+                {song.musician_name}
+              </Link>
+            </td>
+            <td>{song.views}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
 
-      {/* Newest Songs Section */}
-      <div className="newest-songs-container" style={{ marginTop: '40px' }}>
-        <h2>Newest Songs</h2>
-        <div className="table-scroll">
-          <table className="top-songs-table">
-            <thead>
-              <tr>
-                <th>Song Title</th>
-                <th>Artist</th>
-                <th>Uploaded</th>
-                <th>Views</th>
-              </tr>
-            </thead>
-            <tbody>
-              {newestSongs.map((song, index) => (
-                <tr
-                  key={index}
-                  onClick={() => handleSongClick(song)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <td>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddToPlaylist(song.song_id);
-                      }}
-                      style={{ marginRight: '8px' }}
-                    >
-                      +
-                    </button>
-                    {song.title}
-                  </td>
-                  <td
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent song click
-                      window.location.href = `/artist/${song.musician_id}`;
-                    }}
-                    style={{
-                      color: '#ff3b3f',
-                      textDecoration: 'underline',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {song.musician_name}
-                  </td>
-                  <td>{new Date(song.upload_date).toLocaleDateString()}</td>
-                  <td>{song.views}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+
+
+
+{/* Newest Songs Section */}
+<div className="newest-songs-container" style={{ marginTop: '40px' }}>
+  <h2>Newest Songs</h2>
+  <div className="table-scroll">
+    <table className="top-songs-table">
+      <thead>
+        <tr>
+          <th>Song Title</th>
+          <th>Artist</th>
+          <th>Uploaded</th>
+          <th>Views</th>
+        </tr>
+      </thead>
+      <tbody>
+        {newestSongs.map((song, index) => (
+          <tr key={index}>
+            <td
+              onClick={() => handleSongClick(song)}
+              style={{ cursor: 'pointer' }}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddToPlaylist(song.song_id);
+                }}
+                style={{ marginRight: '8px' }}
+              >
+                +
+              </button>
+              {song.title}
+            </td>
+            <td>
+              <Link to={`/artist/${song.musician_id}`}>
+                {song.musician_name}
+              </Link>
+            </td>
+            <td>{new Date(song.upload_date).toLocaleDateString()}</td>
+            <td>{song.views}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 
       {/* Dropdown for adding song to a playlist */}
       {showPlaylistDropdown && (
@@ -352,6 +343,9 @@ function Home() {
           </div>
         </div>
       )}
+
+      {/* Render AudioPlayerUI to control playback */}
+      
     </div>
   );
 }

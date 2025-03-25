@@ -22,6 +22,8 @@ import VerifyEmailRedirect from './components/VerifyEmailRedirect';
 import PlaylistView from './components/PlaylistView';
 import ArtistProfile from './components/ArtistProfile';
 
+
+
 import AudioPlayerUI from './components/AudioPlayerUI';
 import { AudioProvider, useAudio } from './contexts/AudioContext';
 
@@ -77,7 +79,6 @@ function App() {
                 </SignedIn>
               }
             />
-            {/* Add the artist route */}
             <Route path="/artist/:artistId" element={<ArtistProfile />} />
             <Route path="/playlist/:playlistId" element={<PlaylistView />} />
             <Route path="/about" element={<About />} />

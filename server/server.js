@@ -965,14 +965,15 @@ if (req.method === "GET" && req.url.startsWith("/api/artist-songs/")) {
 
       // Fetch songs in the playlist
       const [songs] = await connection.execute(`
-SELECT s.song_id, s.title, s.genre, s.upload_date, s.views, s.file_url, s.cover_art_url, s.description,
-u.name AS musician_name
-FROM \`playlist songs\` ps
-JOIN songs s ON ps.song_id = s.song_id
-JOIN users u ON s.musician_id = u.user_id
-WHERE ps.playlist_id = ?
-ORDER BY ps.added_date ASC
-`, [playlistId]);
+        SELECT s.song_id, s.title, s.genre, s.upload_date, s.views, s.file_url, s.cover_art_url, s.description,
+        s.musician_id, u.name AS musician_name
+        FROM \`playlist songs\` ps
+        JOIN songs s ON ps.song_id = s.song_id
+        JOIN users u ON s.musician_id = u.user_id
+        WHERE ps.playlist_id = ?
+        ORDER BY ps.added_date ASC
+      `, [playlistId]);
+      
 
       await connection.end();
 
@@ -1055,6 +1056,151 @@ if (req.method === "DELETE" && req.url.startsWith("/api/song/")) {
 
     return;
   }
+
+
+
+
+// Deleting user by user_id (for admin portal -- for users without Clerk)
+if (req.method === "DELETE" && req.url.startsWith("/delete-by-id/")) {
+  const userId = decodeURIComponent(req.url.split("/delete-by-id/")[1]);
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    // First, fetch user details to log them before deletion
+    const [userInfo] = await connection.execute(
+      "SELECT name, email FROM users WHERE user_id = ?",
+      [userId]
+    );
+
+    if (userInfo.length === 0) {
+      await connection.end();
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: "User not found" }));
+    }
+
+    const { name, email } = userInfo[0];
+    console.log(`🗑️ Deleting user (no Clerk ID): [ID: ${userId}] Name: ${name}, Email: ${email}`);
+
+    // Now delete the user
+    const [result] = await connection.execute(
+      "DELETE FROM users WHERE user_id = ?",
+      [userId]
+    );
+
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ message: "User deleted by user_id" }));
+  } catch (err) {
+    console.error("❌ Error deleting user by ID:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to delete user by ID" }));
+  }
+
+  return;
+}
+
+  
+// Update verification status by user_id (from admin portal dropdown)
+if (req.method === "PATCH" && req.url.startsWith("/update-verification/")) {
+  const userId = decodeURIComponent(req.url.split("/update-verification/")[1]);
+  let body = "";
+
+  req.on("data", (chunk) => {
+    body += chunk.toString();
+  });
+
+  req.on("end", async () => {
+    try {
+      const { verification_status } = JSON.parse(body);
+
+      if (typeof verification_status !== "number") {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Invalid verification_status" }));
+      }
+
+      const connection = await mysql.createConnection(dbConfig);
+
+      const [result] = await connection.execute(
+        "UPDATE users SET verification_status = ? WHERE user_id = ?",
+        [verification_status, userId]
+      );
+
+      await connection.end();
+
+      if (result.affectedRows === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "User not found" }));
+      }
+
+      console.log(`✅ user_id ${userId} verification status changed to ${verification_status}`);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Verification status updated" }));
+    } catch (err) {
+      console.error("❌ Error updating verification status:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Failed to update verification status" }));
+    }
+  });
+
+  return;
+}
+
+
+if (req.method === "GET" && req.url.startsWith("/api/user-by-id/")) {
+  const userId = req.url.split("/api/user-by-id/")[1];
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute(
+      "SELECT * FROM users WHERE user_id = ?",
+      [userId]
+    );
+    await connection.end();
+
+    if (rows.length === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Artist not found" }));
+    } else {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ user: rows[0] })); // ✅
+    }
+  } catch (err) {
+    console.error("❌ Error fetching user by ID:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Database error" }));
+  }
+
+  return;
+}
+
+if (req.method === "GET" && req.url.startsWith("/api/artist-songs/")) {
+  const artistId = req.url.split("/api/artist-songs/")[1];
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute(
+      `SELECT songs.*, users.name AS musician_name
+       FROM songs
+       JOIN users ON songs.musician_id = users.user_id
+       WHERE songs.musician_id = ?
+       ORDER BY songs.upload_date DESC`,
+      [artistId]
+    );
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(rows));
+  } catch (err) {
+    console.error("❌ Error fetching artist songs:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Database error" }));
+  }
+
+  return;
+}
+
 
 
 
