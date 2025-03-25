@@ -677,7 +677,178 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-
+  // search endpoint
+  if (req.url.startsWith('/api/search') && req.method === 'GET') {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const query = url.searchParams.get('q');
+  
+    if (!query) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Search query is required' }));
+    }
+  
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+  
+      // Search songs
+      const [songs] = await connection.execute(`
+        SELECT s.*, u.name as musician_name 
+        FROM songs s 
+        JOIN users u ON s.musician_id = u.user_id
+        WHERE s.title LIKE ? OR s.genre LIKE ? OR s.description LIKE ?
+        LIMIT 20
+      `, [`%${query}%`, `%${query}%`, `%${query}%`]);
+  
+      // Search artists (musician users) - Updated to not filter by account_type
+      const [artists] = await connection.execute(`
+        SELECT u.*, 
+          (SELECT COUNT(*) FROM songs WHERE musician_id = u.user_id) as songs_count
+        FROM users u
+        WHERE u.name LIKE ? 
+        LIMIT 20
+      `, [`%${query}%`]);
+  
+      // Search playlists
+      const [playlists] = await connection.execute(`
+        SELECT p.*, u.name as creator_name,
+          (SELECT COUNT(*) FROM \`playlist songs\` WHERE playlist_id = p.playlist_id) as songs_count
+        FROM playlists p
+        JOIN users u ON p.user_id = u.user_id
+        WHERE p.name LIKE ?
+        LIMIT 20
+      `, [`%${query}%`]);
+  
+      await connection.end();
+  
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        songs,
+        artists,
+        playlists
+      }));
+    } catch (error) {
+      console.error('❌ Search error:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+  
+    return;
+  }
+  
+    // Update a playlist name
+  if (req.method === "PATCH" && req.url.startsWith("/api/playlist/update/")) {
+    const playlistId = decodeURIComponent(req.url.split("/api/playlist/update/")[1]);
+    let body = "";
+  
+    req.on("data", (chunk) => {
+      body += chunk.toString();
+    });
+  
+    req.on("end", async () => {
+      try {
+        const { name } = JSON.parse(body);
+  
+        if (!name || !playlistId) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "Missing playlist name or ID" }));
+        }
+  
+        const connection = await mysql.createConnection(dbConfig);
+  
+        // Update the playlist name
+        const [result] = await connection.execute(
+          "UPDATE playlists SET name = ? WHERE playlist_id = ?",
+          [name, playlistId]
+        );
+  
+        await connection.end();
+  
+        if (result.affectedRows === 0) {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "Playlist not found" }));
+        }
+  
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ message: "Playlist updated successfully" }));
+      } catch (err) {
+        console.error("❌ Error updating playlist:", err);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Internal Server Error" }));
+      }
+    });
+  
+    return;
+  }
+  
+  // Update a song's details
+  if (req.method === "PATCH" && req.url.startsWith("/api/song/update/")) {
+    const songId = decodeURIComponent(req.url.split("/api/song/update/")[1]);
+    let body = "";
+  
+    req.on("data", (chunk) => {
+      body += chunk.toString();
+    });
+  
+    req.on("end", async () => {
+      try {
+        const { title, genre, description } = JSON.parse(body);
+  
+        if (!songId) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "Missing song ID" }));
+        }
+  
+        const connection = await mysql.createConnection(dbConfig);
+  
+        // Build the SQL query dynamically based on the provided fields
+        let sql = "UPDATE songs SET ";
+        const params = [];
+        const updates = [];
+  
+        if (title) {
+          updates.push("title = ?");
+          params.push(title);
+        }
+  
+        if (genre) {
+          updates.push("genre = ?");
+          params.push(genre);
+        }
+  
+        if (description) {
+          updates.push("description = ?");
+          params.push(description);
+        }
+  
+        if (updates.length === 0) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "No fields to update" }));
+        }
+  
+        sql += updates.join(", ") + " WHERE song_id = ?";
+        params.push(songId);
+  
+        // Execute the update
+        const [result] = await connection.execute(sql, params);
+  
+        await connection.end();
+  
+        if (result.affectedRows === 0) {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "Song not found" }));
+        }
+  
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ message: "Song updated successfully" }));
+      } catch (err) {
+        console.error("❌ Error updating song:", err);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Internal Server Error" }));
+      }
+    });
+  
+    return;
+  }
 
   // Create a new playlist
   if (req.method === "POST" && req.url === "/api/createPlaylist") {
