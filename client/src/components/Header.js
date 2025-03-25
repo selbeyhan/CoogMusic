@@ -80,7 +80,7 @@ function Header() {
               {mysqlUserProfile && (
                 mysqlUserProfile.admin_role ? (
                   <Link to="/adminportal">
-                    <button className="admin-portal-btn">Admin Portal</button>
+                    <button className="admin-portal-btn logout-button">Admin Portal</button>
                   </Link>
                 ) : null
               )}
