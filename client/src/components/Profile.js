@@ -606,6 +606,12 @@ const Profile = () => {
                                 <button
                                   className="edit-btn"
                                   onClick={() => {
+                                    // Close any other modals that might be open
+                                    setShowDeleteSongModal(false);
+                                    setShowDeleteConfirm(false);
+                                    setShowUpdateProfilePicModal(false);
+
+                                    // Then enable editing for the clicked song
                                     setEditingSongId(song.song_id);
                                     setEditedSongData({
                                       title: song.title,
@@ -616,6 +622,7 @@ const Profile = () => {
                                 >
                                   Edit
                                 </button>
+
                                 <button
                                   className="delete-btn"
                                   onClick={() => {
