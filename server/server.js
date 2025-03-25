@@ -677,6 +677,64 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // search endpoint
+if (req.url.startsWith('/api/search') && req.method === 'GET') {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const query = url.searchParams.get('q');
+  
+  if (!query) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ error: 'Search query is required' }));
+  }
+  
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    
+    // Search songs
+    const [songs] = await connection.execute(`
+      SELECT s.*, u.name as musician_name 
+      FROM songs s 
+      JOIN users u ON s.musician_id = u.user_id
+      WHERE s.title LIKE ? OR s.genre LIKE ? OR s.description LIKE ?
+      LIMIT 20
+    `, [`%${query}%`, `%${query}%`, `%${query}%`]);
+
+    // Search artists (musician users) - Updated to not filter by account_type
+    const [artists] = await connection.execute(`
+      SELECT u.*, 
+        (SELECT COUNT(*) FROM songs WHERE musician_id = u.user_id) as songs_count
+      FROM users u
+      WHERE u.name LIKE ? 
+      LIMIT 20
+    `, [`%${query}%`]);
+    
+    // Search playlists
+    const [playlists] = await connection.execute(`
+      SELECT p.*, u.name as creator_name,
+        (SELECT COUNT(*) FROM \`playlist songs\` WHERE playlist_id = p.playlist_id) as songs_count
+      FROM playlists p
+      JOIN users u ON p.user_id = u.user_id
+      WHERE p.name LIKE ?
+      LIMIT 20
+    `, [`%${query}%`]);
+    
+    await connection.end();
+    
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      songs,
+      artists,
+      playlists
+    }));
+  } catch (error) {
+    console.error('❌ Search error:', error);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Internal server error' }));
+  }
+  
+  return;
+}
+
   // Update a playlist name
 if (req.method === "PATCH" && req.url.startsWith("/api/playlist/update/")) {
   const playlistId = decodeURIComponent(req.url.split("/api/playlist/update/")[1]);
