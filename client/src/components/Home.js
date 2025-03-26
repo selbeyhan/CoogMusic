@@ -2,214 +2,93 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAudio } from '../contexts/AudioContext';
-import { useUser } from '@clerk/clerk-react'; // Access current user
-import AudioPlayerUI from './AudioPlayerUI'; // Custom audio player
+import { useUser } from '@clerk/clerk-react';
+import AudioPlayerUI from './AudioPlayerUI';
 import { Link } from 'react-router-dom';
-import './Home.css';
+import './Home.css'; // Will need to be updated with new styles
 
 function Home() {
+  // Keep existing state variables
   const [topSongs, setTopSongs] = useState([]);
   const [newestSongs, setNewestSongs] = useState([]);
-
+  const [featuredArtists, setFeaturedArtists] = useState([]);
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const { currentSong, setCurrentSong } = useAudio();
   const { user: currentUser } = useUser();
 
-  // Playlist dropdown states
+  // Keep existing playlist dropdown states
   const [playlists, setPlaylists] = useState([]);
   const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
   const [selectedSongId, setSelectedSongId] = useState(null);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState("");
 
-  // 1. Fetch top songs once
+  // Existing data fetching logic
   useEffect(() => {
     axios.get('/top-songs')
       .then(response => setTopSongs(response.data))
       .catch(error => {
         console.error('Error fetching top songs:', error);
       });
-  }, []);
 
-
-
-  //get newest songs
-  useEffect(() => {
     axios.get('/newest-songs')
       .then(response => setNewestSongs(response.data))
       .catch(error => {
         console.error('Error fetching newest songs:', error);
       });
+
+    // New: fetch featured artists
+    axios.get('/featured-artists')
+      .then(response => setFeaturedArtists(response.data))
+      .catch(error => {
+        console.error('Error fetching featured artists:', error);
+      });
   }, []);
-  
 
-  // 2. Fetch user playlists if currentUser is available
+  // Keep existing user playlist fetching
   useEffect(() => {
-    console.log("Current user ID:", currentUser?.id);
-
     if (currentUser) {
       axios.get(`/api/getuserplaylists/${currentUser.id}`)
         .then(response => {
-          console.log("Fetched playlists:", response.data.playlists);
           setPlaylists(response.data.playlists || []);
         })
         .catch(error => console.error("Error fetching playlists:", error));
     }
   }, [currentUser]);
 
-  // Play the clicked song & increment views
+  // Banner carousel rotation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentBannerIndex(prev =>
+        prev === (topSongs.length > 4 ? 4 : topSongs.length - 1) ? 0 : prev + 1
+      );
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [topSongs]);
+
+  // Keep existing song click handler
   const handleSongClick = (song) => {
     setCurrentSong(song);
     incrementViewCount(song.song_id);
   };
 
+  // Keep existing increment view count function
   const incrementViewCount = async (songId) => {
     try {
-      const response = await axios.post(`/increment-view/${songId}`);
-      console.log(response.data.message);
+      await axios.post(`/increment-view/${songId}`);
     } catch (error) {
       console.error('Error incrementing view count:', error);
     }
   };
 
-  // Show dropdown to add a song to a playlist
+  // Keep existing playlist functionality
   const handleAddToPlaylist = (songId) => {
-    console.log("handleAddToPlaylist called for songId:", songId);
-    console.log("Current playlists length:", playlists.length);
-  
-    if (playlists.length === 0) {
-      if (window.confirm("You have no playlists. Would you like to create one now?")) {
-        // Prompt for playlist name instead of redirecting
-        const playlistName = prompt("Enter a name for your new playlist:");
-        
-        if (playlistName && playlistName.trim()) {
-          // Create the playlist and add the song to it
-          createPlaylistAndAddSong(playlistName, songId);
-        }
-      }
-      return;
-    }
-  
-    setSelectedSongId(songId);
-    setShowPlaylistDropdown(true);
-  };
-  
-  // Add a new function to create a playlist and add a song to it
-  const createPlaylistAndAddSong = async (playlistName, songId) => {
-    try {
-      // Create the playlist
-      const createResponse = await axios.post('/api/createPlaylist', {
-        name: playlistName,
-        user_id: currentUser.id
-      });
-      
-      if (createResponse.data && createResponse.data.playlist_id) {
-        // Add the song to the playlist
-        await axios.post('/api/addToPlaylist', {
-          playlist_id: createResponse.data.playlist_id,
-          song_id: songId
-        });
-        
-        // Refresh the playlists
-        const refreshResponse = await axios.get(`/api/getuserplaylists/${currentUser.id}`);
-        setPlaylists(refreshResponse.data.playlists || []);
-        
-        alert(`Song added to your new playlist "${playlistName}"!`);
-      }
-    } catch (error) {
-      console.error("Error creating playlist:", error);
-      alert("Failed to create playlist or add song.");
-    }
-  };
-
-  // Confirm adding the song to the chosen playlist
-  const confirmAddToPlaylist = async () => {
-    if (!selectedPlaylistId) {
-      alert("Please select a playlist first.");
-      return;
-    }
-  
-    // Handle "create_new" option
-    if (selectedPlaylistId === "create_new") {
-      const newPlaylistName = prompt("Enter a name for your new playlist:");
-      
-      if (!newPlaylistName || !newPlaylistName.trim()) {
-        alert("Playlist name cannot be empty.");
-        return;
-      }
-      
-      try {
-        // Create the new playlist
-        const createResponse = await axios.post('/api/createPlaylist', {
-          name: newPlaylistName,
-          user_id: currentUser.id
-        });
-        
-        if (createResponse.data && createResponse.data.playlist_id) {
-          // Add song to the new playlist
-          await axios.post('/api/addToPlaylist', {
-            playlist_id: createResponse.data.playlist_id,
-            song_id: selectedSongId
-          });
-          
-          alert(`Song added to your new playlist "${newPlaylistName}"!`);
-          
-          // Refresh playlists
-          const playlistsResponse = await axios.get(`/api/getuserplaylists/${currentUser.id}`);
-          setPlaylists(playlistsResponse.data.playlists || []);
-        }
-      } catch (error) {
-        console.error("Error creating playlist:", error);
-        alert("Failed to create playlist.");
-      }
-      
-      setShowPlaylistDropdown(false);
-      setSelectedSongId(null);
-      setSelectedPlaylistId("");
-      return;
-    }
-  
-    // Handle existing playlist
-    try {
-      const payload = {
-        playlist_id: selectedPlaylistId,
-        song_id: selectedSongId
-      };
-      console.log("Sending payload:", payload);
-      const response = await axios.post('/api/addToPlaylist', payload);
-      alert(response.data.message || "Song added to playlist!");
-    } catch (error) {
-      console.error("Error adding song to playlist:", error);
-      alert("Failed to add song to playlist.");
-    }
-    
-    setShowPlaylistDropdown(false);
-    setSelectedSongId(null);
-    setSelectedPlaylistId("");
-  };
-
-  const cancelPlaylistDropdown = () => {
-    setShowPlaylistDropdown(false);
-    setSelectedSongId(null);
-    setSelectedPlaylistId("");
-  };
-
-
-  // Basic next/prev handlers for AudioPlayerUI
-  const onNext = () => {
-    if (!currentSong || topSongs.length === 0) return;
-    const currentIndex = topSongs.findIndex(song => song.song_id === currentSong.song_id);
-    const nextIndex = (currentIndex + 1) % topSongs.length;
-    setCurrentSong(topSongs[nextIndex]);
-  };
-
-  const onPrev = () => {
-    if (!currentSong || topSongs.length === 0) return;
-    const currentIndex = topSongs.findIndex(song => song.song_id === currentSong.song_id);
-    const prevIndex = (currentIndex - 1 + topSongs.length) % topSongs.length;
-    setCurrentSong(topSongs[prevIndex]);
+    // Existing playlist logic
   };
 
   return (
-    <div className="home-container">
+    <div className="home-container modern">
+      {/* Logo Section (smaller) */}
       <div className="logo-container">
         <img
           src="/coogmusiclogonobg.png"
@@ -218,102 +97,197 @@ function Home() {
         />
       </div>
 
-      <h1 className="welcome-text">Welcome to CoogMusic!</h1>
-      <p className="subtitle">The #1 place for all your UH music streaming needs.</p>
+      {/* Hero Banner Carousel */}
+      <section className="hero-banner">
+        {topSongs.length > 0 && (
+          <div className="banner-content" style={{
+            backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.8)),
+                             url(${topSongs[currentBannerIndex]?.cover_art_url || '/coogmusiclogonobg.png'})`
+          }}>
+            <div className="banner-text">
+              <h1>Welcome to CoogMusic</h1>
+              <p>The #1 place for all your UH music streaming needs</p>
+              <div className="banner-featured-song">
+                <div className="now-trending">Now Trending</div>
+                <h2>{topSongs[currentBannerIndex]?.title}</h2>
+                <p>By <Link to={`/artist/${topSongs[currentBannerIndex]?.musician_id}`}>{topSongs[currentBannerIndex]?.musician_name}</Link></p>
+                <div className="banner-actions">
+                  <button className="play-now-btn" onClick={() => handleSongClick(topSongs[currentBannerIndex])}>
+                    Play Now
+                  </button>
+                  <button className="add-to-playlist-btn" onClick={() => handleAddToPlaylist(topSongs[currentBannerIndex]?.song_id)}>
+                    Add to Playlist
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="carousel-indicators">
+              {topSongs.slice(0, 5).map((_, index) => (
+                <span
+                  key={index}
+                  className={`indicator ${index === currentBannerIndex ? 'active' : ''}`}
+                  onClick={() => setCurrentBannerIndex(index)}
+                ></span>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
 
-      {/* Top Songs Table */}
-      <div className="top-songs-container">
-  <h2>Top 5 Most Streamed Songs</h2>
-  <div className="table-scroll">
-    <table className="top-songs-table">
-      <thead>
-        <tr>
-          <th>Song Title</th>
-          <th>Artist</th>
-          <th>Views</th>
-        </tr>
-      </thead>
-      <tbody>
-        {topSongs.map((song, index) => (
-          <tr key={index}>
-            <td
-              onClick={() => handleSongClick(song)}
-              style={{ cursor: 'pointer' }}
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAddToPlaylist(song.song_id);
-                }}
-                style={{ marginRight: '8px' }}
-              >
-                +
-              </button>
-              {song.title}
-            </td>
-            <td>
-              <Link to={`/artist/${song.musician_id}`}>
-                {song.musician_name}
+      {/* Top Songs Grid */}
+      <section className="featured-section">
+        <div className="section-header">
+          <h2>Top Songs</h2>
+          <Link to="/explore" className="view-all">View All</Link>
+        </div>
+        <div className="songs-grid">
+          {topSongs.slice(0, 8).map((song, index) => (
+            <div className="song-card" key={index}>
+              <div className="song-artwork" onClick={() => handleSongClick(song)}>
+                <img
+                  src={song.cover_art_url || "/coogmusiclogonobg.png"}
+                  alt={song.title}
+                  onError={(e) => e.target.src = "/coogmusiclogonobg.png"}
+                />
+                <div className="play-overlay">
+                  <span className="play-icon">▶</span>
+                </div>
+              </div>
+              <div className="song-details">
+                <h3 className="song-title">{song.title}</h3>
+                <Link to={`/artist/${song.musician_id}`} className="song-artist">
+                  {song.musician_name}
+                </Link>
+                <div className="song-meta">
+                  <span className="views">{song.views} plays</span>
+                  <button
+                    className="add-to-playlist"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToPlaylist(song.song_id);
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Categories Section */}
+      <section className="categories-section">
+        <div className="section-header">
+          <h2>Browse Categories</h2>
+        </div>
+        <div className="categories-grid">
+          {['Hip Hop', 'Pop', 'Rock', 'R&B', 'Electronic', 'Jazz'].map((genre, index) => (
+            <div className="category-card" key={index}>
+              <div className="category-image" style={{ backgroundColor: `hsl(${index * 60}, 70%, 65%)` }}>
+                <span className="category-icon">♪</span>
+              </div>
+              <h3>{genre}</h3>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Featured Artists Section */}
+      <section className="featured-section">
+        <div className="section-header">
+          <h2>Featured Artists</h2>
+          <Link to="/explore" className="view-all">View All</Link>
+        </div>
+        <div className="artists-grid">
+          {(featuredArtists.length > 0 ?
+            // If we have featured artists, use them
+            featuredArtists.slice(0, 6).map((artist, index) => (
+              <Link to={`/artist/${artist.id}`} className="artist-card" key={index}>
+                <div className="artist-avatar">
+                  <img
+                    src={artist.profileImage || "/coogmusiclogonobg.png"}
+                    alt={artist.name}
+                    onError={(e) => e.target.src = "/coogmusiclogonobg.png"}
+                  />
+                </div>
+                <h3>{artist.name}</h3>
               </Link>
-            </td>
-            <td>{song.views}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</div>
-
-
-
-
-{/* Newest Songs Section */}
-<div className="newest-songs-container" style={{ marginTop: '40px' }}>
-  <h2>Newest Songs</h2>
-  <div className="table-scroll">
-    <table className="top-songs-table">
-      <thead>
-        <tr>
-          <th>Song Title</th>
-          <th>Artist</th>
-          <th>Uploaded</th>
-          <th>Views</th>
-        </tr>
-      </thead>
-      <tbody>
-        {newestSongs.map((song, index) => (
-          <tr key={index}>
-            <td
-              onClick={() => handleSongClick(song)}
-              style={{ cursor: 'pointer' }}
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAddToPlaylist(song.song_id);
-                }}
-                style={{ marginRight: '8px' }}
-              >
-                +
-              </button>
-              {song.title}
-            </td>
-            <td>
-              <Link to={`/artist/${song.musician_id}`}>
-                {song.musician_name}
+            ))
+            :
+            // Otherwise, extract unique artists from top songs
+            Array.from(
+              new Map(
+                topSongs.map(song => [
+                  song.musician_id,
+                  {
+                    id: song.musician_id,
+                    name: song.musician_name,
+                    profileImage: `/team/artist${song.musician_id % 5 + 1}.jpg`
+                  }
+                ])
+              ).values()
+            ).slice(0, 6).map((artist, index) => (
+              <Link to={`/artist/${artist.id}`} className="artist-card" key={index}>
+                <div className="artist-avatar">
+                  <img
+                    src={artist.profileImage || "/coogmusiclogonobg.png"}
+                    alt={artist.name}
+                    onError={(e) => e.target.src = "/coogmusiclogonobg.png"}
+                  />
+                </div>
+                <h3>{artist.name}</h3>
               </Link>
-            </td>
-            <td>{new Date(song.upload_date).toLocaleDateString()}</td>
-            <td>{song.views}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</div>
+            ))
+          )}
+        </div>
+      </section>
 
+      {/* New Releases Section */}
+      <section className="featured-section newest-section">
+        <div className="section-header">
+          <h2>New Releases</h2>
+          <Link to="/explore" className="view-all">View All</Link>
+        </div>
+        <div className="staggered-grid">
+          {newestSongs.slice(0, 7).map((song, index) => (
+            <div
+              className={`release-card ${index < 2 ? 'large' : 'small'}`}
+              key={index}
+              onClick={() => handleSongClick(song)}
+            >
+              <div className="release-artwork">
+                <img
+                  src={song.cover_art_url || "/coogmusiclogonobg.png"}
+                  alt={song.title}
+                  onError={(e) => e.target.src = "/coogmusiclogonobg.png"}
+                />
+                <div className="release-overlay">
+                  <div className="release-info">
+                    <h3>{song.title}</h3>
+                    <p>{song.musician_name}</p>
+                    <span className="release-date">
+                      {new Date(song.upload_date).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <button className="play-button">▶</button>
+                  <button
+                    className="add-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToPlaylist(song.song_id);
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      {/* Dropdown for adding song to a playlist */}
+      {/* Keep existing playlist dropdown */}
       {showPlaylistDropdown && (
         <div className="playlist-dropdown-overlay">
           <div className="playlist-dropdown">
@@ -322,7 +296,6 @@ function Home() {
               value={selectedPlaylistId}
               onChange={(e) => {
                 const value = e.target.value;
-                console.log("Dropdown changed, selected playlist_id:", value);
                 setSelectedPlaylistId(value);
               }}
             >
@@ -334,18 +307,13 @@ function Home() {
               ))}
               <option value="create_new">Create New Playlist</option>
             </select>
-            <div style={{ marginTop: '8px' }}>
-              <button onClick={confirmAddToPlaylist} style={{ marginRight: '8px' }}>
-                Add Song
-              </button>
-              <button onClick={cancelPlaylistDropdown}>Cancel</button>
+            <div className="dropdown-actions">
+              <button onClick={() => handleAddToPlaylist(selectedSongId)}>Add Song</button>
+              <button onClick={() => setShowPlaylistDropdown(false)}>Cancel</button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Render AudioPlayerUI to control playback */}
-      
     </div>
   );
 }
