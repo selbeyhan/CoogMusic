@@ -275,3 +275,44 @@ CREATE TABLE `users` (
 --
 -- Dumping data for table `users`
 --
+
+--
+-- Table structure for table `albums`
+--
+
+DROP TABLE IF EXISTS `albums`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `albums` (
+  `album_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `title` varchar(100) NOT NULL,
+  `musician_id` int unsigned DEFAULT NULL,
+  `release_date` datetime NOT NULL,
+  `genre` varchar(50) DEFAULT NULL,
+  `cover_art_url` varchar(2000) DEFAULT NULL,
+  `description` text,
+  `views` int unsigned DEFAULT '0',
+  PRIMARY KEY (`album_id`),
+  KEY `albums_musician_id_foreign` (`musician_id`),
+  CONSTRAINT `albums_musician_id_foreign` FOREIGN KEY (`musician_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `album songs`
+--
+
+DROP TABLE IF EXISTS `album songs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `album songs` (
+  `album_id` int unsigned NOT NULL,
+  `song_id` int unsigned NOT NULL,
+  `track_number` int unsigned NOT NULL,
+  `added_date` datetime NOT NULL,
+  PRIMARY KEY (`album_id`,`song_id`),
+  KEY `song_id` (`song_id`),
+  CONSTRAINT `album songs_ibfk_1` FOREIGN KEY (`album_id`) REFERENCES `albums` (`album_id`) ON DELETE CASCADE,
+  CONSTRAINT `album songs_ibfk_2` FOREIGN KEY (`song_id`) REFERENCES `songs` (`song_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;

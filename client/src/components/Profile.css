@@ -636,3 +636,135 @@
   background: #f0f0f0;
   color: #333;
 }
+
+/* Album styles */
+.albums-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.album-card {
+  display: block;
+  text-decoration: none;
+  color: #333;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  transition: transform 0.3s, box-shadow 0.3s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.album-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.album-cover {
+  height: 200px;
+  overflow: hidden;
+}
+
+.album-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.album-info {
+  padding: 1rem;
+}
+
+.album-info h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+  color: #ff0000;
+}
+
+.album-info .album-genre {
+  color: #666;
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.album-info .album-date {
+  color: #999;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.album-info .album-views {
+  color: #999;
+  font-size: 0.8rem;
+  margin: 0.5rem 0 0;
+}
+
+.create-album-form {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 1.5rem;
+}
+
+.create-album-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.create-album-form input,
+.create-album-form textarea {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.create-album-form textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.form-buttons button {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.form-buttons button:first-child {
+  background: #ff0000;
+  color: white;
+}
+
+.form-buttons button:first-child:hover {
+  background: #cc0000;
+}
+
+.form-buttons button:last-child {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.form-buttons button:last-child:hover {
+  background: #e0e0e0;
+}
+
+@media (max-width: 768px) {
+  .albums-list {
+    grid-template-columns: 1fr;
+  }
+
+  .create-album-form {
+    padding: 1rem;
+  }
+}

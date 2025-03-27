@@ -22,8 +22,7 @@ import VerifyEmailRedirect from './components/VerifyEmailRedirect';
 import PlaylistView from './components/PlaylistView';
 import ArtistProfile from './components/ArtistProfile';
 import Search from './components/Search';
-
-
+import AlbumView from './components/AlbumView';
 
 import AudioPlayerUI from './components/AudioPlayerUI';
 import { AudioProvider, useAudio } from './contexts/AudioContext';
@@ -85,9 +84,17 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
-            <Route path="/adminportal" element={<AdminPortal />} />
+            <Route path="/verify-email" element={<VerifyEmailRedirect />} />
+            <Route path="/album/:albumId" element={<AlbumView />} />
+            <Route
+              path="/admin"
+              element={
+                <SignedIn>
+                  <AdminPortal />
+                </SignedIn>
+              }
+            />
             <Route path="/search" element={<Search />} />
-            <Route path="/signup/verify-email-address" element={<VerifyEmailRedirect />} />
             <Route
               path="*"
               element={

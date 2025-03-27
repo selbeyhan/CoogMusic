@@ -1542,6 +1542,230 @@ ORDER BY l.timestamp DESC
 
 
 
+  // Create a new album
+  if (req.method === "POST" && req.url === "/api/createAlbum") {
+    let body = "";
+
+    req.on("data", (chunk) => {
+      body += chunk.toString();
+    });
+
+    req.on("end", async () => {
+      try {
+        const { title, musician_id, genre, cover_art_url, description } = JSON.parse(body);
+
+        if (!title || !musician_id) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "Missing required fields" }));
+        }
+
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Check if musician_id is a Clerk ID
+        let internalUserId = musician_id;
+        if (typeof musician_id === 'string' && musician_id.startsWith('user_')) {
+          const [userRow] = await connection.execute(
+            "SELECT user_id FROM users WHERE clerk_user_id = ?",
+            [musician_id]
+          );
+
+          if (userRow.length === 0) {
+            await connection.end();
+            res.writeHead(404, { "Content-Type": "application/json" });
+            return res.end(JSON.stringify({ error: "User not found" }));
+          }
+
+          internalUserId = userRow[0].user_id;
+        }
+
+        const [result] = await connection.execute(
+          `INSERT INTO albums (title, musician_id, release_date, genre, cover_art_url, description) 
+           VALUES (?, ?, NOW(), ?, ?, ?)`,
+          [title, internalUserId, genre, cover_art_url, description]
+        );
+
+        await connection.end();
+
+        res.writeHead(201, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({
+          message: "Album created successfully",
+          album_id: result.insertId
+        }));
+      } catch (err) {
+        console.error("❌ Error creating album:", err);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Internal Server Error" }));
+      }
+    });
+
+    return;
+  }
+
+  // Add a song to an album
+  if (req.method === "POST" && req.url === "/api/addToAlbum") {
+    let body = "";
+
+    req.on("data", (chunk) => {
+      body += chunk.toString();
+    });
+
+    req.on("end", async () => {
+      try {
+        const { album_id, song_id, track_number } = JSON.parse(body);
+
+        if (!album_id || !song_id || !track_number) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "Missing required fields" }));
+        }
+
+        const connection = await mysql.createConnection(dbConfig);
+        const addedDate = new Date().toISOString().slice(0, 19).replace("T", " ");
+
+        await connection.execute(
+          `INSERT INTO \`album songs\` (album_id, song_id, track_number, added_date) 
+           VALUES (?, ?, ?, ?)`,
+          [album_id, song_id, track_number, addedDate]
+        );
+
+        await connection.end();
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ message: "Song added to album successfully" }));
+      } catch (err) {
+        console.error("❌ Error adding song to album:", err);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Internal Server Error" }));
+      }
+    });
+
+    return;
+  }
+
+  // Get an album and its songs
+  if (req.method === "GET" && req.url.startsWith("/api/album/")) {
+    const albumId = decodeURIComponent(req.url.split("/api/album/")[1]);
+
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+
+      // Fetch album info
+      const [albumData] = await connection.execute(
+        "SELECT * FROM albums WHERE album_id = ?",
+        [albumId]
+      );
+
+      if (albumData.length === 0) {
+        await connection.end();
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Album not found" }));
+      }
+
+      // Fetch songs in the album
+      const [songs] = await connection.execute(`
+        SELECT s.song_id, s.title, s.genre, s.upload_date, s.views, s.file_url, s.cover_art_url, s.description,
+        s.musician_id, u.name AS musician_name, as2.track_number
+        FROM \`album songs\` as2
+        JOIN songs s ON as2.song_id = s.song_id
+        JOIN users u ON s.musician_id = u.user_id
+        WHERE as2.album_id = ?
+        ORDER BY as2.track_number ASC
+      `, [albumId]);
+
+      await connection.end();
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        album: albumData[0],
+        songs
+      }));
+    } catch (err) {
+      console.error("❌ Error fetching album and songs:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Internal Server Error" }));
+    }
+
+    return;
+  }
+
+  // Get user's albums
+  if (req.method === "GET" && req.url.startsWith("/api/getuseralbums/")) {
+    const userId = decodeURIComponent(req.url.split("/api/getuseralbums/")[1]);
+
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+
+      // Check if userId is a Clerk ID
+      let internalUserId = userId;
+      if (typeof userId === 'string' && userId.startsWith('user_')) {
+        const [userRow] = await connection.execute(
+          "SELECT user_id FROM users WHERE clerk_user_id = ?",
+          [userId]
+        );
+
+        if (userRow.length === 0) {
+          await connection.end();
+          res.writeHead(404, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "User not found" }));
+        }
+
+        internalUserId = userRow[0].user_id;
+      }
+
+      const [albums] = await connection.execute(
+        "SELECT * FROM albums WHERE musician_id = ? ORDER BY release_date DESC",
+        [internalUserId]
+      );
+
+      await connection.end();
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ albums }));
+    } catch (err) {
+      console.error("❌ Error fetching user albums:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Internal Server Error" }));
+    }
+
+    return;
+  }
+
+  // Delete an album
+  if (req.method === "DELETE" && req.url.startsWith("/api/album/")) {
+    const albumId = decodeURIComponent(req.url.split("/api/album/")[1]);
+
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+
+      // Delete from album songs table first (if you don't have ON DELETE CASCADE)
+      await connection.execute(
+        "DELETE FROM \`album songs\` WHERE album_id = ?",
+        [albumId]
+      );
+
+      // Delete from albums table
+      const [result] = await connection.execute(
+        "DELETE FROM albums WHERE album_id = ?",
+        [albumId]
+      );
+
+      await connection.end();
+
+      if (result.affectedRows === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Album not found" }));
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Album deleted successfully" }));
+    } catch (err) {
+      console.error("❌ Error deleting album:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Failed to delete album" }));
+    }
+
+    return;
+  }
+
   // Serve React Frontend (Static Files)
   const buildPath = path.join(__dirname, "build");
 

@@ -36,7 +36,15 @@ const Profile = () => {
   const [newProfilePicFile, setNewProfilePicFile] = useState(null);
   const [showDeleteSongModal, setShowDeleteSongModal] = useState(false);
   const [songToDelete, setSongToDelete] = useState(null);
-  const [likedSongs, setLikedSongs] = useState([]); // Added from second file
+  const [likedSongs, setLikedSongs] = useState([]);
+  const [albums, setAlbums] = useState([]);
+  const [showCreateAlbumInput, setShowCreateAlbumInput] = useState(false);
+  const [newAlbumData, setNewAlbumData] = useState({
+    title: '',
+    genre: '',
+    description: '',
+    cover_art_url: 'https://via.placeholder.com/300'
+  });
 
   // Upload form state
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -86,6 +94,10 @@ const Profile = () => {
         } else {
           console.error("❌ Songs data is not in the expected format:", songsResponse.data);
         }
+
+        // Fetch user's albums
+        const albumsResponse = await axios.get(`/api/getuseralbums/${userId}`);
+        setAlbums(albumsResponse.data.albums || []);
       } catch (error) {
         console.error("Error fetching profile data:", error);
       }
@@ -103,7 +115,6 @@ const Profile = () => {
 
     const fetchLikedSongs = async () => {
       try {
-        // Using clerk_user_id (userId) instead of userProfile.id
         console.log(`➡️ Fetching user likes from Clerk user_id: ${userId}`);
         const response = await axios.get(`/api/profile-likes/${userId}`);
         setLikedSongs(response.data.likedSongs || []);
@@ -288,6 +299,56 @@ const Profile = () => {
       alert('Failed to upload song. Please try again.');
       setIsLoading(false);
     }
+  };
+
+  const handleCreateAlbum = async () => {
+    if (!newAlbumData.title.trim()) {
+      alert("Album title cannot be empty.");
+      return;
+    }
+  
+    try {
+      const response = await axios.post('/api/createAlbum', {
+        ...newAlbumData,
+        musician_id: userProfile.id
+      });
+  
+      console.log("✅ Album created with response:", response.data);
+  
+      // Update albums state
+      setAlbums(prev => [
+        ...prev,
+        {
+          album_id: response.data.album_id,
+          title: newAlbumData.title,
+          genre: newAlbumData.genre,
+          cover_art_url: newAlbumData.cover_art_url,
+          description: newAlbumData.description,
+          release_date: new Date().toISOString(),
+          views: 0
+        }
+      ]);
+  
+      setNewAlbumData({
+        title: '',
+        genre: '',
+        description: '',
+        cover_art_url: 'https://via.placeholder.com/300'
+      });
+      setShowCreateAlbumInput(false);
+      alert("Album created!");
+    } catch (error) {
+      console.error("❌ Error creating album:", error);
+      alert("Failed to create album.");
+    }
+  };
+
+  const handleAlbumDataChange = (e) => {
+    const { name, value } = e.target;
+    setNewAlbumData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   if (isLoading) {
@@ -513,6 +574,12 @@ const Profile = () => {
             onClick={() => handleTabChange('playlists')}
           >
             Playlists
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'albums' ? 'active' : ''}`}
+            onClick={() => handleTabChange('albums')}
+          >
+            Albums
           </button>
           <button
             className={`tab-btn ${activeTab === 'about' ? 'active' : ''}`}
@@ -748,6 +815,109 @@ const Profile = () => {
                         </>
                       )}
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'albums' && (
+            <div className="albums-tab">
+              <h2>Albums</h2>
+
+              {isOwner && (
+                <>
+                  {!showCreateAlbumInput ? (
+                    <button onClick={() => setShowCreateAlbumInput(true)} style={{ marginBottom: '1rem' }}>
+                      Create Album
+                    </button>
+                  ) : (
+                    <div className="create-album-form">
+                      <div className="form-group">
+                        <input
+                          type="text"
+                          name="title"
+                          placeholder="Album Title"
+                          value={newAlbumData.title}
+                          onChange={handleAlbumDataChange}
+                          className="album-name-input"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <input
+                          type="text"
+                          name="genre"
+                          placeholder="Genre"
+                          value={newAlbumData.genre}
+                          onChange={handleAlbumDataChange}
+                          className="album-genre-input"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <textarea
+                          name="description"
+                          placeholder="Description"
+                          value={newAlbumData.description}
+                          onChange={handleAlbumDataChange}
+                          className="album-description-input"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <input
+                          type="text"
+                          name="cover_art_url"
+                          placeholder="Cover Art URL"
+                          value={newAlbumData.cover_art_url}
+                          onChange={handleAlbumDataChange}
+                          className="album-cover-input"
+                        />
+                      </div>
+                      <div className="form-buttons">
+                        <button onClick={handleCreateAlbum}>Save</button>
+                        <button
+                          onClick={() => {
+                            setShowCreateAlbumInput(false);
+                            setNewAlbumData({
+                              title: '',
+                              genre: '',
+                              description: '',
+                              cover_art_url: 'https://via.placeholder.com/300'
+                            });
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {albums.length === 0 ? (
+                <p className="no-content">No albums created yet.</p>
+              ) : (
+                <div className="albums-list">
+                  {albums.map((album) => (
+                    <Link 
+                      to={`/album/${album.album_id}`} 
+                      key={album.album_id} 
+                      className="album-card"
+                    >
+                      <div className="album-cover">
+                        <img 
+                          src={album.cover_art_url || 'https://via.placeholder.com/300'} 
+                          alt={album.title} 
+                        />
+                      </div>
+                      <div className="album-info">
+                        <h3>{album.title}</h3>
+                        <p className="album-genre">{album.genre}</p>
+                        <p className="album-date">
+                          Released: {new Date(album.release_date).toLocaleDateString()}
+                        </p>
+                        <p className="album-views">Views: {album.views}</p>
+                      </div>
+                    </Link>
                   ))}
                 </div>
               )}
