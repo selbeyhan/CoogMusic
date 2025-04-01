@@ -21,6 +21,7 @@ function Home() {
   const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
   const [selectedSongId, setSelectedSongId] = useState(null);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState("");
+  const [newPlaylistName, setNewPlaylistName] = useState(""); // For creating new playlists
 
   // Existing data fetching logic
   useEffect(() => {
@@ -81,9 +82,63 @@ function Home() {
     }
   };
 
-  // Keep existing playlist functionality
+  // Fixed playlist functionality
   const handleAddToPlaylist = (songId) => {
-    // Existing playlist logic
+    if (!currentUser) {
+      alert("Please sign in to add songs to playlists");
+      return;
+    }
+
+    setSelectedSongId(songId);
+    setShowPlaylistDropdown(true);
+  };
+
+  // Handle adding song to selected playlist
+  const addSongToPlaylist = async () => {
+    try {
+      if (selectedPlaylistId === "create_new") {
+        if (!newPlaylistName.trim()) {
+          alert("Please enter a playlist name");
+          return;
+        }
+
+        // Create new playlist first
+        const createResponse = await axios.post('/api/createPlaylist', {
+          name: newPlaylistName,
+          user_id: currentUser.id
+        });
+
+        // Then add song to the newly created playlist
+        await axios.post('/api/addToPlaylist', {
+          playlist_id: createResponse.data.playlist_id,
+          song_id: selectedSongId
+        });
+
+        // Refresh playlists
+        const playlistsResponse = await axios.get(`/api/getuserplaylists/${currentUser.id}`);
+        setPlaylists(playlistsResponse.data.playlists || []);
+      } else if (selectedPlaylistId) {
+        // Add to existing playlist
+        await axios.post('/api/addToPlaylist', {
+          playlist_id: selectedPlaylistId,
+          song_id: selectedSongId
+        });
+      } else {
+        alert("Please select a playlist");
+        return;
+      }
+
+      // Reset states and close dropdown
+      setSelectedPlaylistId("");
+      setNewPlaylistName("");
+      setSelectedSongId(null);
+      setShowPlaylistDropdown(false);
+
+      alert("Song added to playlist successfully!");
+    } catch (error) {
+      console.error("Error adding song to playlist:", error);
+      alert("Failed to add song to playlist");
+    }
   };
 
   return (
@@ -270,7 +325,15 @@ function Home() {
                       {new Date(song.upload_date).toLocaleDateString()}
                     </span>
                   </div>
-                  <button className="play-button">▶</button>
+                  <button
+                    className="play-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSongClick(song);
+                    }}
+                  >
+                    ▶
+                  </button>
                   <button
                     className="add-button"
                     onClick={(e) => {
@@ -287,11 +350,11 @@ function Home() {
         </div>
       </section>
 
-      {/* Keep existing playlist dropdown */}
+      {/* Updated playlist dropdown */}
       {showPlaylistDropdown && (
         <div className="playlist-dropdown-overlay">
           <div className="playlist-dropdown">
-            <label>Select a Playlist:</label>
+            <h3>Add to Playlist</h3>
             <select
               value={selectedPlaylistId}
               onChange={(e) => {
@@ -307,9 +370,34 @@ function Home() {
               ))}
               <option value="create_new">Create New Playlist</option>
             </select>
+
+            {selectedPlaylistId === "create_new" && (
+              <div className="new-playlist-input">
+                <label htmlFor="new-playlist-name">Playlist Name:</label>
+                <input
+                  type="text"
+                  id="new-playlist-name"
+                  value={newPlaylistName}
+                  onChange={(e) => setNewPlaylistName(e.target.value)}
+                  placeholder="Enter new playlist name"
+                />
+              </div>
+            )}
+
             <div className="dropdown-actions">
-              <button onClick={() => handleAddToPlaylist(selectedSongId)}>Add Song</button>
-              <button onClick={() => setShowPlaylistDropdown(false)}>Cancel</button>
+              <button
+                onClick={addSongToPlaylist}
+                disabled={!selectedPlaylistId || (selectedPlaylistId === "create_new" && !newPlaylistName.trim())}
+              >
+                Add Song
+              </button>
+              <button onClick={() => {
+                setShowPlaylistDropdown(false);
+                setSelectedPlaylistId("");
+                setNewPlaylistName("");
+              }}>
+                Cancel
+              </button>
             </div>
           </div>
         </div>
