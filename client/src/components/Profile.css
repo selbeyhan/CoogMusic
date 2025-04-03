@@ -636,3 +636,62 @@
   background: #f0f0f0;
   color: #333;
 }
+
+
+
+/* --- Albums styling --- */
+.albums-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.album-card {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  text-decoration: none;
+  color: #333;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.album-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.album-cover {
+  height: 300px; /* adjust as needed */
+  background-color: #f0f0f0;
+}
+
+.album-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.album-info {
+  padding: 1rem;
+}
+
+.album-info h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+  color: #ff0000; /* matches your accent color */
+}
+
+.album-genre {
+  color: #666;
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.album-date,
+.album-views {
+  color: #999;
+  font-size: 0.8rem;
+  margin: 0.2rem 0;
+}

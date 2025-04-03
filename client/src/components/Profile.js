@@ -988,10 +988,10 @@ useEffect(() => {
             className="album-card"
           >
             <div className="album-cover">
-              <img 
-                src={album.cover_art_url || 'https://via.placeholder.com/300'} 
-                alt={album.title} 
-              />
+            <img
+              src={album.album_art_url || 'https://via.placeholder.com/300'}
+              alt={album.title}
+            />
             </div>
             <div className="album-info">
               <h3>{album.title}</h3>
