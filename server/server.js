@@ -795,62 +795,82 @@ const server = http.createServer(async (req, res) => {
 
   // Update a song's details
   if (req.method === "PATCH" && req.url.startsWith("/api/song/update/")) {
-    const songId = decodeURIComponent(req.url.split("/api/song/update/")[1]);
-    let body = "";
-
-    req.on("data", (chunk) => {
-      body += chunk.toString();
-    });
-
-    req.on("end", async () => {
+    // Use multer to handle potential cover art file upload
+    upload.fields([{ name: "cover_art", maxCount: 1 }])(req, res, async (err) => {
+      if (err) {
+        console.error("❌ Multer error in song update:", err);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "File processing error" }));
+      }
       try {
-        const { title, genre, description } = JSON.parse(body);
-
+        const songId = decodeURIComponent(req.url.split("/api/song/update/")[1]);
         if (!songId) {
           res.writeHead(400, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "Missing song ID" }));
         }
-
-        const connection = await mysql.createConnection(dbConfig);
-
-        // Build the SQL query dynamically based on the provided fields
+    
+        // Parse text fields from req.body (assumes JSON fields sent as text)
+        const { title, genre, description, cover_art_url } = req.body;
+    
+        // Start building the update query dynamically
         let sql = "UPDATE songs SET ";
-        const params = [];
         const updates = [];
-
+        const params = [];
+    
         if (title) {
           updates.push("title = ?");
           params.push(title);
         }
-
         if (genre) {
           updates.push("genre = ?");
           params.push(genre);
         }
-
         if (description) {
           updates.push("description = ?");
           params.push(description);
         }
-
+    
+        // Check if a new cover art file was provided
+        if (req.files && req.files.cover_art && req.files.cover_art[0]) {
+          const coverArtFile = req.files.cover_art[0];
+          const coverArtBuffer = coverArtFile.buffer;
+          const coverArtName = `${uuidv4()}-${coverArtFile.originalname}`;
+    
+          // Ensure the Azure container for song pictures exists
+          await songPictureContainerClient.createIfNotExists({ access: "container" });
+          const coverArtBlockBlobClient = songPictureContainerClient.getBlockBlobClient(coverArtName);
+    
+          console.log("Uploading updated cover art to Azure Blob Storage...");
+          await coverArtBlockBlobClient.uploadData(coverArtBuffer, {
+            blobHTTPHeaders: { blobContentType: coverArtFile.mimetype },
+          });
+          const newCoverArtUrl = coverArtBlockBlobClient.url;
+    
+          updates.push("cover_art_url = ?");
+          params.push(newCoverArtUrl);
+        } else if (cover_art_url) {
+          // Otherwise, if the client sends a cover_art_url value, update it
+          updates.push("cover_art_url = ?");
+          params.push(cover_art_url);
+        }
+    
         if (updates.length === 0) {
           res.writeHead(400, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "No fields to update" }));
         }
-
+    
         sql += updates.join(", ") + " WHERE song_id = ?";
         params.push(songId);
-
-        // Execute the update
+    
+        const connection = await mysql.createConnection(dbConfig);
         const [result] = await connection.execute(sql, params);
-
         await connection.end();
-
+    
         if (result.affectedRows === 0) {
           res.writeHead(404, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "Song not found" }));
         }
-
+    
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ message: "Song updated successfully" }));
       } catch (err) {
@@ -859,10 +879,9 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ error: "Internal Server Error" }));
       }
     });
-
     return;
   }
-
+  
 
   // Create a new playlist
   if (req.method === "POST" && req.url === "/api/createPlaylist") {

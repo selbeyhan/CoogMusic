@@ -49,6 +49,9 @@ const Profile = () => {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadCoverArtFile, setUploadCoverArtFile] = useState(null);
 
+  const [editedSongCoverArtFile, setEditedSongCoverArtFile] = useState(null);
+
+
 
   useEffect(() => {
     if (currentUser) {
@@ -207,34 +210,46 @@ const Profile = () => {
     }
   };
 
-  // Handle song updates
   const handleUpdateSong = async (songId) => {
     try {
-      await axios.patch(`/api/song/update/${songId}`, editedSongData);
+      // Create a new FormData instance and append text fields
+      const formData = new FormData();
+      if (editedSongData.title) formData.append("title", editedSongData.title);
+      if (editedSongData.genre) formData.append("genre", editedSongData.genre);
+      if (editedSongData.description) formData.append("description", editedSongData.description);
       
-      // Update local state
-      setUserSongs(prevSongs => 
-        prevSongs.map(song => 
-          song.song_id === songId 
-            ? { ...song, ...editedSongData } 
+      // Append new cover art file if one was provided
+      if (editedSongCoverArtFile) {
+        formData.append("cover_art", editedSongCoverArtFile);
+      }
+      
+      // Send PATCH request to update the song; ensure the endpoint matches your server route
+      const response = await axios.patch(`/api/song/update/${songId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      
+      // Update local state: merge updated fields and, if returned, update the cover_art_url
+      setUserSongs((prevSongs) =>
+        prevSongs.map((song) =>
+          song.song_id === songId
+            ? { ...song, ...editedSongData, cover_art_url: response.data.url || song.cover_art_url }
             : song
         )
       );
       
-      // Reset edit mode
+      // Reset edit mode and clear form states
       setEditingSongId(null);
-      setEditedSongData({
-        title: '',
-        genre: '',
-        description: ''
-      });
+      setEditedSongData({ title: '', genre: '', description: '' });
+      setEditedSongCoverArtFile(null);
       
       alert("Song updated successfully!");
     } catch (error) {
-      console.error('Error updating song:', error);
-      alert('Failed to update song. Please try again.');
+      console.error("Error updating song:", error);
+      alert("Failed to update song. Please try again.");
     }
   };
+  
+  
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -555,44 +570,62 @@ const Profile = () => {
                     <div className="song-card" key={song.song_id}>
                       {editingSongId === song.song_id ? (
                         <div className="edit-song-form">
-                          <h3>Edit Song</h3>
-                          <div className="form-group">
-                            <label>Title:</label>
-                            <input
-                              type="text"
-                              value={editedSongData.title}
-                              onChange={(e) => setEditedSongData({...editedSongData, title: e.target.value})}
-                              required
-                            />
-                          </div>
-                          <div className="form-group">
-                            <label>Genre:</label>
-                            <input
-                              type="text"
-                              value={editedSongData.genre}
-                              onChange={(e) => setEditedSongData({...editedSongData, genre: e.target.value})}
-                            />
-                          </div>
-                          <div className="form-group">
-                            <label>Description:</label>
-                            <textarea
-                              value={editedSongData.description}
-                              onChange={(e) => setEditedSongData({...editedSongData, description: e.target.value})}
-                              rows="3"
-                            />
-                          </div>
-                          <div className="edit-song-buttons">
-                            <button onClick={() => handleUpdateSong(song.song_id)}>Save</button>
-                            <button onClick={() => {
-                              setEditingSongId(null);
-                              setEditedSongData({
-                                title: '',
-                                genre: '',
-                                description: ''
-                              });
-                            }}>Cancel</button>
-                          </div>
+                        <h3>Edit Song</h3>
+                        <div className="form-group">
+                          <label>Title:</label>
+                          <input
+                            type="text"
+                            value={editedSongData.title}
+                            onChange={(e) =>
+                              setEditedSongData({ ...editedSongData, title: e.target.value })
+                            }
+                            required
+                          />
                         </div>
+                        <div className="form-group">
+                          <label>Genre:</label>
+                          <input
+                            type="text"
+                            value={editedSongData.genre}
+                            onChange={(e) =>
+                              setEditedSongData({ ...editedSongData, genre: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Description:</label>
+                          <textarea
+                            value={editedSongData.description}
+                            onChange={(e) =>
+                              setEditedSongData({ ...editedSongData, description: e.target.value })
+                            }
+                            rows="3"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>New Cover Art:</label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) =>
+                              setEditedSongCoverArtFile(e.target.files[0])
+                            }
+                          />
+                        </div>
+                        <div className="edit-song-buttons">
+                          <button onClick={() => handleUpdateSong(song.song_id)}>Save</button>
+                          <button onClick={() => {
+                            setEditingSongId(null);
+                            setEditedSongData({
+                              title: '',
+                              genre: '',
+                              description: ''
+                            });
+                            setEditedSongCoverArtFile(null);
+                          }}>Cancel</button>
+                        </div>
+                      </div>
+                      
                       ) : (
                         <>
                           <div className="song-cover">
