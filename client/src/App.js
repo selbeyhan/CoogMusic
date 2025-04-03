@@ -22,6 +22,8 @@ import VerifyEmailRedirect from './components/VerifyEmailRedirect';
 import PlaylistView from './components/PlaylistView';
 import ArtistProfile from './components/ArtistProfile';
 import Search from './components/Search';
+import AlbumView from './components/AlbumView';
+
 
 
 
@@ -87,6 +89,7 @@ function App() {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/adminportal" element={<AdminPortal />} />
             <Route path="/search" element={<Search />} />
+            <Route path="/album/:albumId" element={<AlbumView />} />
             <Route path="/signup/verify-email-address" element={<VerifyEmailRedirect />} />
             <Route
               path="*"

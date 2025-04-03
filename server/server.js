@@ -1772,6 +1772,52 @@ if (req.url === "/api/upload-album-songs" && req.method === "POST") {
 }
 
 
+if (req.method === "GET" && req.url.startsWith("/api/album/")) {
+  const albumId = decodeURIComponent(req.url.split("/api/album/")[1]);
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    // Fetch album info
+    const [albumData] = await connection.execute(
+      "SELECT * FROM albums WHERE album_id = ?",
+      [albumId]
+    );
+
+    if (albumData.length === 0) {
+      await connection.end();
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Album not found" }));
+    }
+
+    // Fetch songs in the album
+    const [songs] = await connection.execute(`
+      SELECT s.song_id, s.title, s.genre, s.upload_date, s.views, s.file_url, s.cover_art_url, s.description,
+             s.musician_id, u.name AS musician_name
+      FROM album_songs a
+      JOIN songs s ON a.song_id = s.song_id
+      JOIN users u ON s.musician_id = u.user_id
+      WHERE a.album_id = ?
+      ORDER BY a.added_date ASC
+    `, [albumId]);
+
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      album: albumData[0],
+      songs
+    }));
+  } catch (err) {
+    console.error("❌ Error fetching album and songs:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Internal Server Error" }));
+  }
+
+  return;
+}
+
+
 
 
   // Serve React Frontend (Static Files)
