@@ -26,6 +26,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 const AZURE_ACCESS_KEY = "DefaultEndpointsProtocol=https;AccountName=coogsmusicstorage;AccountKey=WPvelBoCZ6xVs39HDIoJ+aVzkNwFoo0bex+H2uG9ANc+dZOUVlz3LxlVE91SLWIA3e1X0/L1sVba+AStpYb1uw==;EndpointSuffix=core.windows.net";
 const SONGS_CONTAINER_NAME = "songs";
 const PROFILE_PICTURE_CONTAINER_NAME = "profilepicture";
+const SONG_PICTURE_CONTAINER_NAME = "songpictures";
+
 
 if (!AZURE_ACCESS_KEY) {
   throw new Error("Azure Storage connection string is missing.");
@@ -35,6 +37,8 @@ if (!AZURE_ACCESS_KEY) {
 const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_ACCESS_KEY);
 const songContainerClient = blobServiceClient.getContainerClient(SONGS_CONTAINER_NAME);
 const profilePictureContainerClient = blobServiceClient.getContainerClient(PROFILE_PICTURE_CONTAINER_NAME);
+const songPictureContainerClient = blobServiceClient.getContainerClient(SONG_PICTURE_CONTAINER_NAME);
+
 
 async function adminPortalUsers() {
   let connection;
@@ -195,6 +199,10 @@ async function uploadProfilePicture(req, res) {
 }
 
 async function uploadSong(req, res) {
+
+
+
+
   try {
     const { title, genre, description, cover_art_url, musician_id } = req.body;
     const fileBuffer = req.fileBuffer;
@@ -216,6 +224,26 @@ async function uploadSong(req, res) {
     console.log("Skipping ffprobe. Using default duration:", duration);
     // ---------------
 
+// Upload cover art if a file is provided (similar to profile picture upload)
+let finalCoverArtUrl = cover_art_url; // Default to the value provided in the request body
+if (req.files && req.files.cover_art && req.files.cover_art[0]) {
+  const coverArtFile = req.files.cover_art[0];
+  const coverArtBuffer = coverArtFile.buffer;
+  const coverArtName = `${uuidv4()}-${coverArtFile.originalname}`;
+  
+  // Ensure the Azure container for song pictures exists (assumes songPictureContainerClient is defined)
+  await songPictureContainerClient.createIfNotExists({ access: "container" });
+  const coverArtBlockBlobClient = songPictureContainerClient.getBlockBlobClient(coverArtName);
+
+  console.log("Uploading song cover art to Azure Blob Storage...");
+  await coverArtBlockBlobClient.uploadData(coverArtBuffer, {
+    blobHTTPHeaders: { blobContentType: coverArtFile.mimetype },
+  });
+  finalCoverArtUrl = coverArtBlockBlobClient.url;
+  console.log("Song cover art uploaded:", finalCoverArtUrl);
+}
+
+
     const uploadDate = new Date().toISOString().slice(0, 19).replace("T", " ");
 
     let connection;
@@ -224,11 +252,11 @@ async function uploadSong(req, res) {
       await connection.execute(
         `INSERT INTO Songs (title, musician_id, upload_date, genre, duration, file_url, cover_art_url, description)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [title, musician_id, uploadDate, genre, duration, fileUrl, cover_art_url, description]
+        [title, musician_id, uploadDate, genre, duration, fileUrl, finalCoverArtUrl, description]
       );
       console.log("✅ File metadata stored in database.");
     } catch (dbError) {
-      console.error("❌ Database error:", dbError);
+      console.error("❌ Database error:", dbError.message);
     } finally {
       if (connection) await connection.end();
     }
@@ -384,32 +412,27 @@ const server = http.createServer(async (req, res) => {
   }
   // File upload route
   if (req.url === "/upload" && req.method === "POST") {
-    upload.single("file")(req, res, async (err) => {
+    upload.fields([
+      { name: "file", maxCount: 1 },
+      { name: "cover_art", maxCount: 1 }
+    ])(req, res, async (err) => {
       if (err) {
         console.error("❌ Multer file upload error:", err);
         res.writeHead(500, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "File upload failed" }));
         return;
       }
-
+  
       try {
         console.log("✅ File upload received");
         console.log("Received req.body:", req.body);
-        console.log("Received file:", req.file);
-
-        // Extract form metadata from req.body
-        const { title, genre, description, cover_art_url, musician_id } = req.body;
-        if (!title || !genre || !description || !cover_art_url || !musician_id) {
-          throw new Error("Missing required metadata fields.");
-        }
-
-        // Extract uploaded file data
-        req.fileBuffer = req.file.buffer;
-        req.fileName = req.file.originalname;
-        req.fileType = req.file.mimetype;
-
-        console.log("✅ Processing file:", req.fileName);
-
+        console.log("Received files:", req.files);
+  
+        // Extract audio file from req.files
+        req.fileBuffer = req.files.file[0].buffer;
+        req.fileName = req.files.file[0].originalname;
+        req.fileType = req.files.file[0].mimetype;
+  
         await uploadSong(req, res);
       } catch (error) {
         console.error("❌ Upload processing error:", error);
@@ -419,7 +442,7 @@ const server = http.createServer(async (req, res) => {
     });
     return;
   }
-
+  
   // Fetch Top Songs from Database (only the top 5)
   if (req.url === "/top-songs" && req.method === "GET") {
     try {

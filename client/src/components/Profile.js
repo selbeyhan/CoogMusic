@@ -47,6 +47,8 @@ const Profile = () => {
     cover_art_url: 'https://via.placeholder.com/150'
   });
   const [uploadFile, setUploadFile] = useState(null);
+  const [uploadCoverArtFile, setUploadCoverArtFile] = useState(null);
+
 
   useEffect(() => {
     if (currentUser) {
@@ -265,6 +267,10 @@ const Profile = () => {
     formData.append('description', uploadFormData.description);
     formData.append('cover_art_url', uploadFormData.cover_art_url);
     formData.append('musician_id', userProfile.id);
+
+    if (uploadCoverArtFile) {
+      formData.append('cover_art', uploadCoverArtFile);
+    }
 
     try {
       setIsLoading(true);
@@ -493,6 +499,15 @@ const Profile = () => {
                 accept="audio/*"
                 onChange={handleFileChange}
                 required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="coverArt">Cover Art</label>
+              <input
+                type="file"
+                id="coverArt"
+                accept="image/*"
+                onChange={(e) => setUploadCoverArtFile(e.target.files[0])}
               />
             </div>
             <button type="submit" className="submit-btn">Upload Song</button>
