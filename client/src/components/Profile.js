@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useUser, useClerk } from '@clerk/clerk-react';
 import axios from 'axios';
@@ -11,6 +11,8 @@ const Profile = () => {
   const { user: currentUser } = useUser();
   const { signOut } = useClerk(); // ✅ Use useClerk to get signOut
   const { setCurrentSong } = useAudio(); 
+  const audioFileRef = useRef(null);
+  const coverArtRef = useRef(null);
 
   const [editingPlaylistId, setEditingPlaylistId] = useState(null);
   const [editedPlaylistName, setEditedPlaylistName] = useState('');
@@ -416,8 +418,16 @@ useEffect(() => {
       }
     
       setAlbumSongs((prev) => [...prev, newAlbumSongData]);
-      setNewAlbumSongData({ title: '', genre: '', description: '' });
+    
+      // Reset song input data
+      setNewAlbumSongData({ title: '', genre: '', description: '', file: null, coverArt: null });
+    
+      // Clear file inputs manually
+      if (audioFileRef.current) audioFileRef.current.value = null;
+      if (coverArtRef.current) coverArtRef.current.value = null;
     };
+    
+    
     
     const handleCancelAlbumCreation = () => {
       setShowCreateAlbumInput(false);
@@ -430,7 +440,12 @@ useEffect(() => {
       setAlbumCoverFile(null);
       setAlbumSongs([]);
       setShowAlbumSongModal(false);
+    
+      // Reset song input refs
+      if (audioFileRef.current) audioFileRef.current.value = null;
+      if (coverArtRef.current) coverArtRef.current.value = null;
     };
+    
     
 
 
@@ -1068,90 +1083,93 @@ useEffect(() => {
 
         {/* ✅ Album Song Modal (visible if showAlbumSongModal is true) */}
         {showAlbumSongModal && (
-          <div className="modal-overlay">
-            <div className="modal-content">
-              <h3>Add Song to Album</h3>
+  <div className="modal-overlay">
+    <div className="modal-content">
+      <h3>Add Song to Album</h3>
 
-              <div className="form-group">
-                <input
-                  type="text"
-                  name="title"
-                  placeholder="Song Title"
-                  value={newAlbumSongData.title}
-                  onChange={handleNewAlbumSongChange}
-                  required
-                />
-              </div>
+      <div className="form-group">
+        <input
+          type="text"
+          name="title"
+          placeholder="Song Title"
+          value={newAlbumSongData.title}
+          onChange={handleNewAlbumSongChange}
+          required
+        />
+      </div>
 
-              <div className="form-group">
-                <input
-                  type="text"
-                  name="genre"
-                  placeholder="Genre"
-                  value={newAlbumSongData.genre}
-                  onChange={handleNewAlbumSongChange}
-                />
-              </div>
+      <div className="form-group">
+        <input
+          type="text"
+          name="genre"
+          placeholder="Genre"
+          value={newAlbumSongData.genre}
+          onChange={handleNewAlbumSongChange}
+        />
+      </div>
 
-              <div className="form-group">
-                <textarea
-                  name="description"
-                  placeholder="Description"
-                  value={newAlbumSongData.description}
-                  onChange={handleNewAlbumSongChange}
-                />
-              </div>
+      <div className="form-group">
+        <textarea
+          name="description"
+          placeholder="Description"
+          value={newAlbumSongData.description}
+          onChange={handleNewAlbumSongChange}
+        />
+      </div>
 
-              {/* 🔽 NEW file inputs */}
-              <div className="form-group">
-                <label>Audio File</label>
-                <input
-                  type="file"
-                  accept="audio/*"
-                  onChange={(e) =>
-                    setNewAlbumSongData((prev) => ({
-                      ...prev,
-                      file: e.target.files[0]
-                    }))
-                  }
-                />
-              </div>
+      {/* 🔽 NEW file inputs */}
+      <div className="form-group">
+        <label>Audio File</label>
+        <input
+          type="file"
+          accept="audio/*"
+          ref={audioFileRef}
+          onChange={(e) =>
+            setNewAlbumSongData((prev) => ({
+              ...prev,
+              file: e.target.files[0]
+            }))
+          }
+        />
+      </div>
 
-              <div className="form-group">
-                <label>Cover Art (Optional)</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    setNewAlbumSongData((prev) => ({
-                      ...prev,
-                      coverArt: e.target.files[0]
-                    }))
-                  }
-                />
-              </div>
+      <div className="form-group">
+        <label>Cover Art (Optional)</label>
+        <input
+          type="file"
+          accept="image/*"
+          ref={coverArtRef}
+          onChange={(e) =>
+            setNewAlbumSongData((prev) => ({
+              ...prev,
+              coverArt: e.target.files[0]
+            }))
+          }
+        />
+      </div>
 
-              <div className="modal-buttons">
-                <button onClick={handleAddSongToAlbum}>Save Song</button>
-                <button onClick={() => setShowAlbumSongModal(false)}>Done</button>
-                <button onClick={handleCancelAlbumCreation}>Cancel Album</button>
-              </div>
+      <div className="modal-buttons">
+        <button onClick={handleAddSongToAlbum}>Save Song</button>
+        <button onClick={() => setShowAlbumSongModal(false)}>Done</button>
+        <button onClick={handleCancelAlbumCreation}>Cancel Album</button>
+      </div>
 
-              {albumSongs.length > 0 && (
-                <div style={{ marginTop: '1rem' }}>
-                  <strong>Added Songs:</strong>
-                  <ul>
-                    {albumSongs.map((song, idx) => (
-                      <li key={idx}>
-                        {song.title} - {song.genre}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+      {albumSongs.length > 0 && (
+        <div style={{ marginTop: '1rem' }}>
+          <strong>Added Songs:</strong>
+          <ul>
+            {albumSongs.map((song, idx) => (
+              <li key={idx}>
+                {song.title} - {song.genre}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
 
       </>
     )}
