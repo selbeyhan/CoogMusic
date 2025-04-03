@@ -47,7 +47,7 @@ const Profile = () => {
     title: '',
     genre: '',
     description: '',
-    album_art_url: 'https://via.placeholder.com/300' 
+    cover_art_url: 'https://via.placeholder.com/300' 
   });
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadCoverArtFile, setUploadCoverArtFile] = useState(null);
@@ -61,9 +61,8 @@ const Profile = () => {
   title: '',
   genre: '',
   description: '',
-  cover_art_url: 'https://via.placeholder.com/300'
+  album_art_url: 'https://via.placeholder.com/300'
 });
-
 
 
 useEffect(() => {
