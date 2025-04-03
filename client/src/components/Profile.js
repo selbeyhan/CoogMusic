@@ -416,6 +416,10 @@ useEffect(() => {
         alert("Song title required");
         return;
       }
+      if (!newAlbumSongData.file) {
+        alert("Please select an audio file for the song.");
+        return;
+      }
     
       setAlbumSongs((prev) => [...prev, newAlbumSongData]);
     
@@ -1062,21 +1066,8 @@ useEffect(() => {
             </button>
 
             <div className="form-buttons">
-              <button onClick={handleCreateAlbum}>Save</button>
-              <button
-                onClick={() => {
-                  setShowCreateAlbumInput(false);
-                  setNewAlbumData({
-                    title: '',
-                    genre: '',
-                    description: '',
-                    cover_art_url: 'https://via.placeholder.com/300'
-                  });
-                  setAlbumCoverFile(null);
-                }}
-              >
-                Cancel
-              </button>
+              <button onClick={handleCreateAlbum}>Create Album</button>
+              <button onClick={handleCancelAlbumCreation}>Cancel</button>
             </div>
           </div>
         )}
@@ -1117,7 +1108,6 @@ useEffect(() => {
         />
       </div>
 
-      {/* 🔽 NEW file inputs */}
       <div className="form-group">
         <label>Audio File</label>
         <input
@@ -1150,8 +1140,7 @@ useEffect(() => {
 
       <div className="modal-buttons">
         <button onClick={handleAddSongToAlbum}>Save Song</button>
-        <button onClick={() => setShowAlbumSongModal(false)}>Done</button>
-        <button onClick={handleCancelAlbumCreation}>Cancel Album</button>
+        <button onClick={() => setShowAlbumSongModal(false)}>Cancel</button>
       </div>
 
       {albumSongs.length > 0 && (
@@ -1169,6 +1158,7 @@ useEffect(() => {
     </div>
   </div>
 )}
+
 
 
       </>
