@@ -727,3 +727,140 @@
 .dropdown-actions button:last-child:hover {
   background: #e0e0e0;
 }
+
+.add-to-playlist {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  background: #f0f0f0 !important;
+  border: none !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  font-size: 1.2rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  color: #333 !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+  font-weight: bold !important;
+  padding: 0 !important;
+}
+
+.add-to-playlist:hover {
+  background: #ff0000 !important;
+  color: white !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
+}
+
+/* Style for the add button in the release cards */
+.add-button {
+  position: absolute !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: transform 0.2s, background-color 0.2s !important;
+  top: 15px !important;
+  right: 65px !important;
+  background-color: white !important;
+  color: #333 !important;
+  font-weight: bold !important;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
+  font-size: 1.2rem !important;
+  z-index: 10 !important;
+}
+
+.add-button:hover {
+  transform: scale(1.1) !important;
+  background-color: #ff0000 !important;
+  color: white !important;
+}
+
+/* Make sure the playlist dropdown appears above everything else */
+.playlist-dropdown-overlay {
+  z-index: 9999 !important;
+}
+
+/* Enhanced add-to-playlist button styles */
+.add-to-playlist-btn {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  background: #f0f0f0 !important;
+  border: none !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  font-size: 1.2rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  color: #333 !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+  font-weight: bold !important;
+  padding: 0 !important;
+  z-index: 20 !important;
+}
+
+.add-to-playlist-btn:hover {
+  background: #ff0000 !important;
+  color: white !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
+}
+
+/* Style for the add button in release cards */
+.add-button {
+  position: absolute !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: transform 0.2s, background-color 0.2s !important;
+  top: 15px !important;
+  right: 65px !important;
+  background-color: white !important;
+  color: #333 !important;
+  font-weight: bold !important;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
+  font-size: 1.2rem !important;
+  z-index: 10 !important;
+}
+
+.add-button:hover {
+  transform: scale(1.1) !important;
+  background-color: #ff0000 !important;
+  color: white !important;
+}
+
+/* Ensure the playlist dropdown appears above everything else */
+.playlist-dropdown-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  z-index: 9999 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  backdrop-filter: blur(5px) !important;
+}
+
+.playlist-dropdown {
+  background: white !important;
+  padding: 2rem !important;
+  border-radius: 10px !important;
+  width: 400px !important;
+  max-width: 90% !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
+}

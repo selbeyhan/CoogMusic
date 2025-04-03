@@ -82,19 +82,42 @@ function Home() {
     }
   };
 
-  // Fixed playlist functionality
+  // Improved handleAddToPlaylist function with proper logging and state management
   const handleAddToPlaylist = (songId) => {
+    console.log("handleAddToPlaylist called with song ID:", songId);
+
     if (!currentUser) {
       alert("Please sign in to add songs to playlists");
       return;
     }
 
+    // Force refresh user playlists
+    if (currentUser) {
+      axios.get(`/api/getuserplaylists/${currentUser.id}`)
+        .then(response => {
+          setPlaylists(response.data.playlists || []);
+          console.log("Playlists fetched:", response.data.playlists);
+        })
+        .catch(error => console.error("Error fetching playlists:", error));
+    }
+
+    // Set states with callbacks to ensure they're applied
     setSelectedSongId(songId);
-    setShowPlaylistDropdown(true);
+
+    // Force a timeout to ensure the UI updates
+    setTimeout(() => {
+      setShowPlaylistDropdown(true);
+      console.log("Dropdown should be visible now");
+    }, 10);
+
+    // Add debug logging
+    console.log("States updated - selectedSongId:", songId, "showPlaylistDropdown:", true);
   };
 
-  // Handle adding song to selected playlist
+  // Enhanced addSongToPlaylist function with detailed logging and error handling
   const addSongToPlaylist = async () => {
+    console.log("addSongToPlaylist function called with songId:", selectedSongId, "and playlistId:", selectedPlaylistId);
+
     try {
       if (selectedPlaylistId === "create_new") {
         if (!newPlaylistName.trim()) {
@@ -102,42 +125,55 @@ function Home() {
           return;
         }
 
-        // Create new playlist first
+        console.log("Creating a new playlist named:", newPlaylistName);
+
+        // Create new playlist
         const createResponse = await axios.post('/api/createPlaylist', {
           name: newPlaylistName,
           user_id: currentUser.id
         });
 
-        // Then add song to the newly created playlist
-        await axios.post('/api/addToPlaylist', {
+        console.log("New playlist created:", createResponse.data);
+
+        // Add song to the new playlist
+        const addToPlaylistResponse = await axios.post('/api/addToPlaylist', {
           playlist_id: createResponse.data.playlist_id,
           song_id: selectedSongId
         });
 
+        console.log("Song added to new playlist:", addToPlaylistResponse.data);
+
         // Refresh playlists
         const playlistsResponse = await axios.get(`/api/getuserplaylists/${currentUser.id}`);
         setPlaylists(playlistsResponse.data.playlists || []);
+
       } else if (selectedPlaylistId) {
+        console.log("Adding song to existing playlist");
+
         // Add to existing playlist
-        await axios.post('/api/addToPlaylist', {
+        const response = await axios.post('/api/addToPlaylist', {
           playlist_id: selectedPlaylistId,
           song_id: selectedSongId
         });
+
+        console.log("Song added to playlist response:", response.data);
+
       } else {
         alert("Please select a playlist");
         return;
       }
 
-      // Reset states and close dropdown
+      // Reset state and close dropdown
       setSelectedPlaylistId("");
       setNewPlaylistName("");
       setSelectedSongId(null);
       setShowPlaylistDropdown(false);
 
       alert("Song added to playlist successfully!");
+
     } catch (error) {
-      console.error("Error adding song to playlist:", error);
-      alert("Failed to add song to playlist");
+      console.error("Error adding song to playlist:", error.response ? error.response.data : error);
+      alert("Failed to add song to playlist. Please try again.");
     }
   };
 
@@ -170,7 +206,15 @@ function Home() {
                   <button className="play-now-btn" onClick={() => handleSongClick(topSongs[currentBannerIndex])}>
                     Play Now
                   </button>
-                  <button className="add-to-playlist-btn" onClick={() => handleAddToPlaylist(topSongs[currentBannerIndex]?.song_id)}>
+                  <button
+                    className="add-to-playlist-btn"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log("Banner Add to Playlist clicked for song:", topSongs[currentBannerIndex]?.song_id);
+                      handleAddToPlaylist(topSongs[currentBannerIndex]?.song_id);
+                    }}
+                  >
                     Add to Playlist
                   </button>
                 </div>
@@ -216,10 +260,57 @@ function Home() {
                 <div className="song-meta">
                   <span className="views">{song.views} plays</span>
                   <button
-                    className="add-to-playlist"
+                    type="button"
+                    className="add-to-playlist-btn"
+                    style={{
+                      width: "28px",
+                      height: "28px",
+                      borderRadius: "50%",
+                      background: "#f0f0f0",
+                      border: "none",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      fontSize: "1.2rem",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      color: "#333",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                      fontWeight: "bold",
+                      padding: 0,
+                      zIndex: 20
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = "#ff0000";
+                      e.currentTarget.style.color = "white";
+                      e.currentTarget.style.transform = "scale(1.1)";
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = "#f0f0f0";
+                      e.currentTarget.style.color = "#333";
+                      e.currentTarget.style.transform = "scale(1)";
+                    }}
                     onClick={(e) => {
+                      // Prevent any default actions or bubbling
+                      e.preventDefault();
                       e.stopPropagation();
-                      handleAddToPlaylist(song.song_id);
+
+                      // Log the action for debugging
+                      console.log("Add to playlist button clicked for:", song.title);
+
+                      if (!currentUser) {
+                        alert("Please sign in to add songs to playlists");
+                        return;
+                      }
+
+                      // Set the song ID and show the dropdown
+                      setSelectedSongId(song.song_id);
+
+                      // Force a timeout to ensure the UI updates
+                      setTimeout(() => {
+                        setShowPlaylistDropdown(true);
+                        console.log("Dropdown should be visible now");
+                      }, 10);
                     }}
                   >
                     +
@@ -336,10 +427,32 @@ function Home() {
                   </button>
                   <button
                     className="add-button"
+                    style={{
+                      position: "absolute",
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      border: "none",
+                      cursor: "pointer",
+                      transition: "transform 0.2s, background-color 0.2s",
+                      top: "15px",
+                      right: "65px",
+                      backgroundColor: "white",
+                      color: "#333",
+                      boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+                      fontSize: "1.2rem",
+                      zIndex: 10
+                    }}
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
+                      console.log("Add button clicked in release card for song ID:", song.song_id);
                       handleAddToPlaylist(song.song_id);
                     }}
+                    aria-label="Add to playlist"
                   >
                     +
                   </button>
@@ -350,16 +463,68 @@ function Home() {
         </div>
       </section>
 
-      {/* Updated playlist dropdown */}
+      {/* Enhanced playlist dropdown */}
       {showPlaylistDropdown && (
-        <div className="playlist-dropdown-overlay">
-          <div className="playlist-dropdown">
-            <h3>Add to Playlist</h3>
+        <div
+          className="playlist-dropdown-overlay"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            zIndex: 9999,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            backdropFilter: 'blur(5px)'
+          }}
+          onClick={(e) => {
+            // Only close if clicking the overlay background, not the dropdown itself
+            if (e.target.className === 'playlist-dropdown-overlay') {
+              setShowPlaylistDropdown(false);
+              setSelectedPlaylistId("");
+              setNewPlaylistName("");
+            }
+          }}
+        >
+          <div
+            className="playlist-dropdown"
+            style={{
+              background: 'white',
+              padding: '2rem',
+              borderRadius: '10px',
+              width: '400px',
+              maxWidth: '90%',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{
+              margin: '0 0 1.5rem 0',
+              color: '#333',
+              fontSize: '1.5rem',
+              borderBottom: '2px solid #f0f0f0',
+              paddingBottom: '0.8rem'
+            }}>
+              Add to Playlist
+            </h3>
             <select
               value={selectedPlaylistId}
               onChange={(e) => {
                 const value = e.target.value;
                 setSelectedPlaylistId(value);
+                console.log("Playlist selected:", value);
+              }}
+              style={{
+                width: '100%',
+                padding: '0.8rem',
+                border: '1px solid #ddd',
+                borderRadius: '5px',
+                marginBottom: '1.5rem',
+                fontSize: '1rem',
+                backgroundColor: '#f8f8f8'
               }}
             >
               <option value="">-- Select a Playlist --</option>
@@ -372,30 +537,79 @@ function Home() {
             </select>
 
             {selectedPlaylistId === "create_new" && (
-              <div className="new-playlist-input">
-                <label htmlFor="new-playlist-name">Playlist Name:</label>
+              <div className="new-playlist-input" style={{ marginBottom: '1.5rem' }}>
+                <label
+                  htmlFor="new-playlist-name"
+                  style={{
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    fontWeight: 'bold',
+                    color: '#333'
+                  }}
+                >
+                  Playlist Name:
+                </label>
                 <input
                   type="text"
                   id="new-playlist-name"
                   value={newPlaylistName}
                   onChange={(e) => setNewPlaylistName(e.target.value)}
                   placeholder="Enter new playlist name"
+                  style={{
+                    width: '100%',
+                    padding: '0.8rem',
+                    border: '1px solid #ddd',
+                    borderRadius: '5px',
+                    fontSize: '1rem'
+                  }}
                 />
               </div>
             )}
 
-            <div className="dropdown-actions">
+            <div className="dropdown-actions" style={{ display: 'flex', gap: '1rem' }}>
               <button
-                onClick={addSongToPlaylist}
+                onClick={() => {
+                  console.log("Add Song button clicked");
+                  addSongToPlaylist();
+                }}
                 disabled={!selectedPlaylistId || (selectedPlaylistId === "create_new" && !newPlaylistName.trim())}
+                style={{
+                  flex: 1,
+                  padding: '0.8rem',
+                  border: 'none',
+                  borderRadius: '5px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  backgroundColor: !selectedPlaylistId || (selectedPlaylistId === "create_new" && !newPlaylistName.trim())
+                    ? '#ffaaaa'
+                    : '#ff0000',
+                  color: 'white',
+                  opacity: !selectedPlaylistId || (selectedPlaylistId === "create_new" && !newPlaylistName.trim())
+                    ? 0.7
+                    : 1
+                }}
               >
                 Add Song
               </button>
-              <button onClick={() => {
-                setShowPlaylistDropdown(false);
-                setSelectedPlaylistId("");
-                setNewPlaylistName("");
-              }}>
+              <button
+                onClick={() => {
+                  console.log("Cancel button clicked");
+                  setShowPlaylistDropdown(false);
+                  setSelectedPlaylistId("");
+                  setNewPlaylistName("");
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.8rem',
+                  border: 'none',
+                  borderRadius: '5px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  backgroundColor: '#f0f0f0',
+                  color: '#333'
+                }}
+              >
                 Cancel
               </button>
             </div>
