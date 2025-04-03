@@ -1607,6 +1607,92 @@ ORDER BY l.timestamp DESC
     }
   }
 
+// ----- Album Routes -----
+// Note: For now, we're using the "songpictures" container for album cover art.
+// Once a dedicated container for album cover art is set up, update the code accordingly.
+
+if (req.method === "POST" && req.url === "/api/createAlbum") {
+  // Use multer to handle the file upload; expect the file field named "cover_art"
+  upload.single("cover_art")(req, res, async (err) => {
+    if (err) {
+      console.error("Multer error:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "File upload failed" }));
+    }
+    try {
+      // Get text fields from req.body
+      const { title, description, musician_id } = req.body;
+      if (!title || !musician_id) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Missing album title or musician_id" }));
+      }
+      
+      // Set the release_date to now
+      const release_date = new Date().toISOString().slice(0, 19).replace("T", " ");
+      
+      // Set a fallback album art URL (if no file was uploaded)
+      let albumArtUrl = req.body.album_art_url || "https://via.placeholder.com/300";
+      
+      // If a file was uploaded, use songPictureContainerClient to upload it
+      if (req.file) {
+        await songPictureContainerClient.createIfNotExists({ access: "container" });
+        const fileName = `${uuidv4()}-${req.file.originalname}`;
+        const blockBlobClient = songPictureContainerClient.getBlockBlobClient(fileName);
+        await blockBlobClient.uploadData(req.file.buffer, {
+          blobHTTPHeaders: { blobContentType: req.file.mimetype }
+        });
+        albumArtUrl = blockBlobClient.url;
+      }
+      
+      // Insert the album into the database
+      const connection = await mysql.createConnection(dbConfig);
+      const [result] = await connection.execute(
+        "INSERT INTO albums (musician_id, title, release_date, album_art_url, description) VALUES (?, ?, ?, ?, ?)",
+        [musician_id, title, release_date, albumArtUrl, description]
+      );
+      await connection.end();
+      res.writeHead(201, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: "Album created successfully", album_id: result.insertId }));
+    } catch (error) {
+      console.error("❌ Error creating album:", error.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Internal Server Error" }));
+    }
+  });
+  return;
+}
+
+
+// Get albums for a user (by Clerk user ID)
+if (req.method === "GET" && req.url.startsWith("/api/getuseralbums/")) {
+  const clerkUserId = decodeURIComponent(req.url.split("/api/getuseralbums/")[1]);
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    // Convert Clerk user ID to internal user_id
+    const [users] = await connection.execute(
+      "SELECT user_id FROM users WHERE clerk_user_id = ?",
+      [clerkUserId]
+    );
+    if (users.length === 0) {
+      await connection.end();
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "User not found" }));
+    }
+    const userId = users[0].user_id;
+    // Fetch albums for the user ordered by release_date (newest first)
+    const [albums] = await connection.execute(
+      "SELECT * FROM albums WHERE musician_id = ? ORDER BY release_date DESC",
+      [userId]
+    );
+    await connection.end();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ albums }));
+  } catch (error) {
+    console.error("❌ Error fetching albums:", error.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Internal Server Error" }));
+  }
+}
 
 
 

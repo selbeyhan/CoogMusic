@@ -37,6 +37,9 @@ const Profile = () => {
   const [showDeleteSongModal, setShowDeleteSongModal] = useState(false);
   const [songToDelete, setSongToDelete] = useState(null);
   const [likedSongs, setLikedSongs] = useState([]); // Added from second file
+  const [albumCoverFile, setAlbumCoverFile] = useState(null);
+
+  
 
   // Upload form state
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -44,88 +47,102 @@ const Profile = () => {
     title: '',
     genre: '',
     description: '',
-    cover_art_url: 'https://via.placeholder.com/150'
+    album_art_url: 'https://via.placeholder.com/300' 
   });
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadCoverArtFile, setUploadCoverArtFile] = useState(null);
 
   const [editedSongCoverArtFile, setEditedSongCoverArtFile] = useState(null);
 
+  // Album-related state variables
+  const [albums, setAlbums] = useState([]);
+  const [showCreateAlbumInput, setShowCreateAlbumInput] = useState(false);
+  const [newAlbumData, setNewAlbumData] = useState({
+  title: '',
+  genre: '',
+  description: '',
+  cover_art_url: 'https://via.placeholder.com/300'
+});
 
 
-  useEffect(() => {
-    if (currentUser) {
-      setIsOwner(currentUser.id === userId);
+
+useEffect(() => {
+  if (currentUser) {
+    setIsOwner(currentUser.id === userId);
+  }
+
+  const fetchUserProfile = async () => {
+    try {
+      console.log("🔍 Current User ID:", currentUser?.id);
+      console.log("🔍 Profile User ID:", userId);
+
+      const response = await axios.get(`/user/${userId}`);
+      const userData = response.data.user;
+      console.log("🔍 MySQL user profile:", userData);
+
+      setUserProfile({
+        id: userData.user_id,
+        name: userData.name,
+        email: userData.email,
+        bio: userData.bio || "Music enthusiast and UH student.",
+        profilePicture: userData.profile_picture_url || currentUser?.profileImageUrl,
+        accountType: userData.account_type || "Musician",
+        registrationDate: userData.registration_date || "2023-01-15",
+        monthlyListeners: userData.monthly_listeners || 0,
+        uhAffiliation: userData.uh_affiliation || "None",
+        verification_status: userData.verification_status || false
+      });
+      console.log("MySQL user_id (logged in):", userData.user_id);
+
+      console.log(`🔍 Fetching songs for user: ${userId}`);
+      const songsResponse = await axios.get(`/api/profile/${userId}`);
+      console.log("🔍 Songs fetched:", songsResponse.data);
+
+      if (Array.isArray(songsResponse.data) && songsResponse.data.length > 0) {
+        const songs = songsResponse.data[0].songs;
+        setUserSongs(songs);
+      } else {
+        console.error("❌ Songs data is not in the expected format:", songsResponse.data);
+      }
+
+      // ALBUM FEATURE: Fetch user's albums
+      const albumsResponse = await axios.get(`/api/getuseralbums/${userId}`);
+      setAlbums(albumsResponse.data.albums || []);
+    } catch (error) {
+      console.error("Error fetching profile data:", error);
     }
-  
-    const fetchUserProfile = async () => {
-      try {
-        console.log("🔍 Current User ID:", currentUser?.id);
-        console.log("🔍 Profile User ID:", userId);
-  
-        const response = await axios.get(`/user/${userId}`);
-        const userData = response.data.user;
-        console.log("🔍 MySQL user profile:", userData);
-  
-        setUserProfile({
-          id: userData.user_id,
-          name: userData.name,
-          email: userData.email,
-          bio: userData.bio || "Music enthusiast and UH student.",
-          profilePicture: userData.profile_picture_url || currentUser?.profileImageUrl,
-          accountType: userData.account_type || "Musician",
-          registrationDate: userData.registration_date || "2023-01-15",
-          monthlyListeners: userData.monthly_listeners || 0,
-          uhAffiliation: userData.uh_affiliation || "None",
-          verification_status: userData.verification_status || false
-        });
-        console.log("MySQL user_id (logged in):", userData.user_id);
-  
-        console.log(`🔍 Fetching songs for user: ${userId}`);
-        const songsResponse = await axios.get(`/api/profile/${userId}`);
-        console.log("🔍 Songs fetched:", songsResponse.data);
-  
-        if (Array.isArray(songsResponse.data) && songsResponse.data.length > 0) {
-          const songs = songsResponse.data[0].songs;
-          setUserSongs(songs);
-        } else {
-          console.error("❌ Songs data is not in the expected format:", songsResponse.data);
-        }
-      } catch (error) {
-        console.error("Error fetching profile data:", error);
-      }
-    };
-  
-    const fetchUserPlaylists = async () => {
-      try {
-        const response = await axios.get(`/api/getuserplaylists/${userId}`);
-        console.log("📀 Playlists fetched:", response.data.playlists);
-        setPlaylists(response.data.playlists || []);
-      } catch (error) {
-        console.error("❌ Error fetching playlists:", error);
-      }
-    };
+  };
 
-    const fetchLikedSongs = async () => {
-      try {
-        // Using clerk_user_id (userId) instead of userProfile.id
-        console.log(`➡️ Fetching user likes from Clerk user_id: ${userId}`);
-        const response = await axios.get(`/api/profile-likes/${userId}`);
-        setLikedSongs(response.data.likedSongs || []);
-      } catch (error) {
-        console.error("❌ Error fetching liked songs:", error);
-      }
-    };
-  
-    const fetchAll = async () => {
-      await fetchUserProfile();
-      await fetchUserPlaylists();
-      await fetchLikedSongs();
-      setIsLoading(false);
-    };
-  
-    fetchAll();
-  }, [userId, currentUser]);
+  const fetchUserPlaylists = async () => {
+    try {
+      const response = await axios.get(`/api/getuserplaylists/${userId}`);
+      console.log("📀 Playlists fetched:", response.data.playlists);
+      setPlaylists(response.data.playlists || []);
+    } catch (error) {
+      console.error("❌ Error fetching playlists:", error);
+    }
+  };
+
+  const fetchLikedSongs = async () => {
+    try {
+      console.log(`➡️ Fetching user likes from Clerk user_id: ${userId}`);
+      const response = await axios.get(`/api/profile-likes/${userId}`);
+      setLikedSongs(response.data.likedSongs || []);
+    } catch (error) {
+      console.error("❌ Error fetching liked songs:", error);
+    }
+  };
+
+  const fetchAll = async () => {
+    await fetchUserProfile();
+    await fetchUserPlaylists();
+    await fetchLikedSongs();
+    setIsLoading(false);
+  };
+
+  fetchAll();
+}, [userId, currentUser]);
+
   
   const handleSaveBio = async () => {
     try {
@@ -266,6 +283,77 @@ const Profile = () => {
   const handleFileChange = (e) => {
     setUploadFile(e.target.files[0]);
   };
+
+
+
+    // ALBUM FEATURE: Handler for creating an album
+    const handleCreateAlbum = async () => {
+      if (!newAlbumData.title.trim()) {
+        alert("Album title cannot be empty.");
+        return;
+      }
+    
+      try {
+        const formData = new FormData();
+        formData.append("title", newAlbumData.title);
+        formData.append("description", newAlbumData.description);
+        formData.append("musician_id", userProfile.id);
+    
+        // If a file was selected for the album cover, append it
+        if (albumCoverFile) {
+          formData.append("cover_art", albumCoverFile);
+        }
+    
+        // If you want to send a fallback URL in case no file is uploaded
+        formData.append("album_art_url", newAlbumData.album_art_url);
+    
+        const response = await axios.post("/api/createAlbum", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+    
+        console.log("✅ Album created with response:", response.data);
+    
+        setAlbums((prev) => [
+          ...prev,
+          {
+            album_id: response.data.album_id,
+            title: newAlbumData.title,
+            album_art_url: newAlbumData.album_art_url,
+            description: newAlbumData.description,
+            release_date: new Date().toISOString(),
+            views: 0
+          }
+        ]);
+    
+        // Reset form
+        setNewAlbumData({
+          title: '',
+          description: '',
+          album_art_url: 'https://via.placeholder.com/300'
+        });
+        setAlbumCoverFile(null);
+        setShowCreateAlbumInput(false);
+        alert("Album created!");
+      } catch (error) {
+        console.error("❌ Error creating album:", error);
+        alert("Failed to create album.");
+      }
+    };
+    
+    
+  
+    // ALBUM FEATURE: Handler for album form field changes
+    const handleAlbumDataChange = (e) => {
+      const { name, value } = e.target;
+      setNewAlbumData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    };
+  
+
+
+  //album stuff
 
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
@@ -550,6 +638,16 @@ const Profile = () => {
           >
             About
           </button>
+
+          {/* ALBUM FEATURE: Added Albums tab */}
+          <button
+            className={`tab-btn ${activeTab === 'albums' ? 'active' : ''}`}
+            onClick={() => handleTabChange('albums')}
+          >
+            Albums
+          </button>
+
+
           <button
             className={`tab-btn ${activeTab === 'likes' ? 'active' : ''}`}
             onClick={() => handleTabChange('likes')}
@@ -801,6 +899,116 @@ const Profile = () => {
               )}
             </div>
           )}
+
+{activeTab === 'albums' && (
+  <div className="albums-tab">
+    <h2>Albums</h2>
+    {isOwner && (
+      <>
+        {!showCreateAlbumInput ? (
+          <button
+            onClick={() => setShowCreateAlbumInput(true)}
+            style={{ marginBottom: '1rem' }}
+          >
+            Create Album
+          </button>
+        ) : (
+          <div className="create-album-form">
+            <div className="form-group">
+              <input
+                type="text"
+                name="title"
+                placeholder="Album Title"
+                value={newAlbumData.title}
+                onChange={handleAlbumDataChange}
+                className="album-name-input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <input
+                type="text"
+                name="genre"
+                placeholder="Genre"
+                value={newAlbumData.genre}
+                onChange={handleAlbumDataChange}
+                className="album-genre-input"
+              />
+            </div>
+            <div className="form-group">
+              <textarea
+                name="description"
+                placeholder="Description"
+                value={newAlbumData.description}
+                onChange={handleAlbumDataChange}
+                className="album-description-input"
+              />
+            </div>
+
+            {/* Replace the old text input for cover_art_url with a file input */}
+            <div className="form-group">
+              <label htmlFor="albumCoverArt">Album Cover Art</label>
+              <input
+                type="file"
+                id="albumCoverArt"
+                accept="image/*"
+                onChange={(e) => setAlbumCoverFile(e.target.files[0])}
+              />
+            </div>
+
+            <div className="form-buttons">
+              <button onClick={handleCreateAlbum}>Save</button>
+              <button
+                onClick={() => {
+                  setShowCreateAlbumInput(false);
+                  setNewAlbumData({
+                    title: '',
+                    genre: '',
+                    description: '',
+                    cover_art_url: 'https://via.placeholder.com/300'
+                  });
+                  setAlbumCoverFile(null); // Reset file
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    )}
+    {albums.length === 0 ? (
+      <p className="no-content">No albums created yet.</p>
+    ) : (
+      <div className="albums-list">
+        {albums.map((album) => (
+          <Link 
+            to={`/album/${album.album_id}`} 
+            key={album.album_id} 
+            className="album-card"
+          >
+            <div className="album-cover">
+              <img 
+                src={album.cover_art_url || 'https://via.placeholder.com/300'} 
+                alt={album.title} 
+              />
+            </div>
+            <div className="album-info">
+              <h3>{album.title}</h3>
+              <p className="album-genre">{album.genre}</p>
+              <p className="album-date">
+                Released: {new Date(album.release_date).toLocaleDateString()}
+              </p>
+              <p className="album-views">Views: {album.views}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+    )}
+  </div>
+)}
+
+
 
           {activeTab === 'about' && (
             <div className="about-tab">
