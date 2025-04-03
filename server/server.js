@@ -1695,6 +1695,83 @@ if (req.method === "GET" && req.url.startsWith("/api/getuseralbums/")) {
 }
 
 
+if (req.url === "/api/upload-album-songs" && req.method === "POST") {
+  upload.fields([
+    { name: "files" },
+    { name: "cover_arts" }
+  ])(req, res, async (err) => {
+    if (err) return res.end(JSON.stringify({ error: "Upload error" }));
+
+    const { album_id, musician_id, titles, genres, descriptions } = req.body;
+
+    if (!album_id || !titles || !Array.isArray(req.files?.files)) {
+      return res.end(JSON.stringify({ error: "Missing required fields" }));
+    }
+
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+      const addedSongs = [];
+
+      for (let i = 0; i < req.files.files.length; i++) {
+        const file = req.files.files[i];
+        const title = Array.isArray(titles) ? titles[i] : titles;
+        const genre = Array.isArray(genres) ? genres[i] : genres;
+        const description = Array.isArray(descriptions) ? descriptions[i] : descriptions;
+
+        // Upload audio
+        const fileName = `${uuidv4()}-${file.originalname}`;
+        const audioBlob = songContainerClient.getBlockBlobClient(fileName);
+        await audioBlob.uploadData(file.buffer, {
+          blobHTTPHeaders: { blobContentType: file.mimetype }
+        });
+        const fileUrl = audioBlob.url;
+
+        // Upload cover art
+        let coverArtUrl = "https://via.placeholder.com/300";
+        if (req.files.cover_arts && req.files.cover_arts[i]) {
+          const cover = req.files.cover_arts[i];
+          const coverName = `${uuidv4()}-${cover.originalname}`;
+          const coverBlob = songPictureContainerClient.getBlockBlobClient(coverName);
+          await coverBlob.uploadData(cover.buffer, {
+            blobHTTPHeaders: { blobContentType: cover.mimetype }
+          });
+          coverArtUrl = coverBlob.url;
+        }
+
+        const uploadDate = new Date().toISOString().slice(0, 19).replace("T", " ");
+        const duration = 180;
+
+        // Insert into `songs`
+        const [songResult] = await connection.execute(
+          `INSERT INTO songs (title, musician_id, upload_date, genre, duration, file_url, cover_art_url, description)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [title, musician_id, uploadDate, genre, duration, fileUrl, coverArtUrl, description]
+        );
+
+        const songId = songResult.insertId;
+
+        // Insert into album_songs
+        await connection.execute(
+          `INSERT INTO album_songs (album_id, song_id, added_date) VALUES (?, ?, ?)`,
+          [album_id, songId, uploadDate]
+        );
+
+        addedSongs.push(songId);
+      }
+
+      await connection.end();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: "Songs uploaded and linked", song_ids: addedSongs }));
+    } catch (e) {
+      console.error("❌ Upload album songs error:", e);
+      return res.end(JSON.stringify({ error: "Upload failed" }));
+    }
+  });
+
+  return;
+}
+
+
 
 
   // Serve React Frontend (Static Files)

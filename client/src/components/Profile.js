@@ -39,6 +39,11 @@ const Profile = () => {
   const [likedSongs, setLikedSongs] = useState([]); // Added from second file
   const [albumCoverFile, setAlbumCoverFile] = useState(null);
 
+  const [albumCreated, setAlbumCreated] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+
+
   
 
   // Upload form state
@@ -62,6 +67,16 @@ const Profile = () => {
   genre: '',
   description: '',
   album_art_url: 'https://via.placeholder.com/300'
+});
+
+const [showAlbumSongModal, setShowAlbumSongModal] = useState(false);
+const [albumSongs, setAlbumSongs] = useState([]);
+const [newAlbumSongData, setNewAlbumSongData] = useState({
+  title: '',
+  genre: '',
+  description: '',
+  file: null,         
+  coverArt: null      
 });
 
 
@@ -286,11 +301,44 @@ useEffect(() => {
 
 
     // ALBUM FEATURE: Handler for creating an album
+
+    const handleUploadAlbumSongs = async (albumId) => {
+      const formData = new FormData();
+    
+      formData.append("album_id", albumId);
+      formData.append("musician_id", userProfile.id);
+    
+      albumSongs.forEach((song) => {
+        formData.append("titles", song.title);
+        formData.append("genres", song.genre || '');
+        formData.append("descriptions", song.description || '');
+        // if you collect files later, use:
+        formData.append("files", song.file);
+        formData.append("cover_arts", song.coverArt);
+      });
+    
+      try {
+        const response = await axios.post("/api/upload-album-songs", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+    
+        console.log("✅ Songs uploaded:", response.data);
+        alert("Songs added to album!");
+        setAlbumSongs([]); // clear albumSongs after success
+      } catch (err) {
+        console.error("❌ Failed to upload album songs:", err);
+        alert("Upload failed.");
+      }
+    };
+    
     const handleCreateAlbum = async () => {
       if (!newAlbumData.title.trim()) {
         alert("Album title cannot be empty.");
         return;
       }
+    
+      if (albumCreated || isSubmitting) return; // ✅ Prevent double submission
+      setIsSubmitting(true);
     
       try {
         const formData = new FormData();
@@ -298,12 +346,10 @@ useEffect(() => {
         formData.append("description", newAlbumData.description);
         formData.append("musician_id", userProfile.id);
     
-        // If a file was selected for the album cover, append it
         if (albumCoverFile) {
           formData.append("cover_art", albumCoverFile);
         }
     
-        // If you want to send a fallback URL in case no file is uploaded
         formData.append("album_art_url", newAlbumData.album_art_url);
     
         const response = await axios.post("/api/createAlbum", formData, {
@@ -311,11 +357,14 @@ useEffect(() => {
         });
     
         console.log("✅ Album created with response:", response.data);
+        const newAlbumId = response.data.album_id;
+    
+        await handleUploadAlbumSongs(newAlbumId); // ✅ Upload songs after album creation
     
         setAlbums((prev) => [
           ...prev,
           {
-            album_id: response.data.album_id,
+            album_id: newAlbumId,
             title: newAlbumData.title,
             album_art_url: newAlbumData.album_art_url,
             description: newAlbumData.description,
@@ -324,7 +373,6 @@ useEffect(() => {
           }
         ]);
     
-        // Reset form
         setNewAlbumData({
           title: '',
           description: '',
@@ -332,12 +380,17 @@ useEffect(() => {
         });
         setAlbumCoverFile(null);
         setShowCreateAlbumInput(false);
+        setAlbumCreated(true); // ✅ Set flag after success
         alert("Album created!");
       } catch (error) {
         console.error("❌ Error creating album:", error);
         alert("Failed to create album.");
+      } finally {
+        setIsSubmitting(false); // ✅ Always reset
       }
     };
+    
+    
     
     
   
@@ -350,6 +403,40 @@ useEffect(() => {
       }));
     };
   
+
+    const handleNewAlbumSongChange = (e) => {
+      const { name, value } = e.target;
+      setNewAlbumSongData((prev) => ({ ...prev, [name]: value }));
+    };
+    
+    const handleAddSongToAlbum = () => {
+      if (!newAlbumSongData.title.trim()) {
+        alert("Song title required");
+        return;
+      }
+    
+      setAlbumSongs((prev) => [...prev, newAlbumSongData]);
+      setNewAlbumSongData({ title: '', genre: '', description: '' });
+    };
+    
+    const handleCancelAlbumCreation = () => {
+      setShowCreateAlbumInput(false);
+      setNewAlbumData({
+        title: '',
+        genre: '',
+        description: '',
+        album_art_url: 'https://via.placeholder.com/300'
+      });
+      setAlbumCoverFile(null);
+      setAlbumSongs([]);
+      setShowAlbumSongModal(false);
+    };
+    
+
+
+
+
+
 
 
   //album stuff
@@ -944,7 +1031,6 @@ useEffect(() => {
               />
             </div>
 
-            {/* Replace the old text input for cover_art_url with a file input */}
             <div className="form-group">
               <label htmlFor="albumCoverArt">Album Cover Art</label>
               <input
@@ -954,6 +1040,11 @@ useEffect(() => {
                 onChange={(e) => setAlbumCoverFile(e.target.files[0])}
               />
             </div>
+
+            {/* ✅ Add New Song button  */}
+            <button onClick={() => setShowAlbumSongModal(true)}>
+              Add New Song
+            </button>
 
             <div className="form-buttons">
               <button onClick={handleCreateAlbum}>Save</button>
@@ -966,7 +1057,7 @@ useEffect(() => {
                     description: '',
                     cover_art_url: 'https://via.placeholder.com/300'
                   });
-                  setAlbumCoverFile(null); // Reset file
+                  setAlbumCoverFile(null);
                 }}
               >
                 Cancel
@@ -974,8 +1065,97 @@ useEffect(() => {
             </div>
           </div>
         )}
+
+        {/* ✅ Album Song Modal (visible if showAlbumSongModal is true) */}
+        {showAlbumSongModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h3>Add Song to Album</h3>
+
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="title"
+                  placeholder="Song Title"
+                  value={newAlbumSongData.title}
+                  onChange={handleNewAlbumSongChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="genre"
+                  placeholder="Genre"
+                  value={newAlbumSongData.genre}
+                  onChange={handleNewAlbumSongChange}
+                />
+              </div>
+
+              <div className="form-group">
+                <textarea
+                  name="description"
+                  placeholder="Description"
+                  value={newAlbumSongData.description}
+                  onChange={handleNewAlbumSongChange}
+                />
+              </div>
+
+              {/* 🔽 NEW file inputs */}
+              <div className="form-group">
+                <label>Audio File</label>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  onChange={(e) =>
+                    setNewAlbumSongData((prev) => ({
+                      ...prev,
+                      file: e.target.files[0]
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Cover Art (Optional)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    setNewAlbumSongData((prev) => ({
+                      ...prev,
+                      coverArt: e.target.files[0]
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="modal-buttons">
+                <button onClick={handleAddSongToAlbum}>Save Song</button>
+                <button onClick={() => setShowAlbumSongModal(false)}>Done</button>
+                <button onClick={handleCancelAlbumCreation}>Cancel Album</button>
+              </div>
+
+              {albumSongs.length > 0 && (
+                <div style={{ marginTop: '1rem' }}>
+                  <strong>Added Songs:</strong>
+                  <ul>
+                    {albumSongs.map((song, idx) => (
+                      <li key={idx}>
+                        {song.title} - {song.genre}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </>
     )}
+
     {albums.length === 0 ? (
       <p className="no-content">No albums created yet.</p>
     ) : (
@@ -987,10 +1167,10 @@ useEffect(() => {
             className="album-card"
           >
             <div className="album-cover">
-            <img
-              src={album.album_art_url || 'https://via.placeholder.com/300'}
-              alt={album.title}
-            />
+              <img
+                src={album.album_art_url || 'https://via.placeholder.com/300'}
+                alt={album.title}
+              />
             </div>
             <div className="album-info">
               <h3>{album.title}</h3>
@@ -1006,6 +1186,7 @@ useEffect(() => {
     )}
   </div>
 )}
+
 
 
 
