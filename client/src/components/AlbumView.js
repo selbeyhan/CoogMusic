@@ -86,6 +86,8 @@ const AlbumView = () => {
 
   if (isLoading) return <div className="loading">Loading album...</div>;
 
+  console.log("Album View Loaded");
+
   return (
     <div className="album-view">
       <div className="album-header">
@@ -131,7 +133,13 @@ const AlbumView = () => {
                     <td>{new Date(song.upload_date).toLocaleDateString()}</td>
                     {isOwner && (
                       <td>
-                        <button onClick={() => handleDeleteSong(song.song_id)}>Delete</button>
+                        <button 
+                          onClick={() => handleDeleteSong(song.song_id)} 
+                          className="delete-song-button"
+                        >
+                          ✖
+                        </button>
+                        {console.log(`Delete button loaded for song: ${song.title}`)}
                       </td>
                     )}
                   </tr>
@@ -153,7 +161,7 @@ const AlbumView = () => {
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
             />
-            <label>New Album Description:</label>  {/* New description input */}
+            <label>New Album Description:</label>
             <textarea
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
