@@ -16,6 +16,62 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `album_songs`
+--
+
+DROP TABLE IF EXISTS `album_songs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `album_songs` (
+  `album_id` int unsigned NOT NULL,
+  `song_id` int unsigned NOT NULL,
+  `added_date` datetime NOT NULL,
+  PRIMARY KEY (`album_id`,`song_id`),
+  KEY `album_songs_song_id_foreign` (`song_id`),
+  CONSTRAINT `album_songs_album_id_foreign` FOREIGN KEY (`album_id`) REFERENCES `albums` (`album_id`) ON DELETE CASCADE,
+  CONSTRAINT `album_songs_song_id_foreign` FOREIGN KEY (`song_id`) REFERENCES `songs` (`song_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `album_songs`
+--
+
+LOCK TABLES `album_songs` WRITE;
+/*!40000 ALTER TABLE `album_songs` DISABLE KEYS */;
+/*!40000 ALTER TABLE `album_songs` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `albums`
+--
+
+DROP TABLE IF EXISTS `albums`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `albums` (
+  `album_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `musician_id` int unsigned NOT NULL,
+  `title` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `release_date` datetime NOT NULL,
+  `album_art_url` varchar(2000) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `description` mediumtext COLLATE utf8mb4_unicode_ci,
+  PRIMARY KEY (`album_id`),
+  KEY `albums_musician_id_foreign` (`musician_id`),
+  CONSTRAINT `albums_musician_id_foreign` FOREIGN KEY (`musician_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `albums`
+--
+
+LOCK TABLES `albums` WRITE;
+/*!40000 ALTER TABLE `albums` DISABLE KEYS */;
+/*!40000 ALTER TABLE `albums` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `comments`
 --
 
@@ -29,9 +85,9 @@ CREATE TABLE `comments` (
   `comment_text` text,
   `timestamp` datetime NOT NULL,
   PRIMARY KEY (`comment_id`),
-  KEY `comments_song_id_foreign` (`song_id`),
   KEY `comments_user_id_foreign` (`user_id`),
-  CONSTRAINT `comments_song_id_foreign` FOREIGN KEY (`song_id`) REFERENCES `songs` (`song_id`),
+  KEY `comments_song_id_foreign` (`song_id`),
+  CONSTRAINT `comments_song_id_foreign` FOREIGN KEY (`song_id`) REFERENCES `songs` (`song_id`) ON DELETE CASCADE,
   CONSTRAINT `comments_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -58,11 +114,11 @@ CREATE TABLE `likes` (
   `song_id` int unsigned NOT NULL,
   `timestamp` datetime NOT NULL,
   PRIMARY KEY (`like_id`),
-  KEY `likes_song_id_foreign` (`song_id`),
   KEY `likes_user_id_foreign` (`user_id`),
-  CONSTRAINT `likes_song_id_foreign` FOREIGN KEY (`song_id`) REFERENCES `songs` (`song_id`),
+  KEY `likes_song_id_foreign` (`song_id`),
+  CONSTRAINT `likes_song_id_foreign` FOREIGN KEY (`song_id`) REFERENCES `songs` (`song_id`) ON DELETE CASCADE,
   CONSTRAINT `likes_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -86,9 +142,9 @@ CREATE TABLE `playlist songs` (
   `song_id` int unsigned NOT NULL,
   `added_date` datetime NOT NULL,
   PRIMARY KEY (`playlist_id`,`song_id`),
-  KEY `song_id` (`song_id`),
-  CONSTRAINT `playlist songs_ibfk_1` FOREIGN KEY (`playlist_id`) REFERENCES `playlists` (`playlist_id`),
-  CONSTRAINT `playlist songs_ibfk_2` FOREIGN KEY (`song_id`) REFERENCES `songs` (`song_id`)
+  KEY `playlist_songs_song_id_fk` (`song_id`),
+  CONSTRAINT `playlist_songs_playlist_id_fk` FOREIGN KEY (`playlist_id`) REFERENCES `playlists` (`playlist_id`) ON DELETE CASCADE,
+  CONSTRAINT `playlist_songs_song_id_fk` FOREIGN KEY (`song_id`) REFERENCES `songs` (`song_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -117,7 +173,7 @@ CREATE TABLE `playlists` (
   PRIMARY KEY (`playlist_id`),
   KEY `playlists_user_id_foreign` (`user_id`),
   CONSTRAINT `playlists_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -141,7 +197,7 @@ CREATE TABLE `song collaborators` (
   `musician_id` varchar(50) NOT NULL,
   PRIMARY KEY (`song_id`,`musician_id`),
   KEY `musician_id` (`musician_id`),
-  CONSTRAINT `song collaborators_ibfk_1` FOREIGN KEY (`song_id`) REFERENCES `songs` (`song_id`)
+  CONSTRAINT `song collaborators_ibfk_1` FOREIGN KEY (`song_id`) REFERENCES `songs` (`song_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -175,7 +231,7 @@ CREATE TABLE `songs` (
   PRIMARY KEY (`song_id`),
   KEY `songs_musician_id_foreign` (`musician_id`),
   CONSTRAINT `songs_musician_id_foreign` FOREIGN KEY (`musician_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=48 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -184,7 +240,6 @@ CREATE TABLE `songs` (
 
 LOCK TABLES `songs` WRITE;
 /*!40000 ALTER TABLE `songs` DISABLE KEYS */;
-INSERT INTO `songs` VALUES (1,'Love Sosa',6,'2025-03-06 02:46:02','Hip-Hop',300,'https://coogsmusicstorage.blob.core.windows.net/songs/Chief Keef - Love Sosa.mp3','https://via.placeholder.com/150','Chief Keef - Love Sosa test upload.',0),(3,'test',6,'2025-03-06 07:07:16','Unknown',200,'https://coogsmusicstorage.blob.core.windows.net/songs/e4c06b48-fa14-4c99-8c06-460b94f4fa09-uploaded-song.mp3',NULL,'test',0),(4,'test',6,'2025-03-06 07:15:10','Unknown',200,'https://coogsmusicstorage.blob.core.windows.net/songs/830387da-5d2e-411b-b09c-6aa50f26b0bb-uploaded-song.mp3',NULL,'test',0),(5,'milli',6,'2025-03-06 07:18:29','Unknown',200,'https://coogsmusicstorage.blob.core.windows.net/songs/d7f6c867-7439-48aa-80cd-82b9ab9e2988-uploaded-song.mp3',NULL,'lilwayne',0),(6,'anothertest',6,'2025-03-06 07:25:10','Unknown',200,'https://coogsmusicstorage.blob.core.windows.net/songs/647acd54-51c6-4182-a1e0-2eacefb681fc-uploaded-song.mp3',NULL,'anothertest',0),(7,'anothertest',6,'2025-03-06 12:46:45','Unknown',200,'https://coogsmusicstorage.blob.core.windows.net/songs/103b3af9-85ab-4827-99cf-cb7daf397b41-uploaded-song.mp3',NULL,'Test by adem before merge with main',0),(8,'a milli',6,'2025-03-06 23:32:14','lil wayne',180,'https://coogsmusicstorage.blob.core.windows.net/songs/e8abfbbf-06f9-4472-b070-67fde55c474d-A%20Milli.mp3','a','a',0),(9,'hate being sober',6,'2025-03-06 23:39:50','rap',180,'https://coogsmusicstorage.blob.core.windows.net/songs/af0bf23e-6005-4ac9-ad73-1eedd046e457-Hate%20Bein%27%20Sober.mp3','n/a','best song ever',0);
 /*!40000 ALTER TABLE `songs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -202,9 +257,9 @@ CREATE TABLE `streaming history` (
   `timestamp` datetime NOT NULL,
   `duration_listened` int DEFAULT NULL,
   PRIMARY KEY (`stream_id`),
-  KEY `streaming_history_song_id_foreign` (`song_id`),
   KEY `streaming_history_user_id_foreign` (`user_id`),
-  CONSTRAINT `streaming_history_song_id_foreign` FOREIGN KEY (`song_id`) REFERENCES `songs` (`song_id`),
+  KEY `streaming_history_song_id_foreign` (`song_id`),
+  CONSTRAINT `streaming_history_song_id_foreign` FOREIGN KEY (`song_id`) REFERENCES `songs` (`song_id`) ON DELETE CASCADE,
   CONSTRAINT `streaming_history_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -269,9 +324,25 @@ CREATE TABLE `users` (
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `new_user_id` (`user_id`),
   UNIQUE KEY `clerk_user_id` (`clerk_user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `users`
 --
+
+LOCK TABLES `users` WRITE;
+/*!40000 ALTER TABLE `users` DISABLE KEYS */;
+/*!40000 ALTER TABLE `users` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2025-04-03 19:30:28

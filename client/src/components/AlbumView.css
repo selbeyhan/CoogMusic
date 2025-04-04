@@ -1,0 +1,307 @@
+/* AlbumView.css */
+
+/* Base layout */
+.album-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Roboto', sans-serif;
+    padding: 20px;
+    background-color: #f4f4f4;
+    min-height: 100vh;
+}
+  
+/* Album header (title + buttons) */
+.album-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+  
+/* Button styling for editing album */
+.edit-button {
+    background-color: #ff3b3f;
+    color: #fff;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.edit-button:hover {
+    background-color: #cc0000;
+}
+  
+/* Album title */
+.album-view h2 {
+    font-size: 2rem;
+    color: #333;
+    margin-bottom: 10px;
+}
+  
+/* Album cover image */
+.album-cover {
+    max-width: 300px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+  
+/* Album description */
+.album-view p {
+    font-size: 1rem;
+    color: #666;
+    margin-bottom: 20px;
+    text-align: center;
+    max-width: 700px;
+}
+  
+/* Table-style song list container */
+.album-table-container {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    width: 95%;
+    max-width: 850px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 50px;
+    overflow-x: visible;
+}
+  
+/* Scrollable wrapper */
+.album-table-scroll {
+    max-height: 500px;
+    overflow-y: auto;
+    overflow-x: visible;
+}
+  
+/* Song table layout */
+.album-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+  
+/* Table headers & cells */
+.album-table th,
+.album-table td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+    overflow: visible;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    position: relative;
+}
+  
+/* Column widths */
+.album-table th:nth-child(1),
+.album-table td:nth-child(1) {
+    width: 35%;
+}
+  
+.album-table th:nth-child(2),
+.album-table td:nth-child(2) {
+    width: 35%;
+}
+  
+.album-table th:nth-child(3),
+.album-table td:nth-child(3) {
+    width: 20%;
+    text-align: center;
+}
+  
+.album-table th:nth-child(4),
+.album-table td:nth-child(4) {
+    width: 10%;
+    text-align: center;
+    vertical-align: middle;
+}
+  
+/* Sticky header */
+.album-table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #ff3b3f;
+    color: #fff;
+    z-index: 2;
+}
+  
+/* Row hover effect */
+.album-table tbody tr:hover {
+    background-color: #f9f9f9;
+    cursor: pointer;
+}
+  
+.album-table tbody tr td:nth-child(1):hover {
+    text-decoration: underline;
+}
+  
+/* Empty state and loading text */
+.album-view p,
+.loading {
+    font-size: 1rem;
+    color: #777;
+    margin-top: 20px;
+}
+  
+/* Button styles for deleting a song */
+.delete-song-button {
+    background-color: red !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 4px !important;
+    padding: 10px !important;
+    font-size: 0.875rem !important;
+    cursor: pointer !important;
+    transition: background-color 0.3s !important;
+    display: inline-block;
+    margin: auto;
+}
+.delete-song-button:hover {
+    background-color: darkred !important;
+}
+.delete-song-button:focus {
+    outline: none;
+}
+
+/* --- Generic Modal Styling (used for both Edit Album and Add Song) --- */
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+  
+/* Modal Container */
+.modal {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+  
+/* Modal Title */
+.modal h3 {
+    margin-top: 0;
+    color: #ff0000;
+}
+  
+/* Modal Form Labels */
+.modal label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+  
+/* Modal Inputs & Textareas */
+.modal input,
+.modal textarea {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+.modal textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+  
+/* Modal Action Buttons */
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+}
+.modal-actions button {
+    padding: 0.6rem 1.2rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.modal-actions button:first-child {
+    background: #ff0000;
+    color: white;
+}
+.modal-actions button:first-child:hover {
+    background: #cc0000;
+}
+.modal-actions button:last-child {
+    background: #f0f0f0;
+    color: #333;
+}
+.modal-actions button:last-child:hover {
+    background: #e0e0e0;
+}
+
+/* --- End of Modal Styling --- */
+
+/* --- Additional Album/Card Styling --- */
+
+.albums-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.album-card {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  text-decoration: none;
+  color: #333;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.album-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.album-cover {
+  height: 300px;
+  background-color: #f0f0f0;
+}
+
+.album-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.album-info {
+  padding: 1rem;
+}
+
+.album-info h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+  color: #ff0000;
+}
+
+.album-genre {
+  color: #666;
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.album-date,
+.album-views {
+  color: #999;
+  font-size: 0.8rem;
+  margin: 0.2rem 0;
+}

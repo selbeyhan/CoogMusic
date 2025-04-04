@@ -26,6 +26,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 const AZURE_ACCESS_KEY = "DefaultEndpointsProtocol=https;AccountName=coogsmusicstorage;AccountKey=WPvelBoCZ6xVs39HDIoJ+aVzkNwFoo0bex+H2uG9ANc+dZOUVlz3LxlVE91SLWIA3e1X0/L1sVba+AStpYb1uw==;EndpointSuffix=core.windows.net";
 const SONGS_CONTAINER_NAME = "songs";
 const PROFILE_PICTURE_CONTAINER_NAME = "profilepicture";
+const SONG_PICTURE_CONTAINER_NAME = "songpictures";
+
 
 if (!AZURE_ACCESS_KEY) {
   throw new Error("Azure Storage connection string is missing.");
@@ -35,6 +37,8 @@ if (!AZURE_ACCESS_KEY) {
 const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_ACCESS_KEY);
 const songContainerClient = blobServiceClient.getContainerClient(SONGS_CONTAINER_NAME);
 const profilePictureContainerClient = blobServiceClient.getContainerClient(PROFILE_PICTURE_CONTAINER_NAME);
+const songPictureContainerClient = blobServiceClient.getContainerClient(SONG_PICTURE_CONTAINER_NAME);
+
 
 async function adminPortalUsers() {
   let connection;
@@ -42,19 +46,19 @@ async function adminPortalUsers() {
     connection = await mysql.createConnection(dbConfig);
     // Fetch all the fields needed for the admin portal
     const [rows] = await connection.execute(`
-      SELECT 
-        name, 
-        email, 
-        account_type, 
-        registration_date, 
-        profile_picture_url, 
-        bio, 
-        monthly_listeners, 
-        uh_affiliation, 
-        verification_status, 
-        admin_role, 
-        user_id, 
-        clerk_user_id 
+      SELECT
+        name,
+        email,
+        account_type,
+        registration_date,
+        profile_picture_url,
+        bio,
+        monthly_listeners,
+        uh_affiliation,
+        verification_status,
+        admin_role,
+        user_id,
+        clerk_user_id
       FROM users
     `);
     return rows;
@@ -195,6 +199,10 @@ async function uploadProfilePicture(req, res) {
 }
 
 async function uploadSong(req, res) {
+
+
+
+
   try {
     const { title, genre, description, cover_art_url, musician_id } = req.body;
     const fileBuffer = req.fileBuffer;
@@ -216,6 +224,26 @@ async function uploadSong(req, res) {
     console.log("Skipping ffprobe. Using default duration:", duration);
     // ---------------
 
+// Upload cover art if a file is provided (similar to profile picture upload)
+let finalCoverArtUrl = cover_art_url; // Default to the value provided in the request body
+if (req.files && req.files.cover_art && req.files.cover_art[0]) {
+  const coverArtFile = req.files.cover_art[0];
+  const coverArtBuffer = coverArtFile.buffer;
+  const coverArtName = `${uuidv4()}-${coverArtFile.originalname}`;
+  
+  // Ensure the Azure container for song pictures exists (assumes songPictureContainerClient is defined)
+  await songPictureContainerClient.createIfNotExists({ access: "container" });
+  const coverArtBlockBlobClient = songPictureContainerClient.getBlockBlobClient(coverArtName);
+
+  console.log("Uploading song cover art to Azure Blob Storage...");
+  await coverArtBlockBlobClient.uploadData(coverArtBuffer, {
+    blobHTTPHeaders: { blobContentType: coverArtFile.mimetype },
+  });
+  finalCoverArtUrl = coverArtBlockBlobClient.url;
+  console.log("Song cover art uploaded:", finalCoverArtUrl);
+}
+
+
     const uploadDate = new Date().toISOString().slice(0, 19).replace("T", " ");
 
     let connection;
@@ -224,11 +252,11 @@ async function uploadSong(req, res) {
       await connection.execute(
         `INSERT INTO Songs (title, musician_id, upload_date, genre, duration, file_url, cover_art_url, description)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [title, musician_id, uploadDate, genre, duration, fileUrl, cover_art_url, description]
+        [title, musician_id, uploadDate, genre, duration, fileUrl, finalCoverArtUrl, description]
       );
       console.log("✅ File metadata stored in database.");
     } catch (dbError) {
-      console.error("❌ Database error:", dbError);
+      console.error("❌ Database error:", dbError.message);
     } finally {
       if (connection) await connection.end();
     }
@@ -384,32 +412,27 @@ const server = http.createServer(async (req, res) => {
   }
   // File upload route
   if (req.url === "/upload" && req.method === "POST") {
-    upload.single("file")(req, res, async (err) => {
+    upload.fields([
+      { name: "file", maxCount: 1 },
+      { name: "cover_art", maxCount: 1 }
+    ])(req, res, async (err) => {
       if (err) {
         console.error("❌ Multer file upload error:", err);
         res.writeHead(500, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "File upload failed" }));
         return;
       }
-
+  
       try {
         console.log("✅ File upload received");
         console.log("Received req.body:", req.body);
-        console.log("Received file:", req.file);
-        
-        // Extract form metadata from req.body
-        const { title, genre, description, cover_art_url, musician_id } = req.body;
-        if (!title || !genre || !description || !cover_art_url || !musician_id) {
-          throw new Error("Missing required metadata fields.");
-        }
-
-        // Extract uploaded file data
-        req.fileBuffer = req.file.buffer;
-        req.fileName = req.file.originalname;
-        req.fileType = req.file.mimetype;
-
-        console.log("✅ Processing file:", req.fileName);
-
+        console.log("Received files:", req.files);
+  
+        // Extract audio file from req.files
+        req.fileBuffer = req.files.file[0].buffer;
+        req.fileName = req.files.file[0].originalname;
+        req.fileType = req.files.file[0].mimetype;
+  
         await uploadSong(req, res);
       } catch (error) {
         console.error("❌ Upload processing error:", error);
@@ -419,7 +442,7 @@ const server = http.createServer(async (req, res) => {
     });
     return;
   }
-
+  
   // Fetch Top Songs from Database (only the top 5)
   if (req.url === "/top-songs" && req.method === "GET") {
     try {
@@ -671,33 +694,33 @@ const server = http.createServer(async (req, res) => {
   if (req.url.startsWith('/api/search') && req.method === 'GET') {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const query = url.searchParams.get('q');
-  
+
     if (!query) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ error: 'Search query is required' }));
     }
-  
+
     try {
       const connection = await mysql.createConnection(dbConfig);
-  
+
       // Search songs
       const [songs] = await connection.execute(`
-        SELECT s.*, u.name as musician_name 
-        FROM songs s 
+        SELECT s.*, u.name as musician_name
+        FROM songs s
         JOIN users u ON s.musician_id = u.user_id
         WHERE s.title LIKE ? OR s.genre LIKE ? OR s.description LIKE ?
         LIMIT 20
       `, [`%${query}%`, `%${query}%`, `%${query}%`]);
-  
+
       // Search artists (musician users) - Updated to not filter by account_type
       const [artists] = await connection.execute(`
-        SELECT u.*, 
+        SELECT u.*,
           (SELECT COUNT(*) FROM songs WHERE musician_id = u.user_id) as songs_count
         FROM users u
-        WHERE u.name LIKE ? 
+        WHERE u.name LIKE ?
         LIMIT 20
       `, [`%${query}%`]);
-  
+
       // Search playlists
       const [playlists] = await connection.execute(`
         SELECT p.*, u.name as creator_name,
@@ -707,57 +730,67 @@ const server = http.createServer(async (req, res) => {
         WHERE p.name LIKE ?
         LIMIT 20
       `, [`%${query}%`]);
-  
+
+          // Search albums
+    const [albums] = await connection.execute(`
+      SELECT a.*, u.name as musician_name
+      FROM albums a
+      JOIN users u ON a.musician_id = u.user_id
+      WHERE a.title LIKE ? OR a.description LIKE ?
+      LIMIT 20
+    `, [`%${query}%`, `%${query}%`]);
+
       await connection.end();
-  
+
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         songs,
         artists,
-        playlists
+        playlists,
+        albums
       }));
     } catch (error) {
       console.error('❌ Search error:', error);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Internal server error' }));
     }
-  
+
     return;
   }
-  
+
     // Update a playlist name
   if (req.method === "PATCH" && req.url.startsWith("/api/playlist/update/")) {
     const playlistId = decodeURIComponent(req.url.split("/api/playlist/update/")[1]);
     let body = "";
-  
+
     req.on("data", (chunk) => {
       body += chunk.toString();
     });
-  
+
     req.on("end", async () => {
       try {
         const { name } = JSON.parse(body);
-  
+
         if (!name || !playlistId) {
           res.writeHead(400, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "Missing playlist name or ID" }));
         }
-  
+
         const connection = await mysql.createConnection(dbConfig);
-  
+
         // Update the playlist name
         const [result] = await connection.execute(
           "UPDATE playlists SET name = ? WHERE playlist_id = ?",
           [name, playlistId]
         );
-  
+
         await connection.end();
-  
+
         if (result.affectedRows === 0) {
           res.writeHead(404, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "Playlist not found" }));
         }
-  
+
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ message: "Playlist updated successfully" }));
       } catch (err) {
@@ -766,68 +799,88 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ error: "Internal Server Error" }));
       }
     });
-  
+
     return;
   }
-  
+
   // Update a song's details
   if (req.method === "PATCH" && req.url.startsWith("/api/song/update/")) {
-    const songId = decodeURIComponent(req.url.split("/api/song/update/")[1]);
-    let body = "";
-  
-    req.on("data", (chunk) => {
-      body += chunk.toString();
-    });
-  
-    req.on("end", async () => {
+    // Use multer to handle potential cover art file upload
+    upload.fields([{ name: "cover_art", maxCount: 1 }])(req, res, async (err) => {
+      if (err) {
+        console.error("❌ Multer error in song update:", err);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "File processing error" }));
+      }
       try {
-        const { title, genre, description } = JSON.parse(body);
-  
+        const songId = decodeURIComponent(req.url.split("/api/song/update/")[1]);
         if (!songId) {
           res.writeHead(400, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "Missing song ID" }));
         }
-  
-        const connection = await mysql.createConnection(dbConfig);
-  
-        // Build the SQL query dynamically based on the provided fields
+    
+        // Parse text fields from req.body (assumes JSON fields sent as text)
+        const { title, genre, description, cover_art_url } = req.body;
+    
+        // Start building the update query dynamically
         let sql = "UPDATE songs SET ";
-        const params = [];
         const updates = [];
-  
+        const params = [];
+    
         if (title) {
           updates.push("title = ?");
           params.push(title);
         }
-  
         if (genre) {
           updates.push("genre = ?");
           params.push(genre);
         }
-  
         if (description) {
           updates.push("description = ?");
           params.push(description);
         }
-  
+    
+        // Check if a new cover art file was provided
+        if (req.files && req.files.cover_art && req.files.cover_art[0]) {
+          const coverArtFile = req.files.cover_art[0];
+          const coverArtBuffer = coverArtFile.buffer;
+          const coverArtName = `${uuidv4()}-${coverArtFile.originalname}`;
+    
+          // Ensure the Azure container for song pictures exists
+          await songPictureContainerClient.createIfNotExists({ access: "container" });
+          const coverArtBlockBlobClient = songPictureContainerClient.getBlockBlobClient(coverArtName);
+    
+          console.log("Uploading updated cover art to Azure Blob Storage...");
+          await coverArtBlockBlobClient.uploadData(coverArtBuffer, {
+            blobHTTPHeaders: { blobContentType: coverArtFile.mimetype },
+          });
+          const newCoverArtUrl = coverArtBlockBlobClient.url;
+    
+          updates.push("cover_art_url = ?");
+          params.push(newCoverArtUrl);
+        } else if (cover_art_url) {
+          // Otherwise, if the client sends a cover_art_url value, update it
+          updates.push("cover_art_url = ?");
+          params.push(cover_art_url);
+        }
+    
         if (updates.length === 0) {
           res.writeHead(400, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "No fields to update" }));
         }
-  
+    
         sql += updates.join(", ") + " WHERE song_id = ?";
         params.push(songId);
-  
-        // Execute the update
+    
+        const connection = await mysql.createConnection(dbConfig);
         const [result] = await connection.execute(sql, params);
-  
         await connection.end();
-  
+    
         if (result.affectedRows === 0) {
           res.writeHead(404, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "Song not found" }));
         }
-  
+    
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ message: "Song updated successfully" }));
       } catch (err) {
@@ -836,10 +889,9 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ error: "Internal Server Error" }));
       }
     });
-  
     return;
   }
-
+  
 
   // Create a new playlist
   if (req.method === "POST" && req.url === "/api/createPlaylist") {
@@ -1492,6 +1544,33 @@ ORDER BY songs.upload_date DESC`,
     }
   }
 
+  // Get featured artists
+if (req.method === "GET" && req.url === "/featured-artists") {
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    // You can modify this query based on how you determine featured artists
+    const [results] = await connection.execute(`
+      SELECT u.user_id as id, u.name, u.profile_picture_url as profileImage
+      FROM users u
+      JOIN songs s ON u.user_id = s.musician_id
+      GROUP BY u.user_id
+      ORDER BY COUNT(s.song_id) DESC
+      LIMIT 6
+    `);
+
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(results));
+  } catch (err) {
+    console.error("❌ Error fetching featured artists:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to fetch featured artists" }));
+  }
+
+  return;
+}
+
 
   // GET /api/profile-likes/:clerkUserId
   if (req.method === "GET" && req.url.startsWith("/api/profile-likes/")) {
@@ -1538,6 +1617,290 @@ ORDER BY l.timestamp DESC
     }
   }
 
+// ----- Album Routes -----
+// Note: For now, we're using the "songpictures" container for album cover art.
+// Once a dedicated container for album cover art is set up, update the code accordingly.
+
+if (req.method === "POST" && req.url === "/api/createAlbum") {
+  // Use multer to handle the file upload; expect the file field named "cover_art"
+  upload.single("cover_art")(req, res, async (err) => {
+    if (err) {
+      console.error("Multer error:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "File upload failed" }));
+    }
+    try {
+      // Get text fields from req.body
+      const { title, description, musician_id } = req.body;
+      if (!title || !musician_id) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Missing album title or musician_id" }));
+      }
+      
+      // Set the release_date to now
+      const release_date = new Date().toISOString().slice(0, 19).replace("T", " ");
+      
+      // Set a fallback album art URL (if no file was uploaded)
+      let albumArtUrl = req.body.album_art_url || "https://via.placeholder.com/300";
+      
+      // If a file was uploaded, use songPictureContainerClient to upload it
+      if (req.file) {
+        await songPictureContainerClient.createIfNotExists({ access: "container" });
+        const fileName = `${uuidv4()}-${req.file.originalname}`;
+        const blockBlobClient = songPictureContainerClient.getBlockBlobClient(fileName);
+        await blockBlobClient.uploadData(req.file.buffer, {
+          blobHTTPHeaders: { blobContentType: req.file.mimetype }
+        });
+        albumArtUrl = blockBlobClient.url;
+      }
+      
+      // Insert the album into the database
+      const connection = await mysql.createConnection(dbConfig);
+      const [result] = await connection.execute(
+        "INSERT INTO albums (musician_id, title, release_date, album_art_url, description) VALUES (?, ?, ?, ?, ?)",
+        [musician_id, title, release_date, albumArtUrl, description]
+      );
+      await connection.end();
+      res.writeHead(201, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: "Album created successfully", album_id: result.insertId }));
+    } catch (error) {
+      console.error("❌ Error creating album:", error.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Internal Server Error" }));
+    }
+  });
+  return;
+}
+
+
+// Get albums for a user (by Clerk user ID)
+if (req.method === "GET" && req.url.startsWith("/api/getuseralbums/")) {
+  const clerkUserId = decodeURIComponent(req.url.split("/api/getuseralbums/")[1]);
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    // Convert Clerk user ID to internal user_id
+    const [users] = await connection.execute(
+      "SELECT user_id FROM users WHERE clerk_user_id = ?",
+      [clerkUserId]
+    );
+    if (users.length === 0) {
+      await connection.end();
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "User not found" }));
+    }
+    const userId = users[0].user_id;
+    // Fetch albums for the user ordered by release_date (newest first)
+    const [albums] = await connection.execute(
+      "SELECT * FROM albums WHERE musician_id = ? ORDER BY release_date DESC",
+      [userId]
+    );
+    await connection.end();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ albums }));
+  } catch (error) {
+    console.error("❌ Error fetching albums:", error.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Internal Server Error" }));
+  }
+}
+
+
+if (req.url === "/api/upload-album-songs" && req.method === "POST") {
+  upload.fields([
+    { name: "files" },
+    { name: "cover_arts" }
+  ])(req, res, async (err) => {
+    if (err) return res.end(JSON.stringify({ error: "Upload error" }));
+
+    const { album_id, musician_id, titles, genres, descriptions } = req.body;
+
+    if (!album_id || !titles || !Array.isArray(req.files?.files)) {
+      return res.end(JSON.stringify({ error: "Missing required fields" }));
+    }
+
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+      const addedSongs = [];
+
+      for (let i = 0; i < req.files.files.length; i++) {
+        const file = req.files.files[i];
+        const title = Array.isArray(titles) ? titles[i] : titles;
+        const genre = Array.isArray(genres) ? genres[i] : genres;
+        const description = Array.isArray(descriptions) ? descriptions[i] : descriptions;
+
+        // Upload audio
+        const fileName = `${uuidv4()}-${file.originalname}`;
+        const audioBlob = songContainerClient.getBlockBlobClient(fileName);
+        await audioBlob.uploadData(file.buffer, {
+          blobHTTPHeaders: { blobContentType: file.mimetype }
+        });
+        const fileUrl = audioBlob.url;
+
+        // Upload cover art
+        let coverArtUrl = "https://via.placeholder.com/300";
+        if (req.files.cover_arts && req.files.cover_arts[i]) {
+          const cover = req.files.cover_arts[i];
+          const coverName = `${uuidv4()}-${cover.originalname}`;
+          const coverBlob = songPictureContainerClient.getBlockBlobClient(coverName);
+          await coverBlob.uploadData(cover.buffer, {
+            blobHTTPHeaders: { blobContentType: cover.mimetype }
+          });
+          coverArtUrl = coverBlob.url;
+        }
+
+        const uploadDate = new Date().toISOString().slice(0, 19).replace("T", " ");
+        const duration = 180;
+
+        // Insert into `songs`
+        const [songResult] = await connection.execute(
+          `INSERT INTO songs (title, musician_id, upload_date, genre, duration, file_url, cover_art_url, description)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [title, musician_id, uploadDate, genre, duration, fileUrl, coverArtUrl, description]
+        );
+
+        const songId = songResult.insertId;
+
+        // Insert into album_songs
+        await connection.execute(
+          `INSERT INTO album_songs (album_id, song_id, added_date) VALUES (?, ?, ?)`,
+          [album_id, songId, uploadDate]
+        );
+
+        addedSongs.push(songId);
+      }
+
+      await connection.end();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: "Songs uploaded and linked", song_ids: addedSongs }));
+    } catch (e) {
+      console.error("❌ Upload album songs error:", e);
+      return res.end(JSON.stringify({ error: "Upload failed" }));
+    }
+  });
+
+  return;
+}
+
+
+if (req.method === "GET" && req.url.startsWith("/api/album/")) {
+  const albumId = decodeURIComponent(req.url.split("/api/album/")[1]);
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    // Fetch album info
+    const [albumData] = await connection.execute(
+      "SELECT * FROM albums WHERE album_id = ?",
+      [albumId]
+    );
+
+    if (albumData.length === 0) {
+      await connection.end();
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Album not found" }));
+    }
+
+    // Fetch songs in the album
+    const [songs] = await connection.execute(`
+      SELECT s.song_id, s.title, s.genre, s.upload_date, s.views, s.file_url, s.cover_art_url, s.description,
+             s.musician_id, u.name AS musician_name
+      FROM album_songs a
+      JOIN songs s ON a.song_id = s.song_id
+      JOIN users u ON s.musician_id = u.user_id
+      WHERE a.album_id = ?
+      ORDER BY a.added_date ASC
+    `, [albumId]);
+
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      album: albumData[0],
+      songs
+    }));
+  } catch (err) {
+    console.error("❌ Error fetching album and songs:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Internal Server Error" }));
+  }
+
+  return;
+}
+
+
+//update album pic or title from the albumview page 
+//(only if that user owns that album)
+if (req.method === "PATCH" && req.url === "/editalbumtitleorpic") {
+  upload.single("cover_art")(req, res, async (err) => {
+    if (err) {
+      console.error("❌ Multer error during album update:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "File processing error" }));
+    }
+
+    try {
+      const { album_id, title, description } = req.body;
+
+      if (!album_id) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Missing album_id" }));
+      }
+
+      const updates = [];
+      const values = [];
+
+      if (title) {
+        updates.push("title = ?");
+        values.push(title);
+      }
+
+      if (description) {  // Update description if provided
+        updates.push("description = ?");
+        values.push(description);
+      }
+
+      let albumArtUrl;
+
+      if (req.file) {
+        const blobName = `${uuidv4()}-${req.file.originalname}`;
+        await songPictureContainerClient.createIfNotExists({ access: "container" });
+        const blockBlobClient = songPictureContainerClient.getBlockBlobClient(blobName);
+        await blockBlobClient.uploadData(req.file.buffer, {
+          blobHTTPHeaders: { blobContentType: req.file.mimetype },
+        });
+        albumArtUrl = blockBlobClient.url;
+        updates.push("album_art_url = ?");
+        values.push(albumArtUrl);
+      }
+
+      if (updates.length === 0) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "No updates provided" }));
+      }
+
+      values.push(album_id); // for WHERE clause
+
+      const connection = await mysql.createConnection(dbConfig);
+      await connection.execute(
+        `UPDATE albums SET ${updates.join(", ")} WHERE album_id = ?`,
+        values
+      );
+      await connection.end();
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        message: "Album updated successfully",
+        album_art_url: albumArtUrl
+      }));
+    } catch (error) {
+      console.error("❌ Error updating album:", error);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Internal Server Error" }));
+    }
+  });
+
+  return;
+}
 
 
 
@@ -1586,5 +1949,3 @@ ORDER BY l.timestamp DESC
 server.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });
-
-
