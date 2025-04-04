@@ -600,7 +600,7 @@ useEffect(() => {
           <div className="stats">
             <div className="stat">
               <span className="stat-value">{userProfile.monthlyListeners || 0}</span>
-              <span className="stat-label">Monthly Listeners</span>
+              <span className="stat-label">Monthly Views</span>
             </div>
             <div className="stat">
               <span className="stat-value">{userSongs.length}</span>
