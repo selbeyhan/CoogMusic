@@ -476,70 +476,115 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+// Get user profile by Clerk user ID (including monthly_listeners calculation)
+if (req.method === "GET" && req.url.startsWith("/user/")) {
+  const clerkUserId = decodeURIComponent(req.url.split("/user/")[1]);
 
-  // Get user profile by Clerk user ID
-  if (req.method === "GET" && req.url.startsWith("/user/")) {
-    const clerkUserId = decodeURIComponent(req.url.split("/user/")[1]);
+  try {
+    const connection = await mysql.createConnection(dbConfig);
 
-    try {
-      const connection = await mysql.createConnection(dbConfig);
-      const [rows] = await connection.execute(
-        "SELECT * FROM users WHERE clerk_user_id = ?",
-        [clerkUserId]
-      );
+    // 1) Look up the user in the 'users' table by clerk_user_id
+    const [rows] = await connection.execute(
+      "SELECT * FROM users WHERE clerk_user_id = ?",
+      [clerkUserId]
+    );
+
+    if (rows.length === 0) {
       await connection.end();
-
-      if (rows.length === 0) {
-        res.writeHead(404, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "User not found" }));
-      } else {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ user: rows[0] }));
-      }
-    } catch (err) {
-      console.error("❌ Error fetching user by Clerk ID:", err);
-      res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Database error" }));
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "User not found" }));
     }
 
-    return;
+    // The main user record
+    const userRecord = rows[0];
+
+    // 2) Calculate monthly_listeners by checking `streaming history` for the last 30 days
+    //    But first we confirm which songs belong to this user (musician_id).
+    //    We'll do this with a sub-select on songs.
+    const [monthlyListenersRows] = await connection.execute(`
+      SELECT COUNT(*) AS monthly_listeners
+      FROM \`streaming history\`
+      WHERE song_id IN (
+        SELECT song_id 
+        FROM songs 
+        WHERE musician_id = ?
+      )
+      AND timestamp >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
+    `, [userRecord.user_id]);
+
+    // If user has no songs or no streams, this will be 0
+    const computedMonthlyListeners = monthlyListenersRows[0].monthly_listeners || 0;
+
+    // 3) Update the users table with the new monthly_listeners value
+    await connection.execute(
+      "UPDATE users SET monthly_listeners = ? WHERE user_id = ?",
+      [computedMonthlyListeners, userRecord.user_id]
+    );
+
+    // Attach it to the user record (so we can return it)
+    userRecord.monthly_listeners = computedMonthlyListeners;
+
+    // Done with DB
+    await connection.end();
+
+    // Send back the user record with monthly_listeners included
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ user: userRecord }));
+
+  } catch (err) {
+    console.error("❌ Error fetching user by Clerk ID with monthly listeners:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Database error" }));
   }
 
-  // Increment the view count for a song
-  if (req.method === "POST" && req.url.startsWith("/increment-view/")) {
-    const songId = req.url.split("/increment-view/")[1]; // Get songId from URL
+  return;
+}
 
-    if (!songId) {
-      res.statusCode = 400;
-      return res.end(JSON.stringify({ error: "Song ID is required" }));
-    }
 
-    let connection;
-    try {
-      connection = await mysql.createConnection(dbConfig);
 
-      // Increment the view count for the song in the database
-      const [result] = await connection.execute(
-        "UPDATE songs SET views = views + 1 WHERE song_id = ?",
-        [songId]
-      );
-
-      if (result.affectedRows === 0) {
-        res.statusCode = 404;
-        return res.end(JSON.stringify({ error: "Song not found" }));
-      }
-
-      console.log(`View count for song ${songId} incremented.`);
-      res.statusCode = 200;
-      return res.end(JSON.stringify({ message: "View count incremented successfully" }));
-    } catch (err) {
-      console.error("Error incrementing views:", err.message);
-      res.statusCode = 500;
-      return res.end(JSON.stringify({ error: "Failed to increment view count" }));
-    } finally {
-      if (connection) await connection.end();
-    }
+ // Increment the view count for a song and record the timestamp in streaming history
+if (req.method === "POST" && req.url.startsWith("/increment-view/")) {
+  // Extract the songId from the URL
+  const songId = req.url.split("/increment-view/")[1];
+  
+  if (!songId) {
+    res.statusCode = 400;
+    return res.end(JSON.stringify({ error: "Song ID is required" }));
   }
+
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+
+    // 1) Increment the song’s view count
+    const [updateResult] = await connection.execute(
+      "UPDATE songs SET views = views + 1 WHERE song_id = ?",
+      [songId]
+    );
+    if (updateResult.affectedRows === 0) {
+      res.statusCode = 404;
+      return res.end(JSON.stringify({ error: "Song not found" }));
+    }
+
+    // 2) Insert a new record into the streaming history table with the song_id and current timestamp.
+    // Since we aren't handling a specific user here, we pass NULL for the user_id.
+    await connection.execute(
+      "INSERT INTO `streaming history` (user_id, song_id, timestamp) VALUES (?, ?, NOW())",
+      [null, songId]
+    );
+
+    console.log(`View count for song ${songId} incremented and streaming history updated.`);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ message: "View count incremented and streaming history updated" }));
+  } catch (err) {
+    console.error("Error incrementing views:", err.message);
+    res.statusCode = 500;
+    return res.end(JSON.stringify({ error: "Failed to increment view count" }));
+  } finally {
+    if (connection) await connection.end();
+  }
+}
+
 
 
 
