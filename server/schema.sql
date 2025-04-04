@@ -29,7 +29,7 @@ CREATE TABLE `album_songs` (
   PRIMARY KEY (`album_id`,`song_id`),
   KEY `album_songs_song_id_foreign` (`song_id`),
   CONSTRAINT `album_songs_album_id_foreign` FOREIGN KEY (`album_id`) REFERENCES `albums` (`album_id`) ON DELETE CASCADE,
-  CONSTRAINT `album_songs_song_id_foreign` FOREIGN KEY (`song_id`) REFERENCES `songs` (`song_id`)
+  CONSTRAINT `album_songs_song_id_foreign` FOREIGN KEY (`song_id`) REFERENCES `songs` (`song_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -59,7 +59,7 @@ CREATE TABLE `albums` (
   PRIMARY KEY (`album_id`),
   KEY `albums_musician_id_foreign` (`musician_id`),
   CONSTRAINT `albums_musician_id_foreign` FOREIGN KEY (`musician_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -231,7 +231,7 @@ CREATE TABLE `songs` (
   PRIMARY KEY (`song_id`),
   KEY `songs_musician_id_foreign` (`musician_id`),
   CONSTRAINT `songs_musician_id_foreign` FOREIGN KEY (`musician_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=48 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -345,4 +345,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-04-03 15:44:52
+-- Dump completed on 2025-04-03 19:30:28
