@@ -1948,17 +1948,13 @@ if (req.method === "PATCH" && req.url === "/editalbumtitleorpic") {
 }
 
 
-
 if (req.method === 'DELETE' && req.url.startsWith('/api/album/')) {
   const albumId = req.url.split('/api/album/')[1];
 
   try {
     const connection = await mysql.createConnection(dbConfig);
 
-    // Delete album (cascades to album_songs via FK)
-    await connection.execute(`DELETE FROM albums WHERE album_id = ?`, [albumId]);
-
-    // Delete songs that were only linked to the deleted album
+    // Delete songs only linked to this album BEFORE album is deleted
     await connection.execute(`
       DELETE FROM songs
       WHERE song_id IN (
@@ -1968,6 +1964,9 @@ if (req.method === 'DELETE' && req.url.startsWith('/api/album/')) {
         SELECT song_id FROM album_songs WHERE album_id != ?
       );
     `, [albumId, albumId]);
+
+    // Now delete the album (cascades album_songs)
+    await connection.execute(`DELETE FROM albums WHERE album_id = ?`, [albumId]);
 
     await connection.end();
 
