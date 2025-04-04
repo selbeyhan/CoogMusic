@@ -1949,6 +1949,40 @@ if (req.method === "PATCH" && req.url === "/editalbumtitleorpic") {
 
 
 
+if (req.method === 'DELETE' && req.url.startsWith('/api/album/')) {
+  const albumId = req.url.split('/api/album/')[1];
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    // Delete album (cascades to album_songs via FK)
+    await connection.execute(`DELETE FROM albums WHERE album_id = ?`, [albumId]);
+
+    // Delete songs that were only linked to the deleted album
+    await connection.execute(`
+      DELETE FROM songs
+      WHERE song_id IN (
+        SELECT song_id FROM album_songs WHERE album_id = ?
+      )
+      AND song_id NOT IN (
+        SELECT song_id FROM album_songs WHERE album_id != ?
+      );
+    `, [albumId, albumId]);
+
+    await connection.end();
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ message: 'Album and any exclusive songs deleted' }));
+  } catch (err) {
+    console.error("❌ Error deleting album and cleanup:", err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Failed to delete album' }));
+  }
+
+  return;
+}
+
+
 
   // Serve React Frontend (Static Files)
   const buildPath = path.join(__dirname, "build");

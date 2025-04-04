@@ -17,6 +17,8 @@ const AlbumView = () => {
   const [newDescription, setNewDescription] = useState('');
   const coverInputRef = useRef(null);
   const { setCurrentSong } = useAudio();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
 
   // New states for adding a song to the album
   const [showAddSongModal, setShowAddSongModal] = useState(false);
@@ -71,6 +73,23 @@ const AlbumView = () => {
       console.error("Error deleting song:", err);
     }
   };
+
+  const handleDeleteAlbum = async () => {
+    try {
+      await axios.delete(`/api/album/${albumId}`);
+      alert("Album deleted successfully.");
+      if (user?.id) {
+        window.location.href = `/profile/${user.id}`;
+      } else {
+        window.location.href = "/";
+      }
+    } catch (err) {
+      console.error("Error deleting album:", err);
+      alert("Failed to delete album.");
+    }
+  };
+  
+  
 
   const handleAlbumEdit = () => {
     setNewTitle(albumInfo?.title || '');
@@ -164,8 +183,11 @@ const AlbumView = () => {
           <>
             <button onClick={handleAlbumEdit} className="edit-button">Edit Album</button>
             <button onClick={() => setShowAddSongModal(true)} className="add-song-button">Add Song</button>
+            <button onClick={() => setShowDeleteModal(true)} className="delete-album-button">Delete Album</button>
           </>
         )}
+
+
       </div>
       <img src={albumInfo?.album_art_url} alt="Album Art" className="album-cover" />
       <p>{albumInfo?.description}</p>
@@ -246,6 +268,20 @@ const AlbumView = () => {
           </div>
         </div>
       )}
+
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Delete Album</h3>
+            <p>Are you sure you want to delete this album? This action cannot be undone.</p>
+            <div className="modal-actions">
+              <button onClick={handleDeleteAlbum}>Yes, Delete</button>
+              <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Add Song Modal */}
       {showAddSongModal && (

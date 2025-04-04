@@ -198,6 +198,16 @@
     color: #ff0000;
 }
   
+
+/* used for the delete album conf*/ 
+.modal p {
+    margin: 1rem 0;
+    color: #555;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+
 /* Modal Form Labels */
 .modal label {
     display: block;
