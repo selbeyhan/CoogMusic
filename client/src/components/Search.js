@@ -12,7 +12,8 @@ function Search() {
   const [searchResults, setSearchResults] = useState({
     songs: [],
     artists: [],
-    playlists: []
+    playlists: [],
+    albums: []
   });
   const [isLoading, setIsLoading] = useState(false);
   const { setCurrentSong } = useAudio();
@@ -23,12 +24,12 @@ function Search() {
 
     setIsLoading(true);
     try {
+      // Expect the backend to return an object with keys: songs, artists, playlists, albums
       const response = await axios.get(`/api/search?q=${encodeURIComponent(searchQuery)}`);
-      setSearchResults(response.data || { songs: [], artists: [], playlists: [] });
+      setSearchResults(response.data || { songs: [], artists: [], playlists: [], albums: [] });
     } catch (error) {
       console.error('Error searching:', error);
-      // Fallback to empty results on error
-      setSearchResults({ songs: [], artists: [], playlists: [] });
+      setSearchResults({ songs: [], artists: [], playlists: [], albums: [] });
     } finally {
       setIsLoading(false);
     }
@@ -36,7 +37,6 @@ function Search() {
 
   const handlePlaySong = (song) => {
     setCurrentSong(song);
-    // Increment view count
     axios.post(`/increment-view/${song.song_id}`).catch(console.error);
   };
 
@@ -50,13 +50,15 @@ function Search() {
       return {
         songs: searchResults.songs.slice(0, 5),
         artists: searchResults.artists.slice(0, 5),
-        playlists: searchResults.playlists.slice(0, 5)
+        playlists: searchResults.playlists.slice(0, 5),
+        albums: searchResults.albums.slice(0, 5)
       };
     }
     return {
       songs: activeTab === 'songs' ? searchResults.songs : [],
       artists: activeTab === 'artists' ? searchResults.artists : [],
-      playlists: activeTab === 'playlists' ? searchResults.playlists : []
+      playlists: activeTab === 'playlists' ? searchResults.playlists : [],
+      albums: activeTab === 'albums' ? searchResults.albums : []
     };
   };
 
@@ -64,7 +66,8 @@ function Search() {
   const hasResults = 
     filteredResults.songs.length > 0 || 
     filteredResults.artists.length > 0 || 
-    filteredResults.playlists.length > 0;
+    filteredResults.playlists.length > 0 ||
+    filteredResults.albums.length > 0;
 
   return (
     <div className="search-container">
@@ -84,7 +87,7 @@ function Search() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search for songs, artists, or playlists..."
+            placeholder="Search for songs, artists, playlists, or albums..."
             className="search-input"
           />
           <button type="submit" className="search-button" disabled={isLoading}>
@@ -118,6 +121,12 @@ function Search() {
           onClick={() => handleTabChange('playlists')}
         >
           Playlists
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'albums' ? 'active' : ''}`}
+          onClick={() => handleTabChange('albums')}
+        >
+          Albums
         </button>
       </div>
 
@@ -173,8 +182,6 @@ function Search() {
                 )}
               </div>
             )}
-
-
 
             {/* Artists Section */}
             {filteredResults.artists.length > 0 && (
@@ -240,6 +247,43 @@ function Search() {
                     onClick={() => handleTabChange('playlists')}
                   >
                     View More Playlists
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Albums Section */}
+            {filteredResults.albums.length > 0 && (
+              <div className="result-section">
+                <h2>Albums</h2>
+                <div className="albums-list">
+                  {filteredResults.albums.map(album => (
+                    <Link 
+                      to={`/album/${album.album_id}`} 
+                      className="album-card" 
+                      key={album.album_id}
+                    >
+                      <div className="album-cover">
+                        <img 
+                          src={album.album_art_url || "/coogmusiclogonobg.png"} 
+                          alt={album.title}
+                          onError={(e) => e.target.src = "/coogmusiclogonobg.png"} 
+                        />
+                      </div>
+                      <div className="album-info">
+                        <h3>{album.title}</h3>
+                        <p>{album.description && album.description.substring(0, 50)}{album.description && album.description.length > 50 ? '...' : ''}</p>
+                        <p>Released: {new Date(album.release_date).toLocaleDateString()}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                {activeTab === 'all' && searchResults.albums.length > 5 && (
+                  <button 
+                    className="view-more-btn"
+                    onClick={() => handleTabChange('albums')}
+                  >
+                    View More Albums
                   </button>
                 )}
               </div>

@@ -731,13 +731,23 @@ const server = http.createServer(async (req, res) => {
         LIMIT 20
       `, [`%${query}%`]);
 
+          // Search albums
+    const [albums] = await connection.execute(`
+      SELECT a.*, u.name as musician_name
+      FROM albums a
+      JOIN users u ON a.musician_id = u.user_id
+      WHERE a.title LIKE ? OR a.description LIKE ?
+      LIMIT 20
+    `, [`%${query}%`, `%${query}%`]);
+
       await connection.end();
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         songs,
         artists,
-        playlists
+        playlists,
+        albums
       }));
     } catch (error) {
       console.error('❌ Search error:', error);
