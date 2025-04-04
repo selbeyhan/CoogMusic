@@ -158,7 +158,7 @@
     border: none !important;
     border-radius: 4px !important; /* Square-ish appearance */
     padding: 10px !important;
-    font-size: 2vw !important; /* This will make the font size 2% of the viewport width */
+    font-size: 0.875rem !important; /* ~14px if the root font size is 16px */
     cursor: pointer !important;
     transition: background-color 0.3s !important;
     display: inline-block;
