@@ -66,12 +66,14 @@
     max-width: 850px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     margin-bottom: 50px;
+    overflow-x: visible; /* allow horizontal overflow */
   }
   
   /* Scrollable wrapper */
   .album-table-scroll {
     max-height: 500px;
     overflow-y: auto;
+    overflow-x: visible;
   }
   
   /* Song table layout */
@@ -86,8 +88,6 @@
   .album-table td {
     padding: 12px;
     border-bottom: 1px solid #ddd;
-    /* We remove or override overflow here so the button can appear.
-       If you still need text truncation, you can keep text-overflow. */
     overflow: visible; /* or remove 'overflow' entirely */
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -97,7 +97,7 @@
   /* Column widths */
   .album-table th:nth-child(1),
   .album-table td:nth-child(1) {
-    width: 40%; /* Song title */
+    width: 30%; /* Song title */
   }
   .album-table th:nth-child(2),
   .album-table td:nth-child(2) {
@@ -105,7 +105,7 @@
   }
   .album-table th:nth-child(3),
   .album-table td:nth-child(3) {
-    width: 20%; /* Upload date */
+    width: 30%; /* Upload date */
     text-align: center;
   }
   
@@ -142,7 +142,7 @@
     background-color: red !important;
     color: white !important;
     border: none !important;
-    border-radius: 50% !important;
+    border-radius: 4px !important; /* make look like square */
     padding: 10px !important;
     font-size: 18px !important;
     cursor: pointer !important;
@@ -159,7 +159,10 @@
 
   .delete-song-button:focus {
     outline: none;
+    /* if want custom focus style : */
+    /*box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.4);*/ 
   }
+  
   
 
   
