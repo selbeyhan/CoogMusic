@@ -437,7 +437,6 @@ useEffect(() => {
       setShowCreateAlbumInput(false);
       setNewAlbumData({
         title: '',
-        genre: '',
         description: '',
         album_art_url: 'https://via.placeholder.com/300'
       });
@@ -1031,14 +1030,7 @@ useEffect(() => {
               />
             </div>
             <div className="form-group">
-              <input
-                type="text"
-                name="genre"
-                placeholder="Genre"
-                value={newAlbumData.genre}
-                onChange={handleAlbumDataChange}
-                className="album-genre-input"
-              />
+              {/* Removed Genre input for albums */}
             </div>
             <div className="form-group">
               <textarea
