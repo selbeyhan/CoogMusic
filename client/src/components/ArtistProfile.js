@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useUser } from '@clerk/clerk-react';
 import { useAudio } from '../contexts/AudioContext';
@@ -14,6 +14,7 @@ const ArtistProfile = () => {
 
   const [artist, setArtist] = useState(null);
   const [artistSongs, setArtistSongs] = useState([]);
+  const [albums, setAlbums] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('songs');
@@ -21,7 +22,6 @@ const ArtistProfile = () => {
   useEffect(() => {
     const fetchArtistData = async () => {
       try {
-        // First, get the user information
         const userResponse = await axios.get(`/api/user-by-id/${artistId}`);
 
         if (!userResponse.data || !userResponse.data.user) {
@@ -30,11 +30,14 @@ const ArtistProfile = () => {
           return;
         }
 
-        setArtist(userResponse.data.user);
+        const artistData = userResponse.data.user;
+        setArtist(artistData);
 
-        // Then get the songs by this artist
         const songsResponse = await axios.get(`/api/artist-songs/${artistId}`);
         setArtistSongs(songsResponse.data || []);
+
+        const albumsResponse = await axios.get(`/api/getartistalbums/${artistData.user_id}`);
+        setAlbums(albumsResponse.data.albums || []);
 
         setIsLoading(false);
       } catch (error) {
@@ -49,7 +52,6 @@ const ArtistProfile = () => {
 
   const playSong = (song) => {
     setCurrentSong(song);
-    // Increment view count
     axios.post(`/increment-view/${song.song_id}`).catch(console.error);
   };
 
@@ -83,8 +85,11 @@ const ArtistProfile = () => {
               <span className="stat-value">{artistSongs.length}</span>
               <span className="stat-label">Songs</span>
             </div>
+            <div className="stat">
+              <span className="stat-value">{albums.length}</span>
+              <span className="stat-label">Albums</span>
+            </div>
           </div>
-
         </div>
       </div>
 
@@ -95,6 +100,12 @@ const ArtistProfile = () => {
             onClick={() => setActiveTab('songs')}
           >
             Songs
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'albums' ? 'active' : ''}`}
+            onClick={() => setActiveTab('albums')}
+          >
+            Albums
           </button>
           <button
             className={`tab-btn ${activeTab === 'about' ? 'active' : ''}`}
@@ -141,6 +152,36 @@ const ArtistProfile = () => {
             </div>
           )}
 
+          {activeTab === 'albums' && (
+            <div className="albums-tab">
+              <h2>Albums</h2>
+              {albums.length === 0 ? (
+                <p className="no-content">No albums available.</p>
+              ) : (
+                <div className="albums-list">
+                  {albums.map((album) => (
+                    <Link key={album.album_id} to={`/album/${album.album_id}`} className="album-card">
+                      <div className="album-cover">
+                        <img
+                          src={album.album_art_url || 'https://via.placeholder.com/300'}
+                          alt={album.title}
+                          onError={(e) => e.target.src = 'https://via.placeholder.com/300'}
+                        />
+                      </div>
+                      <div className="album-info">
+                        <h3>{album.title}</h3>
+                        <p className="album-date">
+                          Released: {new Date(album.release_date).toLocaleDateString()}
+                        </p>
+                        <p className="album-views">Views: {album.views}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === 'about' && (
             <div className="about-tab">
               <h2>About {artist.name}</h2>
@@ -151,7 +192,9 @@ const ArtistProfile = () => {
               <div className="info-item">
                 <span className="label">Member Since:</span>
                 <span className="value">
-                  {artist.registration_date ? new Date(artist.registration_date).toLocaleDateString() : "Not available"}
+                  {artist.registration_date
+                    ? new Date(artist.registration_date).toLocaleDateString()
+                    : "Not available"}
                 </span>
               </div>
               <div className="bio-section">

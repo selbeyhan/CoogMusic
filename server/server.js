@@ -1497,6 +1497,31 @@ ORDER BY songs.upload_date DESC`,
   }
 
 
+  // Get albums for an artist by direct user_id (not Clerk ID)
+if (req.method === "GET" && req.url.startsWith("/api/getartistalbums/")) {
+  const userId = decodeURIComponent(req.url.split("/api/getartistalbums/")[1]);
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    // Fetch albums for the given user_id ordered by release date (newest first)
+    const [albums] = await connection.execute(
+      "SELECT * FROM albums WHERE musician_id = ? ORDER BY release_date DESC",
+      [userId]
+    );
+
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ albums }));
+  } catch (error) {
+    console.error("❌ Error in /getartistalbums route:", error.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Internal Server Error" }));
+  }
+}
+
+
 // ^^ viewing another users profile
 
 
