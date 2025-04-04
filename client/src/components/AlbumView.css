@@ -20,7 +20,7 @@
     margin-bottom: 1rem;
   }
   
-  /* The edit button styling, if needed */
+  /* The edit button styling */
   .edit-button {
     background-color: #ff3b3f;
     color: #fff;
@@ -66,7 +66,7 @@
     max-width: 850px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     margin-bottom: 50px;
-    overflow-x: visible; /* allow horizontal overflow */
+    overflow-x: visible; /* Allow horizontal overflow if needed */
   }
   
   /* Scrollable wrapper */
@@ -80,7 +80,7 @@
   .album-table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: fixed; /* so columns have consistent widths */
+    table-layout: fixed; /* Enforce consistent column widths */
   }
   
   /* Table headers & cells */
@@ -88,26 +88,40 @@
   .album-table td {
     padding: 12px;
     border-bottom: 1px solid #ddd;
-    overflow: visible; /* or remove 'overflow' entirely */
+    overflow: visible; /* Ensure content like buttons are visible */
     text-overflow: ellipsis;
     white-space: nowrap;
-    position: relative; /* let absolutely-positioned children be placed relative to each cell */
+    position: relative; /* So absolutely-positioned children are relative to each cell */
   }
   
   /* Column widths */
+  /* Column 1: Song Title (35%) */
   .album-table th:nth-child(1),
   .album-table td:nth-child(1) {
-    width: 30%; /* Song title */
+    width: 35%;
   }
+  
+  /* Column 2: Artist (35%) */
   .album-table th:nth-child(2),
   .album-table td:nth-child(2) {
-    width: 40%; /* Artist */
+    width: 35%;
   }
+  
+  /* Column 3: Uploaded Date (20%) */
   .album-table th:nth-child(3),
   .album-table td:nth-child(3) {
-    width: 30%; /* Upload date */
+    width: 20%;
     text-align: center;
   }
+  
+  /* Column 4: Actions (Delete Button) (10%) */
+  .album-table th:nth-child(4),
+  .album-table td:nth-child(4) {
+    width: 10%;
+    text-align: center;
+    vertical-align: middle;
+  }
+  
   
   /* Sticky header so it stays at the top when scrolling */
   .album-table thead th {
@@ -142,29 +156,26 @@
     background-color: red !important;
     color: white !important;
     border: none !important;
-    border-radius: 4px !important; /* make look like square */
+    border-radius: 4px !important; /* Square-ish appearance */
     padding: 10px !important;
-    font-size: 18px !important;
+    font-size: 2vw !important; /* This will make the font size 2% of the viewport width */
     cursor: pointer !important;
     transition: background-color 0.3s !important;
-    position: absolute !important; /* absolutely positioned within the td */
-    right: 10px;                  /* place it in the top-right corner of the cell */
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 99999 !important;    /* ensure it's on top */
+    display: inline-block;
+    margin: auto;
   }
   .delete-song-button:hover {
     background-color: darkred !important;
   }
 
+
+
+
   .delete-song-button:focus {
     outline: none;
-    /* if want custom focus style : */
-    /*box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.4);*/ 
+    /* if u want to add a custom focus styling (this shows border)  */
+    /* box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.4); */
   }
-  
-  
-
   
   /* Edit Album Modal Overlay */
   .modal-overlay {
@@ -174,7 +185,7 @@
     right: 0;
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.6);
-    z-index: 1000; /* Enough to appear above most content, but below the delete button if needed */
+    z-index: 1000; /* Sits above most content but below the delete button */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -204,7 +215,7 @@
     margin-bottom: 0.5rem;
   }
   
-  /* Modal Inputs/Textareas */
+  /* Modal Inputs & Textareas */
   .modal input,
   .modal textarea {
     width: 100%;
