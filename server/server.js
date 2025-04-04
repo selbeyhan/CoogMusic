@@ -1420,32 +1420,55 @@ LIMIT 20
   }
 
 
+
+  //viewing other users profile
+
   if (req.method === "GET" && req.url.startsWith("/api/user-by-id/")) {
     const userId = req.url.split("/api/user-by-id/")[1];
-
+  
     try {
       const connection = await mysql.createConnection(dbConfig);
+  
+      // Get user data
       const [rows] = await connection.execute(
         "SELECT * FROM users WHERE user_id = ?",
         [userId]
       );
-      await connection.end();
-
+  
       if (rows.length === 0) {
+        await connection.end();
         res.writeHead(404, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Artist not found" }));
-      } else {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ user: rows[0] })); // ✅
+        return res.end(JSON.stringify({ error: "Artist not found" }));
       }
+  
+      const user = rows[0];
+  
+      // Get monthly listeners
+      const [monthlyListenersRows] = await connection.execute(`
+        SELECT COUNT(*) AS monthly_listeners
+        FROM \`streaming history\`
+        WHERE song_id IN (
+          SELECT song_id FROM songs WHERE musician_id = ?
+        )
+        AND timestamp >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
+      `, [userId]);
+  
+      user.monthly_listeners = monthlyListenersRows[0].monthly_listeners || 0;
+  
+      await connection.end();
+  
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ user }));
+  
     } catch (err) {
       console.error("❌ Error fetching user by ID:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Database error" }));
     }
-
+  
     return;
   }
+  
 
   if (req.method === "GET" && req.url.startsWith("/api/artist-songs/")) {
     const artistId = req.url.split("/api/artist-songs/")[1];
@@ -1472,6 +1495,11 @@ ORDER BY songs.upload_date DESC`,
 
     return;
   }
+
+
+// ^^ viewing another users profile
+
+
 
 
   // Toggle like: user can like or unlike a song

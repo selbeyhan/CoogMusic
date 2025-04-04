@@ -76,10 +76,15 @@ const ArtistProfile = () => {
           <p className="artist-bio">{artist.bio || "No bio available."}</p>
           <div className="artist-stats">
             <div className="stat">
+              <span className="stat-value">{artist.monthly_listeners || 0}</span>
+              <span className="stat-label">Monthly Views</span>
+            </div>
+            <div className="stat">
               <span className="stat-value">{artistSongs.length}</span>
               <span className="stat-label">Songs</span>
             </div>
           </div>
+
         </div>
       </div>
 
