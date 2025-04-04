@@ -476,7 +476,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-
 // Get user profile by Clerk user ID (including monthly_listeners calculation)
 if (req.method === "GET" && req.url.startsWith("/user/")) {
   const clerkUserId = decodeURIComponent(req.url.split("/user/")[1]);
@@ -499,7 +498,7 @@ if (req.method === "GET" && req.url.startsWith("/user/")) {
     // The main user record
     const userRecord = rows[0];
 
-    // 2) Calculate monthly_listeners by checking streaming_history for the last 30 days
+    // 2) Calculate monthly_listeners by checking `streaming history` for the last 30 days
     //    But first we confirm which songs belong to this user (musician_id).
     //    We'll do this with a sub-select on songs.
     const [monthlyListenersRows] = await connection.execute(`
@@ -512,12 +511,17 @@ if (req.method === "GET" && req.url.startsWith("/user/")) {
       )
       AND timestamp >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
     `, [userRecord.user_id]);
-    
 
     // If user has no songs or no streams, this will be 0
     const computedMonthlyListeners = monthlyListenersRows[0].monthly_listeners || 0;
 
-    // Attach it to the user record
+    // 3) Update the users table with the new monthly_listeners value
+    await connection.execute(
+      "UPDATE users SET monthly_listeners = ? WHERE user_id = ?",
+      [computedMonthlyListeners, userRecord.user_id]
+    );
+
+    // Attach it to the user record (so we can return it)
     userRecord.monthly_listeners = computedMonthlyListeners;
 
     // Done with DB
@@ -535,6 +539,7 @@ if (req.method === "GET" && req.url.startsWith("/user/")) {
 
   return;
 }
+
 
 
  // Increment the view count for a song and record the timestamp in streaming history
