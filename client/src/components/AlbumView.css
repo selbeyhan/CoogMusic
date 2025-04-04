@@ -1,3 +1,5 @@
+/* AlbumView.css */
+
 /* Base layout */
 .album-view {
     display: flex;
@@ -7,26 +9,26 @@
     padding: 20px;
     background-color: #f4f4f4;
     min-height: 100vh;
-  }
+}
   
-  /* Album title */
-  .album-view h2 {
+/* Album title */
+.album-view h2 {
     font-size: 2rem;
     color: #333;
     margin-bottom: 10px;
-  }
+}
   
-  /* Album description */
-  .album-view p {
+/* Album description */
+.album-view p {
     font-size: 1rem;
     color: #666;
     margin-bottom: 20px;
     text-align: center;
     max-width: 700px;
-  }
+}
   
-  /* Table-style song list container */
-  .album-table-container {
+/* Table-style song list container */
+.album-table-container {
     background: #fff;
     border-radius: 8px;
     padding: 20px;
@@ -34,74 +36,80 @@
     max-width: 850px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     margin-bottom: 50px;
-  }
+}
   
-  /* Scrollable wrapper */
-  .album-table-scroll {
+/* Scrollable wrapper */
+.album-table-scroll {
     max-height: 500px;
     overflow-y: auto;
-  }
+}
   
-  /* Song table layout */
-  .album-table {
+/* Song table layout */
+.album-table {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
-  }
+}
   
-  .album-table th,
-  .album-table td {
+.album-table th,
+.album-table td {
     padding: 12px;
     border-bottom: 1px solid #ddd;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
+}
   
-  /* Column widths */
-  .album-table th:nth-child(1),
-  .album-table td:nth-child(1) {
+/* Column widths */
+.album-table th:nth-child(1),
+.album-table td:nth-child(1) {
     width: 40%; /* Song title */
-  }
+}
   
-  .album-table th:nth-child(2),
-  .album-table td:nth-child(2) {
+.album-table th:nth-child(2),
+.album-table td:nth-child(2) {
     width: 40%; /* Artist */
-  }
+}
   
-  .album-table th:nth-child(3),
-  .album-table td:nth-child(3) {
+.album-table th:nth-child(3),
+.album-table td:nth-child(3) {
     width: 20%; /* Upload date */
     text-align: center;
-  }
+}
   
-  /* Sticky header */
-  .album-table thead th {
+/* Ensure each table cell is relatively positioned so that the delete button (absolutely positioned) 
+   is positioned relative to its cell */
+.album-table td {
+    position: relative;
+}
+  
+/* Sticky header */
+.album-table thead th {
     position: sticky;
     top: 0;
     background-color: #ff3b3f;
     color: #fff;
     z-index: 2;
-  }
+}
   
-  /* Hover effect on song row */
-  .album-table tbody tr:hover {
+/* Hover effect on song row */
+.album-table tbody tr:hover {
     background-color: #f9f9f9;
     cursor: pointer;
-  }
+}
   
-  /* Hover underline on title only */
-  .album-table tbody tr td:nth-child(1):hover {
+/* Hover underline on title only */
+.album-table tbody tr td:nth-child(1):hover {
     text-decoration: underline;
-  }
+}
   
-  /* Empty state and loading */
-  .album-view p,
-  .loading {
+/* Empty state and loading */
+.album-view p,
+.loading {
     font-size: 1rem;
     color: #777;
     margin-top: 20px;
-  }
+}
   
 /* Button styles for deleting song from a playlist */
 .delete-song-button {
@@ -113,32 +121,32 @@
     font-size: 18px !important;
     cursor: pointer !important;
     transition: background-color 0.3s !important;
-    z-index: 1001 !important;  /* ensure visibility over other elements */
-    position: relative !important;  /* ensures stacking within the table */
-  }
+    z-index: 99999 !important;  /* ensure visibility over other elements */
+    position: absolute !important;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
   
-  .delete-song-button:hover {
+.delete-song-button:hover {
     background-color: darkred !important;
-  }
-/*using important but google said dont do but i do */ 
+}
   
-
-  
-  /* Edit Album Modal Styles */
-  .modal-overlay {
+/* Edit Album Modal Styles */
+.modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.6);
-    z-index: 1000; /* Lower z-index to allow delete button visibility */
+    z-index: 1000; /* Lower z-index than the delete button */
     display: flex;
     justify-content: center;
     align-items: center;
-  }
+}
   
-  .modal {
+.modal {
     background: white;
     padding: 2rem;
     border-radius: 8px;
@@ -146,61 +154,60 @@
     width: 90%;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     text-align: center;
-  }
+}
   
-  .modal h3 {
+.modal h3 {
     margin-top: 0;
     color: #ff0000;
-  }
+}
   
-  .modal label {
+.modal label {
     display: block;
     font-weight: bold;
     margin-bottom: 0.5rem;
-  }
+}
   
-  .modal input,
-  .modal textarea {
+.modal input,
+.modal textarea {
     width: 100%;
     padding: 0.8rem;
     border: 1px solid #ddd;
     border-radius: 4px;
     margin-bottom: 1rem;
-  }
+}
   
-  .modal textarea {
+.modal textarea {
     min-height: 100px;
     resize: vertical;
-  }
+}
   
-  .modal-actions {
+.modal-actions {
     display: flex;
     justify-content: space-between;
-  }
+}
   
-  .modal-actions button {
+.modal-actions button {
     padding: 0.6rem 1.2rem;
     font-weight: bold;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-  }
+}
   
-  .modal-actions button:first-child {
+.modal-actions button:first-child {
     background: #ff0000;
     color: white;
-  }
+}
   
-  .modal-actions button:first-child:hover {
+.modal-actions button:first-child:hover {
     background: #cc0000;
-  }
+}
   
-  .modal-actions button:last-child {
+.modal-actions button:last-child {
     background: #f0f0f0;
     color: #333;
-  }
+}
   
-  .modal-actions button:last-child:hover {
+.modal-actions button:last-child:hover {
     background: #e0e0e0;
-  }
-  
+}

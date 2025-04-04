@@ -26,11 +26,14 @@ const AlbumView = () => {
         setSongs(res.data.songs || []);
 
         if (user) {
-            const userRes = await axios.get(`/user/${user.id}`);
-            const internalUserId = userRes.data.user.user_id;
-
+          const userRes = await axios.get(`/user/${user.id}`);
+          const internalUserId = userRes.data.user.user_id;
+          console.log(`Album owner id: ${res.data.album.musician_id}, current user id: ${internalUserId}`);
           if (internalUserId === res.data.album.musician_id) {
             setIsOwner(true);
+            console.log("User is the album owner. Delete buttons should be visible.");
+          } else {
+            console.log("User is not the album owner. Edit/Delete buttons will not be shown.");
           }
         }
       } catch (err) {
@@ -49,6 +52,7 @@ const AlbumView = () => {
     try {
       await axios.delete(`/api/song/${songId}`);
       setSongs(prev => prev.filter(song => song.song_id !== songId));
+      console.log(`Song with ID ${songId} deleted successfully.`);
     } catch (err) {
       console.error("Error deleting song:", err);
     }
@@ -56,14 +60,15 @@ const AlbumView = () => {
 
   const handleAlbumEdit = () => {
     setNewTitle(albumInfo?.title || '');
-    setNewDescription(albumInfo?.description || '');  // Add description field
+    setNewDescription(albumInfo?.description || '');
     setShowEditModal(true);
+    console.log("Edit Album modal opened.");
   };
 
   const handleUpdateAlbum = async () => {
     const formData = new FormData();
     formData.append('title', newTitle);
-    formData.append('description', newDescription);  // Add description to the form data
+    formData.append('description', newDescription);
     formData.append('album_id', albumId);
 
     if (coverInputRef.current?.files[0]) {
@@ -75,10 +80,11 @@ const AlbumView = () => {
       setAlbumInfo(prev => ({
         ...prev,
         title: newTitle,
-        description: newDescription,  // Update description
+        description: newDescription,
         album_art_url: res.data.album_art_url || prev.album_art_url,
       }));
       setShowEditModal(false);
+      console.log("Album updated successfully.");
     } catch (err) {
       console.error("Error updating album:", err);
     }
