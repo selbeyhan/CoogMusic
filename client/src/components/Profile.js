@@ -368,12 +368,13 @@ useEffect(() => {
           {
             album_id: newAlbumId,
             title: newAlbumData.title,
-            album_art_url: newAlbumData.album_art_url,
+            album_art_url: response.data.album_art_url, // ✅ Use returned image URL
             description: newAlbumData.description,
             release_date: new Date().toISOString(),
             views: 0
           }
         ]);
+        
     
         setNewAlbumData({
           title: '',

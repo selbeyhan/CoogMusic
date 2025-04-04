@@ -1707,8 +1707,12 @@ if (req.method === "POST" && req.url === "/api/createAlbum") {
       );
       await connection.end();
       res.writeHead(201, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ message: "Album created successfully", album_id: result.insertId }));
-    } catch (error) {
+      return res.end(JSON.stringify({ 
+        message: "Album created successfully", 
+        album_id: result.insertId,
+        album_art_url: albumArtUrl // ✅ Include the final image URL
+      }));
+          } catch (error) {
       console.error("❌ Error creating album:", error.message);
       res.writeHead(500, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ error: "Internal Server Error" }));
