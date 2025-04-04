@@ -1818,6 +1818,81 @@ if (req.method === "GET" && req.url.startsWith("/api/album/")) {
 }
 
 
+//update album pic or title from the albumview page 
+//(only if that user owns that album)
+if (req.method === "PATCH" && req.url === "/editalbumtitleorpic") {
+  upload.single("cover_art")(req, res, async (err) => {
+    if (err) {
+      console.error("❌ Multer error during album update:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "File processing error" }));
+    }
+
+    try {
+      const { album_id, title, description } = req.body;
+
+      if (!album_id) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Missing album_id" }));
+      }
+
+      const updates = [];
+      const values = [];
+
+      if (title) {
+        updates.push("title = ?");
+        values.push(title);
+      }
+
+      if (description) {  // Update description if provided
+        updates.push("description = ?");
+        values.push(description);
+      }
+
+      let albumArtUrl;
+
+      if (req.file) {
+        const blobName = `${uuidv4()}-${req.file.originalname}`;
+        await songPictureContainerClient.createIfNotExists({ access: "container" });
+        const blockBlobClient = songPictureContainerClient.getBlockBlobClient(blobName);
+        await blockBlobClient.uploadData(req.file.buffer, {
+          blobHTTPHeaders: { blobContentType: req.file.mimetype },
+        });
+        albumArtUrl = blockBlobClient.url;
+        updates.push("album_art_url = ?");
+        values.push(albumArtUrl);
+      }
+
+      if (updates.length === 0) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "No updates provided" }));
+      }
+
+      values.push(album_id); // for WHERE clause
+
+      const connection = await mysql.createConnection(dbConfig);
+      await connection.execute(
+        `UPDATE albums SET ${updates.join(", ")} WHERE album_id = ?`,
+        values
+      );
+      await connection.end();
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        message: "Album updated successfully",
+        album_art_url: albumArtUrl
+      }));
+    } catch (error) {
+      console.error("❌ Error updating album:", error);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Internal Server Error" }));
+    }
+  });
+
+  return;
+}
+
+
 
 
   // Serve React Frontend (Static Files)
