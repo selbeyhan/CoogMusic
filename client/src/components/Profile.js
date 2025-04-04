@@ -16,6 +16,9 @@ const Profile = () => {
 
   const [editingPlaylistId, setEditingPlaylistId] = useState(null);
   const [editedPlaylistName, setEditedPlaylistName] = useState('');
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+
 
   const [editingSongId, setEditingSongId] = useState(null);
   const [editedSongData, setEditedSongData] = useState({
@@ -120,6 +123,16 @@ useEffect(() => {
       } else {
         console.error("❌ Songs data is not in the expected format:", songsResponse.data);
       }
+
+
+
+      // Fetch followers and following counts
+      const followersRes = await axios.get(`/api/followers/${userId}`);
+      setFollowerCount(followersRes.data.followers?.length || 0);
+
+      const followingRes = await axios.get(`/api/following/${userId}`);
+      setFollowingCount(followingRes.data.following?.length || 0);
+
 
       // ALBUM FEATURE: Fetch user's albums
       const albumsResponse = await axios.get(`/api/getuseralbums/${userId}`);
@@ -605,6 +618,14 @@ useEffect(() => {
             <div className="stat">
               <span className="stat-value">{userSongs.length}</span>
               <span className="stat-label">Songs</span>
+            </div>
+            <div className="stat">
+              <span className="stat-value">{followerCount}</span>
+              <span className="stat-label">Followers</span>
+            </div>
+            <div className="stat">
+              <span className="stat-value">{followingCount}</span>
+              <span className="stat-label">Following</span>
             </div>
           </div>
           {isOwner && userProfile.verification_status && (

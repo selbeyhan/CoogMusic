@@ -2136,6 +2136,29 @@ if (req.method === "GET" && req.url.startsWith("/api/is-following/")) {
   return;
 }
 
+// 5. Get users the current user is following
+// used for the profile.js file (to show how many people current user is following)
+//since artistprofie.js doesnt show how many people a user is following
+if (req.method === "GET" && req.url.startsWith("/api/following/")) {
+  const userId = req.url.split("/api/following/")[1];
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [following] = await connection.execute(
+      "SELECT * FROM `user followers` WHERE follower_id = ?",
+      [userId]
+    );
+    await connection.end();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ following }));
+  } catch (err) {
+    console.error("❌ Error fetching following:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to fetch following" }));
+  }
+  return;
+}
+
+
 
 //following feature 
 
