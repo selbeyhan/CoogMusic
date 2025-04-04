@@ -2040,6 +2040,108 @@ if (req.method === 'DELETE' && req.url.startsWith('/api/album/')) {
 
 
 
+
+//following feature 
+
+// 1. Follow an artist
+if (req.method === "POST" && req.url === "/api/follow") {
+  let body = "";
+  req.on("data", chunk => body += chunk.toString());
+  req.on("end", async () => {
+    try {
+      const { follower_id, followed_id } = JSON.parse(body);
+      const connection = await mysql.createConnection(dbConfig);
+      await connection.execute(
+        "INSERT INTO `user followers` (follower_id, followed_id, timestamp) VALUES (?, ?, NOW())",
+        [follower_id, followed_id]
+      );
+      await connection.end();
+      console.log(`✅ User ${follower_id} has followed user ${followed_id}`);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Followed successfully" }));
+    } catch (err) {
+      console.error("❌ Follow error:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Follow failed" }));
+    }
+  });
+  return;
+}
+
+// 2. Unfollow an artist
+if (req.method === "DELETE" && req.url === "/api/unfollow") {
+  let body = "";
+  req.on("data", chunk => body += chunk.toString());
+  req.on("end", async () => {
+    try {
+      const { follower_id, followed_id } = JSON.parse(body);
+      const connection = await mysql.createConnection(dbConfig);
+      await connection.execute(
+        "DELETE FROM `user followers` WHERE follower_id = ? AND followed_id = ?",
+        [follower_id, followed_id]
+      );
+      await connection.end();
+      console.log(`⚠️ User ${follower_id} has unfollowed user ${followed_id}`);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Unfollowed successfully" }));
+    } catch (err) {
+      console.error("❌ Unfollow error:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Unfollow failed" }));
+    }
+  });
+  return;
+}
+
+
+// 3. Get followers of an artist
+if (req.method === "GET" && req.url.startsWith("/api/followers/")) {
+  const artistId = req.url.split("/api/followers/")[1];
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [followers] = await connection.execute(
+      "SELECT * FROM `user followers` WHERE followed_id = ?",
+      [artistId]
+    );
+    await connection.end();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ followers }));
+  } catch (err) {
+    console.error("❌ Error fetching followers:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to fetch followers" }));
+  }
+  return;
+}
+
+// 4. Check if user is following an artist
+if (req.method === "GET" && req.url.startsWith("/api/is-following/")) {
+  const parts = req.url.split("/api/is-following/")[1].split("/");
+  const [followerId, followedId] = parts;
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute(
+      "SELECT * FROM `user followers` WHERE follower_id = ? AND followed_id = ?",
+      [followerId, followedId]
+    );
+    await connection.end();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ isFollowing: rows.length > 0 }));
+  } catch (err) {
+    console.error("❌ Error checking follow status:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to check follow status" }));
+  }
+  return;
+}
+
+
+//following feature 
+
+
+
+
   // Serve React Frontend (Static Files)
   const buildPath = path.join(__dirname, "build");
 

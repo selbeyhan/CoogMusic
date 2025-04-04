@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-vars */
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
@@ -19,11 +18,15 @@ const ArtistProfile = () => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('songs');
 
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+
   useEffect(() => {
     const fetchArtistData = async () => {
       try {
         const userResponse = await axios.get(`/api/user-by-id/${artistId}`);
-
         if (!userResponse.data || !userResponse.data.user) {
           setError("Artist not found");
           setIsLoading(false);
@@ -39,6 +42,18 @@ const ArtistProfile = () => {
         const albumsResponse = await axios.get(`/api/getartistalbums/${artistData.user_id}`);
         setAlbums(albumsResponse.data.albums || []);
 
+        const followersRes = await axios.get(`/api/followers/${artistId}`);
+        setFollowerCount(followersRes.data.followers?.length || 0);
+
+        if (currentUser) {
+          const res = await axios.get(`/user/${currentUser.id}`);
+          const myId = res.data.user.user_id;
+          setCurrentUserId(myId);
+
+          const isFollowingRes = await axios.get(`/api/is-following/${myId}/${artistId}`);
+          setIsFollowing(isFollowingRes.data.isFollowing);
+        }
+
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching artist data:", error);
@@ -48,20 +63,48 @@ const ArtistProfile = () => {
     };
 
     fetchArtistData();
-  }, [artistId]);
+  }, [artistId, currentUser]);
+
+
+
+  const toggleFollow = async () => {
+    if (!currentUserId || !artistId || isButtonDisabled) return;
+  
+    setIsButtonDisabled(true); // Disable button while request is in flight
+  
+    try {
+      if (isFollowing) {
+        await axios.delete('/api/unfollow', {
+          data: { follower_id: currentUserId, followed_id: artistId }
+        });
+        setIsFollowing(false);
+        setFollowerCount(prev => prev - 1);
+      } else {
+        await axios.post('/api/follow', {
+          follower_id: currentUserId,
+          followed_id: artistId
+        });
+        setIsFollowing(true);
+        setFollowerCount(prev => prev + 1);
+      }
+    } catch (err) {
+      console.error("Follow toggle error:", err);
+    } finally {
+      setIsButtonDisabled(false); // Re-enable after response is complete
+    }
+  };
+  
+  
 
   const playSong = (song) => {
     setCurrentSong(song);
     axios.post(`/increment-view/${song.song_id}`).catch(console.error);
   };
 
-  if (isLoading) {
-    return <div className="loading-container">Loading artist profile...</div>;
-  }
+  if (isLoading) return <div className="loading-container">Loading artist profile...</div>;
+  if (error) return <div className="error-container">{error}</div>;
 
-  if (error) {
-    return <div className="error-container">{error}</div>;
-  }
+  const isOwnProfile = currentUserId === parseInt(artistId);
 
   return (
     <div className="artist-profile-container">
@@ -89,7 +132,16 @@ const ArtistProfile = () => {
               <span className="stat-value">{albums.length}</span>
               <span className="stat-label">Albums</span>
             </div>
+            <div className="stat">
+              <span className="stat-value">{followerCount}</span>
+              <span className="stat-label">Followers</span>
+            </div>
           </div>
+          {!isOwnProfile && (
+            <button className="follow-btn" onClick={toggleFollow} disabled={isButtonDisabled}>
+              {isFollowing ? "Unfollow" : "Follow"}
+            </button>
+          )}
         </div>
       </div>
 
