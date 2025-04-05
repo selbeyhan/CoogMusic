@@ -23,6 +23,8 @@ import PlaylistView from './components/PlaylistView';
 import ArtistProfile from './components/ArtistProfile';
 import Search from './components/Search';
 import AlbumView from './components/AlbumView';
+import Explore from './components/Explore';
+
 
 
 
@@ -90,6 +92,7 @@ function App() {
             <Route path="/adminportal" element={<AdminPortal />} />
             <Route path="/search" element={<Search />} />
             <Route path="/album/:albumId" element={<AlbumView />} />
+            <Route path="/explore" element={<Explore />} />
             <Route path="/signup/verify-email-address" element={<VerifyEmailRedirect />} />
             <Route
               path="*"
