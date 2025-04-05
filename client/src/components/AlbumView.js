@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
@@ -19,7 +21,6 @@ const AlbumView = () => {
   const { setCurrentSong } = useAudio();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-
   // New states for adding a song to the album
   const [showAddSongModal, setShowAddSongModal] = useState(false);
   const [newSongData, setNewSongData] = useState({
@@ -29,6 +30,8 @@ const AlbumView = () => {
     file: null,
     coverArt: null,
   });
+  // New state to prevent multiple submissions
+  const [isAddingSong, setIsAddingSong] = useState(false);
 
   // New refs for file inputs in the Add Song modal
   const audioFileRef = useRef(null);
@@ -88,8 +91,6 @@ const AlbumView = () => {
       alert("Failed to delete album.");
     }
   };
-  
-  
 
   const handleAlbumEdit = () => {
     setNewTitle(albumInfo?.title || '');
@@ -124,13 +125,21 @@ const AlbumView = () => {
   };
 
   // Handler for adding a song to the album
-  const handleAddSongToAlbum = async () => {
+  const handleAddSongToAlbum = async (e) => {
+    e.preventDefault(); // Prevent default form submission
+
+    // Prevent multiple submissions if one is already in progress
+    if (isAddingSong) return;
+    setIsAddingSong(true);
+
     if (!newSongData.title.trim()) {
       alert("Song title is required.");
+      setIsAddingSong(false);
       return;
     }
     if (!newSongData.file) {
       alert("Please select an audio file for the song.");
+      setIsAddingSong(false);
       return;
     }
 
@@ -154,21 +163,28 @@ const AlbumView = () => {
       const updatedAlbum = await axios.get(`/api/album/${albumId}`);
       setSongs(updatedAlbum.data.songs || []);
       alert("Song added to album!");
-      setShowAddSongModal(false);
-      setNewSongData({
-        title: '',
-        genre: '',
-        description: '',
-        file: null,
-        coverArt: null,
-      });
-      // Clear file inputs
-      if (audioFileRef.current) audioFileRef.current.value = "";
-      if (coverArtRef.current) coverArtRef.current.value = "";
+      // Reset the new song data and close the modal
+      handleCancelAddSong();
     } catch (err) {
       console.error("Error uploading song:", err);
       alert("Upload failed.");
+    } finally {
+      setIsAddingSong(false);
     }
+  };
+
+  // Helper to clear new song data when canceling the Add Song modal
+  const handleCancelAddSong = () => {
+    setNewSongData({
+      title: '',
+      genre: '',
+      description: '',
+      file: null,
+      coverArt: null,
+    });
+    if (audioFileRef.current) audioFileRef.current.value = "";
+    if (coverArtRef.current) coverArtRef.current.value = "";
+    setShowAddSongModal(false);
   };
 
   if (isLoading) return <div className="loading">Loading album...</div>;
@@ -186,8 +202,6 @@ const AlbumView = () => {
             <button onClick={() => setShowDeleteModal(true)} className="delete-album-button">Delete Album</button>
           </>
         )}
-
-
       </div>
       <img src={albumInfo?.album_art_url} alt="Album Art" className="album-cover" />
       <p>{albumInfo?.description}</p>
@@ -282,7 +296,6 @@ const AlbumView = () => {
         </div>
       )}
 
-
       {/* Add Song Modal */}
       {showAddSongModal && (
         <div className="modal-overlay">
@@ -354,7 +367,7 @@ const AlbumView = () => {
               </div>
               <div className="modal-actions">
                 <button type="submit">Save Song</button>
-                <button type="button" onClick={() => setShowAddSongModal(false)}>
+                <button type="button" onClick={handleCancelAddSong}>
                   Cancel
                 </button>
               </div>
@@ -362,7 +375,6 @@ const AlbumView = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
