@@ -199,12 +199,13 @@ async function uploadProfilePicture(req, res) {
 }
 
 async function uploadSong(req, res) {
-
-
-
-
   try {
     const { title, genre, description, cover_art_url, musician_id } = req.body;
+    
+    // Inline genre validation using allowed values
+    const allowedGenres = ['Hip-Hop', 'Pop', 'Rock', 'Electronic', 'Rap', 'Other'];
+    const validatedGenre = allowedGenres.includes(genre) ? genre : 'Other';
+
     const fileBuffer = req.fileBuffer;
     const fileName = `${uuidv4()}-${req.fileName}`;
     const blockBlobClient = songContainerClient.getBlockBlobClient(fileName);
@@ -218,31 +219,30 @@ async function uploadSong(req, res) {
     console.log("File uploaded:", fileUrl);
 
     // ---------------
-    // Setting a default duration instead of using ffprobe
-    // In production, replace this with an actual duration calculation
+    // Setting a default duration instead of using ffprobe.
+    // In production, replace this with an actual duration calculation.
     const duration = 180; // Default duration of 3 minutes
     console.log("Skipping ffprobe. Using default duration:", duration);
     // ---------------
 
-// Upload cover art if a file is provided (similar to profile picture upload)
-let finalCoverArtUrl = cover_art_url; // Default to the value provided in the request body
-if (req.files && req.files.cover_art && req.files.cover_art[0]) {
-  const coverArtFile = req.files.cover_art[0];
-  const coverArtBuffer = coverArtFile.buffer;
-  const coverArtName = `${uuidv4()}-${coverArtFile.originalname}`;
+    // Upload cover art if a file is provided (similar to profile picture upload)
+    let finalCoverArtUrl = cover_art_url; // Default to the value provided in the request body
+    if (req.files && req.files.cover_art && req.files.cover_art[0]) {
+      const coverArtFile = req.files.cover_art[0];
+      const coverArtBuffer = coverArtFile.buffer;
+      const coverArtName = `${uuidv4()}-${coverArtFile.originalname}`;
+      
+      // Ensure the Azure container for song pictures exists
+      await songPictureContainerClient.createIfNotExists({ access: "container" });
+      const coverArtBlockBlobClient = songPictureContainerClient.getBlockBlobClient(coverArtName);
   
-  // Ensure the Azure container for song pictures exists (assumes songPictureContainerClient is defined)
-  await songPictureContainerClient.createIfNotExists({ access: "container" });
-  const coverArtBlockBlobClient = songPictureContainerClient.getBlockBlobClient(coverArtName);
-
-  console.log("Uploading song cover art to Azure Blob Storage...");
-  await coverArtBlockBlobClient.uploadData(coverArtBuffer, {
-    blobHTTPHeaders: { blobContentType: coverArtFile.mimetype },
-  });
-  finalCoverArtUrl = coverArtBlockBlobClient.url;
-  console.log("Song cover art uploaded:", finalCoverArtUrl);
-}
-
+      console.log("Uploading song cover art to Azure Blob Storage...");
+      await coverArtBlockBlobClient.uploadData(coverArtBuffer, {
+        blobHTTPHeaders: { blobContentType: coverArtFile.mimetype },
+      });
+      finalCoverArtUrl = coverArtBlockBlobClient.url;
+      console.log("Song cover art uploaded:", finalCoverArtUrl);
+    }
 
     const uploadDate = new Date().toISOString().slice(0, 19).replace("T", " ");
 
@@ -251,8 +251,8 @@ if (req.files && req.files.cover_art && req.files.cover_art[0]) {
       connection = await mysql.createConnection(dbConfig);
       await connection.execute(
         `INSERT INTO Songs (title, musician_id, upload_date, genre, duration, file_url, cover_art_url, description)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [title, musician_id, uploadDate, genre, duration, fileUrl, finalCoverArtUrl, description]
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [title, musician_id, uploadDate, validatedGenre, duration, fileUrl, finalCoverArtUrl, description]
       );
       console.log("✅ File metadata stored in database.");
     } catch (dbError) {
@@ -270,6 +270,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     res.end(JSON.stringify({ error: "Error uploading file", details: error.message }));
   }
 }
+
 
 
 /**
@@ -876,10 +877,15 @@ if (req.method === "POST" && req.url.startsWith("/increment-view/")) {
           updates.push("title = ?");
           params.push(title);
         }
+        
+        // Validate genre against allowed ENUM values before updating
         if (genre) {
+          const allowedGenres = ['Hip-Hop', 'Pop', 'Rock', 'Electronic', 'Rap', 'Other'];
+          const validatedGenre = allowedGenres.includes(genre) ? genre : 'Other';
           updates.push("genre = ?");
-          params.push(genre);
+          params.push(validatedGenre);
         }
+    
         if (description) {
           updates.push("description = ?");
           params.push(description);
@@ -936,6 +942,7 @@ if (req.method === "POST" && req.url.startsWith("/increment-view/")) {
     });
     return;
   }
+  
   
 
   // Create a new playlist
@@ -1830,6 +1837,10 @@ if (req.url === "/api/upload-album-songs" && req.method === "POST") {
         const genre = Array.isArray(genres) ? genres[i] : genres;
         const description = Array.isArray(descriptions) ? descriptions[i] : descriptions;
 
+        // Inline genre validation using allowed values
+        const allowedGenres = ['Hip-Hop', 'Pop', 'Rock', 'Electronic', 'Rap', 'Other'];
+        const validatedGenre = allowedGenres.includes(genre) ? genre : 'Other';
+
         // Upload audio
         const fileName = `${uuidv4()}-${file.originalname}`;
         const audioBlob = songContainerClient.getBlockBlobClient(fileName);
@@ -1853,11 +1864,11 @@ if (req.url === "/api/upload-album-songs" && req.method === "POST") {
         const uploadDate = new Date().toISOString().slice(0, 19).replace("T", " ");
         const duration = 180;
 
-        // Insert into `songs`
+        // Insert into `songs` using the validated genre
         const [songResult] = await connection.execute(
           `INSERT INTO songs (title, musician_id, upload_date, genre, duration, file_url, cover_art_url, description)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [title, musician_id, uploadDate, genre, duration, fileUrl, coverArtUrl, description]
+          [title, musician_id, uploadDate, validatedGenre, duration, fileUrl, coverArtUrl, description]
         );
 
         const songId = songResult.insertId;
@@ -1882,6 +1893,7 @@ if (req.url === "/api/upload-album-songs" && req.method === "POST") {
 
   return;
 }
+
 
 
 if (req.method === "GET" && req.url.startsWith("/api/album/")) {

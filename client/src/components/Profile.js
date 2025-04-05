@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useUser, useClerk } from '@clerk/clerk-react';
@@ -699,16 +701,23 @@ useEffect(() => {
                 required
               />
             </div>
-            <div className="form-group">
+            <div className="form-group"> 
               <label htmlFor="genre">Genre</label>
-              <input
-                type="text"
+              <select
                 id="genre"
                 name="genre"
                 value={uploadFormData.genre}
                 onChange={handleUploadFormChange}
                 required
-              />
+              >
+                <option value="">Select Genre</option>
+                <option value="Hip-Hop">Hip-Hop</option>
+                <option value="Pop">Pop</option>
+                <option value="Rock">Rock</option>
+                <option value="Electronic">Electronic</option>
+                <option value="Rap">Rap</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
             <div className="form-group">
               <label htmlFor="description">Description</label>
@@ -808,13 +817,20 @@ useEffect(() => {
                         </div>
                         <div className="form-group">
                           <label>Genre:</label>
-                          <input
-                            type="text"
+                          <select
                             value={editedSongData.genre}
                             onChange={(e) =>
                               setEditedSongData({ ...editedSongData, genre: e.target.value })
                             }
-                          />
+                          >
+                            <option value="">Select Genre</option>
+                            <option value="Hip-Hop">Hip-Hop</option>
+                            <option value="Pop">Pop</option>
+                            <option value="Rock">Rock</option>
+                            <option value="Electronic">Electronic</option>
+                            <option value="Rap">Rap</option>
+                            <option value="Other">Other</option>
+                          </select>
                         </div>
                         <div className="form-group">
                           <label>Description:</label>
@@ -1104,14 +1120,23 @@ useEffect(() => {
       </div>
 
       <div className="form-group">
-        <input
-          type="text"
+        <label htmlFor="albumSongGenre">Genre</label>
+        <select
+          id="albumSongGenre"
           name="genre"
-          placeholder="Genre"
           value={newAlbumSongData.genre}
           onChange={handleNewAlbumSongChange}
-        />
+        >
+          <option value="">Select Genre</option>
+          <option value="Hip-Hop">Hip-Hop</option>
+          <option value="Pop">Pop</option>
+          <option value="Rock">Rock</option>
+          <option value="Electronic">Electronic</option>
+          <option value="Rap">Rap</option>
+          <option value="Other">Other</option>
+        </select>
       </div>
+
 
       <div className="form-group">
         <textarea
