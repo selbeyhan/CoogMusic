@@ -14,21 +14,12 @@ function Explore() {
 
   const genreContent = [
     {
-      genre: "Hip Hop",
+      genre: "Hip-Hop",
       songs: [
-        { title: "Hip Hop Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "Hip Hop Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "Hip Hop Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "Hip Hop Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-      ]
-    },
-    {
-      genre: "Rock",
-      songs: [
-        { title: "Rock Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "Rock Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "Rock Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "Rock Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
+        { title: "Hip-Hop Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
+        { title: "Hip-Hop Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
+        { title: "Hip-Hop Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
+        { title: "Hip-Hop Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
       ]
     },
     {
@@ -41,12 +32,39 @@ function Explore() {
       ]
     },
     {
-      genre: "R&B",
+      genre: "Rock",
       songs: [
-        { title: "R&B Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "R&B Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "R&B Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "R&B Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
+        { title: "Rock Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
+        { title: "Rock Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
+        { title: "Rock Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
+        { title: "Rock Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
+      ]
+    },
+    {
+      genre: "Electronic",
+      songs: [
+        { title: "Electronic Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
+        { title: "Electronic Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
+        { title: "Electronic Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
+        { title: "Electronic Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
+      ]
+    },
+    {
+      genre: "Rap",
+      songs: [
+        { title: "Rap Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
+        { title: "Rap Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
+        { title: "Rap Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
+        { title: "Rap Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
+      ]
+    },
+    {
+      genre: "Other",
+      songs: [
+        { title: "Other Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
+        { title: "Other Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
+        { title: "Other Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
+        { title: "Other Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
       ]
     }
   ];
@@ -99,4 +117,4 @@ function Explore() {
   );
 }
 
-export default Explore; 
+export default Explore;
