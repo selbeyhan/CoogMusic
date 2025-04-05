@@ -12,6 +12,7 @@ function Explore() {
         const top5 = response.data.slice(0, 5).map((song) => ({
           title: song.title,
           artist: song.musician_name,
+          views: song.views,
           imageUrl: song.cover_art_url || '/coogmusiclogonobg.png',
         }));
         setLatestSongs(top5);
@@ -27,6 +28,7 @@ function Explore() {
           songs: section.songs.slice(0, 5).map(song => ({
             title: song.title,
             artist: song.musician_name,
+            views: song.views,
             imageUrl: song.cover_art_url || '/coogmusiclogonobg.png'
           }))
         }));
@@ -64,6 +66,7 @@ function Explore() {
               <div className="explore-song-info">
                 <h3>{song.title}</h3>
                 <p>{song.artist}</p>
+                <p>{song.views} views</p>
               </div>
             </div>
           ))}
@@ -89,6 +92,7 @@ function Explore() {
                   <div className="explore-song-info">
                     <h3>{song.title}</h3>
                     <p>{song.artist}</p>
+                    <p>{song.views} views</p>
                   </div>
                 </div>
               ))}
