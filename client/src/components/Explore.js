@@ -11,7 +11,7 @@ function Explore() {
         const top5 = response.data.slice(0, 5).map((song) => ({
           title: song.title,
           artist: song.musician_name,
-          imageUrl: song.cover_art_url || '/placeholder.jpg',
+          imageUrl: song.cover_art_url || '/coogmusiclogonobg.png',
         }));
         setLatestSongs(top5);
       })
@@ -23,51 +23,63 @@ function Explore() {
   const genreContent = [
     {
       genre: "Hip-Hop",
-      songs: Array(5).fill().map((_, i) => ({
-        title: `Hip-Hop Song ${i + 1}`,
-        artist: `Artist ${i + 1}`,
-        imageUrl: "/placeholder.jpg"
-      }))
+      songs: [
+        { title: "Hip-Hop Song 1", artist: "Artist 1", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Hip-Hop Song 2", artist: "Artist 2", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Hip-Hop Song 3", artist: "Artist 3", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Hip-Hop Song 4", artist: "Artist 4", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Hip-Hop Song 5", artist: "Artist 5", imageUrl: "/coogmusiclogonobg.png" },
+      ]
     },
     {
       genre: "Pop",
-      songs: Array(5).fill().map((_, i) => ({
-        title: `Pop Song ${i + 1}`,
-        artist: `Artist ${i + 1}`,
-        imageUrl: "/placeholder.jpg"
-      }))
+      songs: [
+        { title: "Pop Song 1", artist: "Artist 1", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Pop Song 2", artist: "Artist 2", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Pop Song 3", artist: "Artist 3", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Pop Song 4", artist: "Artist 4", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Pop Song 5", artist: "Artist 5", imageUrl: "/coogmusiclogonobg.png" },
+      ]
     },
     {
       genre: "Rock",
-      songs: Array(5).fill().map((_, i) => ({
-        title: `Rock Song ${i + 1}`,
-        artist: `Artist ${i + 1}`,
-        imageUrl: "/placeholder.jpg"
-      }))
+      songs: [
+        { title: "Rock Song 1", artist: "Artist 1", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Rock Song 2", artist: "Artist 2", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Rock Song 3", artist: "Artist 3", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Rock Song 4", artist: "Artist 4", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Rock Song 5", artist: "Artist 5", imageUrl: "/coogmusiclogonobg.png" },
+      ]
     },
     {
       genre: "Electronic",
-      songs: Array(5).fill().map((_, i) => ({
-        title: `Electronic Song ${i + 1}`,
-        artist: `Artist ${i + 1}`,
-        imageUrl: "/placeholder.jpg"
-      }))
+      songs: [
+        { title: "Electronic Song 1", artist: "Artist 1", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Electronic Song 2", artist: "Artist 2", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Electronic Song 3", artist: "Artist 3", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Electronic Song 4", artist: "Artist 4", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Electronic Song 5", artist: "Artist 5", imageUrl: "/coogmusiclogonobg.png" },
+      ]
     },
     {
       genre: "Rap",
-      songs: Array(5).fill().map((_, i) => ({
-        title: `Rap Song ${i + 1}`,
-        artist: `Artist ${i + 1}`,
-        imageUrl: "/placeholder.jpg"
-      }))
+      songs: [
+        { title: "Rap Song 1", artist: "Artist 1", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Rap Song 2", artist: "Artist 2", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Rap Song 3", artist: "Artist 3", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Rap Song 4", artist: "Artist 4", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Rap Song 5", artist: "Artist 5", imageUrl: "/coogmusiclogonobg.png" },
+      ]
     },
     {
       genre: "Other",
-      songs: Array(5).fill().map((_, i) => ({
-        title: `Other Song ${i + 1}`,
-        artist: `Artist ${i + 1}`,
-        imageUrl: "/placeholder.jpg"
-      }))
+      songs: [
+        { title: "Other Song 1", artist: "Artist 1", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Other Song 2", artist: "Artist 2", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Other Song 3", artist: "Artist 3", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Other Song 4", artist: "Artist 4", imageUrl: "/coogmusiclogonobg.png" },
+        { title: "Other Song 5", artist: "Artist 5", imageUrl: "/coogmusiclogonobg.png" },
+      ]
     },
   ];
 
@@ -86,7 +98,15 @@ function Explore() {
         <div className="horizontal-scroll">
           {latestSongs.map((song, index) => (
             <div key={index} className="song-card">
-              <img src={song.imageUrl} alt={song.title} className="song-image-placeholder" />
+              <img
+                src={song.imageUrl}
+                alt={song.title}
+                className="song-image-placeholder"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "/coogmusiclogonobg.png";
+                }}
+              />
               <div className="song-info">
                 <h3>{song.title}</h3>
                 <p>{song.artist}</p>
@@ -117,6 +137,3 @@ function Explore() {
 }
 
 export default Explore;
-
-
-
