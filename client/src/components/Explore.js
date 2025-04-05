@@ -39,29 +39,29 @@ function Explore() {
 
   return (
     <div className="explore-container">
-      <div className="logo-container">
+      <div className="explore-logo-container">
         <img
           src="/coogmusiclogonobg.png"
           alt="CoogMusic Logo"
-          className="coogmusic-logo"
+          className="explore-coogmusic-logo"
         />
       </div>
 
-      <section className="latest-songs-section">
+      <section className="explore-latest-songs-section">
         <h2>Latest Releases</h2>
-        <div className="horizontal-scroll">
+        <div className="explore-horizontal-scroll">
           {latestSongs.map((song, index) => (
-            <div key={index} className="song-card">
+            <div key={index} className="explore-song-card">
               <img
                 src={song.imageUrl}
                 alt={song.title}
-                className="song-image-placeholder"
+                className="explore-song-image-placeholder"
                 onError={(e) => {
                   e.target.onerror = null;
                   e.target.src = "/coogmusiclogonobg.png";
                 }}
               />
-              <div className="song-info">
+              <div className="explore-song-info">
                 <h3>{song.title}</h3>
                 <p>{song.artist}</p>
               </div>
@@ -71,22 +71,22 @@ function Explore() {
       </section>
 
       {genreContent.map((genreSection, index) => (
-        <section key={index} className="genre-section">
+        <section key={index} className="explore-genre-section">
           <h2>{genreSection.genre}</h2>
           {genreSection.songs.length > 0 ? (
-            <div className="horizontal-scroll">
+            <div className="explore-horizontal-scroll">
               {genreSection.songs.map((song, songIndex) => (
-                <div key={songIndex} className="song-card">
+                <div key={songIndex} className="explore-song-card">
                   <img
                     src={song.imageUrl}
                     alt={song.title}
-                    className="song-image-placeholder"
+                    className="explore-song-image-placeholder"
                     onError={(e) => {
                       e.target.onerror = null;
                       e.target.src = "/coogmusiclogonobg.png";
                     }}
                   />
-                  <div className="song-info">
+                  <div className="explore-song-info">
                     <h3>{song.title}</h3>
                     <p>{song.artist}</p>
                   </div>
@@ -94,7 +94,7 @@ function Explore() {
               ))}
             </div>
           ) : (
-            <p className="no-songs-message">There are no songs for this genre yet.</p>
+            <p className="explore-no-songs-message">There are no songs for this genre yet.</p>
           )}
         </section>
       ))}
