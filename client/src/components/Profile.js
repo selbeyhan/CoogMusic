@@ -710,7 +710,7 @@ useEffect(() => {
                 onChange={handleUploadFormChange}
                 required
               >
-                <option value="">Select Genre</option>
+                <option value="" disabled>Select Genre</option>
                 <option value="Hip-Hop">Hip-Hop</option>
                 <option value="Pop">Pop</option>
                 <option value="Rock">Rock</option>
@@ -822,8 +822,9 @@ useEffect(() => {
                             onChange={(e) =>
                               setEditedSongData({ ...editedSongData, genre: e.target.value })
                             }
+                            required
                           >
-                            <option value="">Select Genre</option>
+                            <option value="" disabled>Select Genre</option>
                             <option value="Hip-Hop">Hip-Hop</option>
                             <option value="Pop">Pop</option>
                             <option value="Rock">Rock</option>
@@ -1126,8 +1127,9 @@ useEffect(() => {
           name="genre"
           value={newAlbumSongData.genre}
           onChange={handleNewAlbumSongChange}
+          required
         >
-          <option value="">Select Genre</option>
+          <option value="" disabled>Select Genre</option>
           <option value="Hip-Hop">Hip-Hop</option>
           <option value="Pop">Pop</option>
           <option value="Rock">Rock</option>
