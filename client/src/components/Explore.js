@@ -4,6 +4,7 @@ import './Explore.css';
 
 function Explore() {
   const [latestSongs, setLatestSongs] = useState([]);
+  const [genreContent, setGenreContent] = useState([]);
 
   useEffect(() => {
     axios.get('/newest-songs')
@@ -18,70 +19,23 @@ function Explore() {
       .catch((error) => {
         console.error('Error fetching latest songs:', error);
       });
-  }, []);
 
-  const genreContent = [
-    {
-      genre: "Hip-Hop",
-      songs: [
-        { title: "Hip-Hop Song 1", artist: "Artist 1", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Hip-Hop Song 2", artist: "Artist 2", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Hip-Hop Song 3", artist: "Artist 3", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Hip-Hop Song 4", artist: "Artist 4", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Hip-Hop Song 5", artist: "Artist 5", imageUrl: "/coogmusiclogonobg.png" },
-      ]
-    },
-    {
-      genre: "Pop",
-      songs: [
-        { title: "Pop Song 1", artist: "Artist 1", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Pop Song 2", artist: "Artist 2", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Pop Song 3", artist: "Artist 3", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Pop Song 4", artist: "Artist 4", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Pop Song 5", artist: "Artist 5", imageUrl: "/coogmusiclogonobg.png" },
-      ]
-    },
-    {
-      genre: "Rock",
-      songs: [
-        { title: "Rock Song 1", artist: "Artist 1", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Rock Song 2", artist: "Artist 2", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Rock Song 3", artist: "Artist 3", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Rock Song 4", artist: "Artist 4", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Rock Song 5", artist: "Artist 5", imageUrl: "/coogmusiclogonobg.png" },
-      ]
-    },
-    {
-      genre: "Electronic",
-      songs: [
-        { title: "Electronic Song 1", artist: "Artist 1", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Electronic Song 2", artist: "Artist 2", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Electronic Song 3", artist: "Artist 3", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Electronic Song 4", artist: "Artist 4", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Electronic Song 5", artist: "Artist 5", imageUrl: "/coogmusiclogonobg.png" },
-      ]
-    },
-    {
-      genre: "Rap",
-      songs: [
-        { title: "Rap Song 1", artist: "Artist 1", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Rap Song 2", artist: "Artist 2", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Rap Song 3", artist: "Artist 3", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Rap Song 4", artist: "Artist 4", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Rap Song 5", artist: "Artist 5", imageUrl: "/coogmusiclogonobg.png" },
-      ]
-    },
-    {
-      genre: "Other",
-      songs: [
-        { title: "Other Song 1", artist: "Artist 1", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Other Song 2", artist: "Artist 2", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Other Song 3", artist: "Artist 3", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Other Song 4", artist: "Artist 4", imageUrl: "/coogmusiclogonobg.png" },
-        { title: "Other Song 5", artist: "Artist 5", imageUrl: "/coogmusiclogonobg.png" },
-      ]
-    },
-  ];
+    axios.get('/top-songs-by-genre')
+      .then((response) => {
+        const formatted = response.data.map(section => ({
+          genre: section.genre,
+          songs: section.songs.slice(0, 5).map(song => ({
+            title: song.title,
+            artist: song.musician_name,
+            imageUrl: song.cover_art_url || '/coogmusiclogonobg.png'
+          }))
+        }));
+        setGenreContent(formatted);
+      })
+      .catch((error) => {
+        console.error('Error fetching songs by genre:', error);
+      });
+  }, []);
 
   return (
     <div className="explore-container">
@@ -119,17 +73,29 @@ function Explore() {
       {genreContent.map((genreSection, index) => (
         <section key={index} className="genre-section">
           <h2>{genreSection.genre}</h2>
-          <div className="horizontal-scroll">
-            {genreSection.songs.map((song, songIndex) => (
-              <div key={songIndex} className="song-card">
-                <img src={song.imageUrl} alt={song.title} className="song-image-placeholder" />
-                <div className="song-info">
-                  <h3>{song.title}</h3>
-                  <p>{song.artist}</p>
+          {genreSection.songs.length > 0 ? (
+            <div className="horizontal-scroll">
+              {genreSection.songs.map((song, songIndex) => (
+                <div key={songIndex} className="song-card">
+                  <img
+                    src={song.imageUrl}
+                    alt={song.title}
+                    className="song-image-placeholder"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "/coogmusiclogonobg.png";
+                    }}
+                  />
+                  <div className="song-info">
+                    <h3>{song.title}</h3>
+                    <p>{song.artist}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="no-songs-message">There are no songs for this genre yet.</p>
+          )}
         </section>
       ))}
     </div>

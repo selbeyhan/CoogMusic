@@ -2177,6 +2177,44 @@ if (req.method === "GET" && req.url.startsWith("/api/following/")) {
 
 
 
+//gets the top songs by genre 
+//used to get the top 5 songs in the explore page
+//route has 20 songs per genre, explore page only takes the top 5 
+if (req.url === "/top-songs-by-genre" && req.method === "GET") {
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    const genres = ['Hip-Hop', 'Pop', 'Rock', 'Electronic', 'Rap', 'Other'];
+    const genreSections = [];
+
+    for (const genre of genres) {
+      const [rows] = await connection.execute(`
+        SELECT s.song_id, s.title, s.musician_id, s.upload_date, s.genre,
+               s.duration, s.file_url, s.cover_art_url, s.description,
+               s.views, u.name AS musician_name
+        FROM songs s
+        JOIN users u ON s.musician_id = u.user_id
+        WHERE s.genre = ?
+        ORDER BY s.views DESC
+        LIMIT 20
+      `, [genre]);
+
+      genreSections.push({ genre, songs: rows });
+    }
+
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(genreSections));
+  } catch (err) {
+    console.error("❌ Error fetching top songs by genre:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to fetch songs by genre" }));
+  }
+  return;
+}
+
+
   // Serve React Frontend (Static Files)
   const buildPath = path.join(__dirname, "build");
 
