@@ -1,77 +1,78 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import './Explore.css';
 
 function Explore() {
-  // Mock data - replace with actual data from your backend
-  const latestSongs = [
-    { title: "Latest Hit 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-    { title: "Latest Hit 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-    { title: "Latest Hit 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-    { title: "Latest Hit 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-    { title: "Latest Hit 5", artist: "Artist 5", imageUrl: "/placeholder.jpg" },
-    { title: "Latest Hit 6", artist: "Artist 6", imageUrl: "/placeholder.jpg" },
-  ];
+  const [latestSongs, setLatestSongs] = useState([]);
+
+  useEffect(() => {
+    axios.get('/newest-songs')
+      .then((response) => {
+        const top5 = response.data.slice(0, 5).map((song) => ({
+          title: song.title,
+          artist: song.musician_name,
+          imageUrl: song.cover_art_url || '/placeholder.jpg',
+        }));
+        setLatestSongs(top5);
+      })
+      .catch((error) => {
+        console.error('Error fetching latest songs:', error);
+      });
+  }, []);
 
   const genreContent = [
     {
       genre: "Hip-Hop",
-      songs: [
-        { title: "Hip-Hop Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "Hip-Hop Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "Hip-Hop Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "Hip-Hop Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-      ]
+      songs: Array(5).fill().map((_, i) => ({
+        title: `Hip-Hop Song ${i + 1}`,
+        artist: `Artist ${i + 1}`,
+        imageUrl: "/placeholder.jpg"
+      }))
     },
     {
       genre: "Pop",
-      songs: [
-        { title: "Pop Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "Pop Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "Pop Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "Pop Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-      ]
+      songs: Array(5).fill().map((_, i) => ({
+        title: `Pop Song ${i + 1}`,
+        artist: `Artist ${i + 1}`,
+        imageUrl: "/placeholder.jpg"
+      }))
     },
     {
       genre: "Rock",
-      songs: [
-        { title: "Rock Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "Rock Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "Rock Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "Rock Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-      ]
+      songs: Array(5).fill().map((_, i) => ({
+        title: `Rock Song ${i + 1}`,
+        artist: `Artist ${i + 1}`,
+        imageUrl: "/placeholder.jpg"
+      }))
     },
     {
       genre: "Electronic",
-      songs: [
-        { title: "Electronic Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "Electronic Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "Electronic Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "Electronic Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-      ]
+      songs: Array(5).fill().map((_, i) => ({
+        title: `Electronic Song ${i + 1}`,
+        artist: `Artist ${i + 1}`,
+        imageUrl: "/placeholder.jpg"
+      }))
     },
     {
       genre: "Rap",
-      songs: [
-        { title: "Rap Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "Rap Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "Rap Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "Rap Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-      ]
+      songs: Array(5).fill().map((_, i) => ({
+        title: `Rap Song ${i + 1}`,
+        artist: `Artist ${i + 1}`,
+        imageUrl: "/placeholder.jpg"
+      }))
     },
     {
       genre: "Other",
-      songs: [
-        { title: "Other Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "Other Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "Other Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "Other Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-      ]
-    }
+      songs: Array(5).fill().map((_, i) => ({
+        title: `Other Song ${i + 1}`,
+        artist: `Artist ${i + 1}`,
+        imageUrl: "/placeholder.jpg"
+      }))
+    },
   ];
 
   return (
     <div className="explore-container">
-      {/* Logo Section */}
       <div className="logo-container">
         <img
           src="/coogmusiclogonobg.png"
@@ -80,13 +81,12 @@ function Explore() {
         />
       </div>
 
-      {/* Latest Songs Section */}
       <section className="latest-songs-section">
         <h2>Latest Releases</h2>
         <div className="horizontal-scroll">
           {latestSongs.map((song, index) => (
             <div key={index} className="song-card">
-              <div className="song-image-placeholder"></div>
+              <img src={song.imageUrl} alt={song.title} className="song-image-placeholder" />
               <div className="song-info">
                 <h3>{song.title}</h3>
                 <p>{song.artist}</p>
@@ -96,14 +96,13 @@ function Explore() {
         </div>
       </section>
 
-      {/* Genre Sections */}
       {genreContent.map((genreSection, index) => (
         <section key={index} className="genre-section">
           <h2>{genreSection.genre}</h2>
           <div className="horizontal-scroll">
             {genreSection.songs.map((song, songIndex) => (
               <div key={songIndex} className="song-card">
-                <div className="song-image-placeholder"></div>
+                <img src={song.imageUrl} alt={song.title} className="song-image-placeholder" />
                 <div className="song-info">
                   <h3>{song.title}</h3>
                   <p>{song.artist}</p>
@@ -118,3 +117,6 @@ function Explore() {
 }
 
 export default Explore;
+
+
+
