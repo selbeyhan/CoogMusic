@@ -1,19 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './Explore.css';
+import { useAudio } from '../contexts/AudioContext';
 
 function Explore() {
   const [latestSongs, setLatestSongs] = useState([]);
   const [genreContent, setGenreContent] = useState([]);
+  const { setCurrentSong } = useAudio(); 
 
   useEffect(() => {
     axios.get('/newest-songs')
       .then((response) => {
         const top5 = response.data.slice(0, 5).map((song) => ({
+          song_id: song.song_id,
           title: song.title,
           artist: song.musician_name,
           views: song.views,
           imageUrl: song.cover_art_url || '/coogmusiclogonobg.png',
+          audioUrl: song.audio_url
         }));
         setLatestSongs(top5);
       })
@@ -26,10 +30,12 @@ function Explore() {
         const formatted = response.data.map(section => ({
           genre: section.genre,
           songs: section.songs.slice(0, 5).map(song => ({
+            song_id: song.song_id,
             title: song.title,
             artist: song.musician_name,
             views: song.views,
-            imageUrl: song.cover_art_url || '/coogmusiclogonobg.png'
+            imageUrl: song.cover_art_url || '/coogmusiclogonobg.png',
+            audioUrl: song.audio_url
           }))
         }));
         setGenreContent(formatted);
@@ -38,6 +44,16 @@ function Explore() {
         console.error('Error fetching songs by genre:', error);
       });
   }, []);
+
+  const playSong = (song) => {
+    console.log('Clicked song:', song);
+    setCurrentSong(song);
+    if (song.song_id !== undefined) {
+      axios.post(`/increment-view/${song.song_id}`).catch(console.error);
+    } else {
+      console.error('song_id is undefined for this song');
+    }
+  };
 
   return (
     <div className="explore-container">
@@ -53,7 +69,11 @@ function Explore() {
         <h2>Latest Releases</h2>
         <div className="explore-horizontal-scroll">
           {latestSongs.map((song, index) => (
-            <div key={index} className="explore-song-card">
+            <div
+              key={index}
+              className="explore-song-card"
+              onClick={() => playSong(song)}
+            >
               <img
                 src={song.imageUrl}
                 alt={song.title}
@@ -79,7 +99,11 @@ function Explore() {
           {genreSection.songs.length > 0 ? (
             <div className="explore-horizontal-scroll">
               {genreSection.songs.map((song, songIndex) => (
-                <div key={songIndex} className="explore-song-card">
+                <div
+                  key={songIndex}
+                  className="explore-song-card"
+                  onClick={() => playSong(song)}
+                >
                   <img
                     src={song.imageUrl}
                     alt={song.title}
