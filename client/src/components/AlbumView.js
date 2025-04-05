@@ -288,54 +288,81 @@ const AlbumView = () => {
         <div className="modal-overlay">
           <div className="modal">
             <h3>Add Song to Album</h3>
-            <div className="form-group">
-              <label>Song Title:</label>
-              <input
-                type="text"
-                value={newSongData.title}
-                onChange={(e) => setNewSongData({ ...newSongData, title: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label>Genre:</label>
-              <input
-                type="text"
-                value={newSongData.genre}
-                onChange={(e) => setNewSongData({ ...newSongData, genre: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label>Description:</label>
-              <textarea
-                value={newSongData.description}
-                onChange={(e) => setNewSongData({ ...newSongData, description: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label>Audio File:</label>
-              <input
-                type="file"
-                accept="audio/*"
-                ref={audioFileRef}
-                onChange={(e) => setNewSongData({ ...newSongData, file: e.target.files[0] })}
-              />
-            </div>
-            <div className="form-group">
-              <label>Cover Art (Optional):</label>
-              <input
-                type="file"
-                accept="image/*"
-                ref={coverArtRef}
-                onChange={(e) => setNewSongData({ ...newSongData, coverArt: e.target.files[0] })}
-              />
-            </div>
-            <div className="modal-actions">
-              <button onClick={handleAddSongToAlbum}>Save Song</button>
-              <button onClick={() => setShowAddSongModal(false)}>Cancel</button>
-            </div>
+            <form onSubmit={handleAddSongToAlbum}>
+              <div className="form-group">
+                <label>Song Title:</label>
+                <input
+                  type="text"
+                  value={newSongData.title}
+                  onChange={(e) =>
+                    setNewSongData({ ...newSongData, title: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Genre:</label>
+                <select
+                  value={newSongData.genre}
+                  onChange={(e) =>
+                    setNewSongData({ ...newSongData, genre: e.target.value })
+                  }
+                  required
+                >
+                  <option value="" disabled>
+                    Select Genre
+                  </option>
+                  <option value="Hip-Hop">Hip-Hop</option>
+                  <option value="Pop">Pop</option>
+                  <option value="Rock">Rock</option>
+                  <option value="Electronic">Electronic</option>
+                  <option value="Rap">Rap</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Description:</label>
+                <textarea
+                  value={newSongData.description}
+                  onChange={(e) =>
+                    setNewSongData({ ...newSongData, description: e.target.value })
+                  }
+                />
+              </div>
+              <div className="form-group">
+                <label>Audio File:</label>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  ref={audioFileRef}
+                  onChange={(e) =>
+                    setNewSongData({ ...newSongData, file: e.target.files[0] })
+                  }
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Cover Art (Optional):</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={coverArtRef}
+                  onChange={(e) =>
+                    setNewSongData({ ...newSongData, coverArt: e.target.files[0] })
+                  }
+                />
+              </div>
+              <div className="modal-actions">
+                <button type="submit">Save Song</button>
+                <button type="button" onClick={() => setShowAddSongModal(false)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
+
     </div>
   );
 };
