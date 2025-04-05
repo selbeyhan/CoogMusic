@@ -85,7 +85,16 @@ const [newAlbumSongData, setNewAlbumSongData] = useState({
   file: null,         
   coverArt: null      
 });
-
+const fetchSongs = async () => {
+  try {
+    const response = await axios.get(`/api/profile/${userId}`);
+    if (Array.isArray(response.data) && response.data.length > 0) {
+      setUserSongs(response.data[0].songs);
+    }
+  } catch (error) {
+    console.error("Error fetching songs:", error);
+  }
+};
 
 useEffect(() => {
   if (currentUser) {
@@ -511,6 +520,7 @@ useEffect(() => {
         cover_art_url: 'https://via.placeholder.com/150'
       });
       setUploadFile(null);
+      await fetchSongs();  // Refresh the song list
       setIsLoading(false);
     } catch (error) {
       console.error('Error uploading song:', error);
