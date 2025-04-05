@@ -20,6 +20,8 @@ const Profile = () => {
   const [editedPlaylistName, setEditedPlaylistName] = useState('');
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [followingUsers, setFollowingUsers] = useState([]);
+
 
 
   const [editingSongId, setEditingSongId] = useState(null);
@@ -141,8 +143,16 @@ useEffect(() => {
       const followersRes = await axios.get(`/api/followers/${userId}`);
       setFollowerCount(followersRes.data.followers?.length || 0);
 
-      const followingRes = await axios.get(`/api/following/${userId}`);
+      // ✅ Use MySQL user_id instead of Clerk userId
+      const followingRes = await axios.get(`/api/following/${userData.user_id}`);
       setFollowingCount(followingRes.data.following?.length || 0);
+
+      // ✅ Fetch full user info of followed users
+      const followedIds = followingRes.data.following.map(f => f.followed_id);
+      if (followedIds.length > 0) {
+        const detailsRes = await axios.post(`/api/following-details`, { ids: followedIds });
+        setFollowingUsers(detailsRes.data.users || []);
+      }
 
 
       // ALBUM FEATURE: Fetch user's albums
@@ -799,6 +809,14 @@ useEffect(() => {
           >
             Likes
           </button>
+
+          <button
+            className={`tab-btn ${activeTab === 'following' ? 'active' : ''}`}
+            onClick={() => handleTabChange('following')}
+          >
+            Following
+          </button>
+
         </div>
 
         <div className="tab-content">
@@ -1308,6 +1326,33 @@ useEffect(() => {
               </div>
             </div>
           )}
+
+
+          {activeTab === 'following' && (
+            <div className="following-tab">
+              <h2>Following</h2>
+              {followingUsers.length === 0 ? (
+                <p className="no-content">You're not following anyone yet.</p>
+              ) : (
+                <div className="artists-grid">
+                  {followingUsers.map(user => (
+                    <Link to={`/artist/${user.user_id}`} key={user.user_id} className="artist-card">
+                      <div className="artist-avatar">
+                        <img
+                          src={user.profile_picture_url || '/coogmusiclogonobg.png'}
+                          alt={user.name}
+                          onError={(e) => e.target.src = '/coogmusiclogonobg.png'}
+                        />
+                      </div>
+                      <h3>{user.name}</h3>
+                      <p>{user.account_type}</p>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           
           {activeTab === 'likes' && (
             <div className="likes-tab">

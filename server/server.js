@@ -2170,6 +2170,38 @@ if (req.method === "GET" && req.url.startsWith("/api/following/")) {
   return;
 }
 
+//get user details by ID list 
+//for the profile page,, shows details for all the users that the current user is following
+if (req.method === "POST" && req.url === "/api/following-details") {
+  let body = "";
+  req.on("data", chunk => body += chunk.toString());
+  req.on("end", async () => {
+    try {
+      const { ids } = JSON.parse(body);
+      if (!Array.isArray(ids) || ids.length === 0) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Invalid ID list" }));
+      }
+
+      const placeholders = ids.map(() => '?').join(',');
+      const connection = await mysql.createConnection(dbConfig);
+      const [users] = await connection.execute(
+        `SELECT user_id, name, profile_picture_url, account_type FROM users WHERE user_id IN (${placeholders})`,
+        ids
+      );
+      await connection.end();
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ users }));
+    } catch (err) {
+      console.error("❌ Error fetching followed users:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Failed to fetch followed user details" }));
+    }
+  });
+  return;
+}
+
 
 
 //following feature 
