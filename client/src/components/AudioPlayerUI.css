@@ -1,4 +1,4 @@
-/* Complete AudioPlayerUI.css */
+/* Complete AudioPlayerUI.css with Spotify-like layout */
 .player-container {
   position: fixed;
   bottom: 0;
@@ -9,7 +9,8 @@
   color: #ffffff;
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  justify-content: space-between; /* Distributes space between the sections */
+  padding: 0;
   z-index: 9999;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
   overflow: hidden; /* Prevent elements from spilling out */
@@ -21,7 +22,10 @@
   align-items: center;
   width: 30%;
   min-width: 180px;
-  flex-shrink: 1; /* Allow some shrinking */
+  max-width: 350px;
+  padding-left: 16px;
+  box-sizing: border-box;
+  flex-shrink: 0; /* Don't allow shrinking below min-width */
   overflow: hidden; /* Prevent text overflow */
 }
 
@@ -79,13 +83,14 @@
 
 /* Player controls (center) */
 .player-controls-container {
-  flex: 1;
+  flex: 0 1 auto; /* Don't grow, allow shrinking, use auto basis */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 40%;
   max-width: 722px;
-  min-width: 250px; /* Ensure minimum width for controls */
+  min-width: 300px;
 }
 
 .player-controls {
@@ -215,10 +220,13 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 16px;
+  gap: 12px;
   width: 30%;
   min-width: 180px;
-  flex-shrink: 1; /* Allow this section to shrink */
+  max-width: 350px;
+  padding-right: 20px;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .action-btn {
@@ -231,6 +239,9 @@
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  padding: 0;
+  min-width: 16px;
+  flex-shrink: 0;
 }
 
 .action-btn:hover {
@@ -245,56 +256,89 @@
 .volume-container {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   width: auto;
-  min-width: 150px;
-  max-width: 180px;
+  max-width: 120px;
   transition: all 0.3s ease;
+  flex-shrink: 1;
+  margin-right: 5px;
 }
 
 .action-btn.volume-icon {
   color: white;
   font-size: 18px;
   min-width: 18px;
+  flex-shrink: 0;
 }
 
 /* Responsive adjustments */
 @media (max-width: 992px) {
   .player-song-info {
-    width: 25%;
-    min-width: 150px;
+    width: 30%;
+    min-width: 160px;
+    padding-left: 14px;
+  }
+  
+  .player-controls-container {
+    min-width: 280px;
   }
   
   .player-actions {
-    width: 25%;
-    min-width: 150px;
+    width: 30%;
+    min-width: 160px;
+    gap: 10px;
+    padding-right: 16px;
   }
   
   .volume-container {
-    min-width: 140px;
+    max-width: 100px;
+    gap: 6px;
+  }
+  
+  .volume-container > div {
+    width: 70px !important;
   }
 }
 
 @media (max-width: 768px) {
   .player-container {
     height: 80px;
-    padding: 0 10px;
   }
   
   .player-song-info {
-    width: 35%;
-    min-width: 120px;
+    width: 30%;
+    min-width: 140px;
+    padding-left: 12px;
+  }
+  
+  .player-controls-container {
+    min-width: 240px;
   }
   
   .player-actions {
-    width: auto;
-    min-width: auto;
-    gap: 10px; /* Smaller gap */
+    width: 30%;
+    min-width: 140px;
+    gap: 8px;
+    padding-right: 14px;
   }
   
   /* Adjust volume container at medium screens */
   .volume-container {
-    min-width: 120px;
+    max-width: 80px;
+    gap: 4px;
+  }
+  
+  .volume-container > div {
+    width: 50px !important;
+  }
+  
+  .control-btn {
+    font-size: 14px;
+  }
+  
+  .play-btn {
+    width: 28px;
+    height: 28px;
   }
 }
 
@@ -303,8 +347,18 @@
     height: 70px;
   }
   
+  .player-song-info {
+    width: 35%;
+    min-width: 110px;
+    padding-left: 10px;
+  }
+  
+  .player-controls-container {
+    min-width: 200px;
+  }
+  
   .player-track-info {
-    max-width: 100px;
+    max-width: 90px;
   }
   
   .player-track-title {
@@ -316,7 +370,7 @@
   }
   
   .player-controls {
-    gap: 10px;
+    gap: 8px;
   }
   
   /* Show only necessary controls on smallest screens */
@@ -326,14 +380,153 @@
   
   /* Maintain volume control at small screens */
   .volume-container {
-    display: flex;
+    max-width: 60px;
+    margin-right: 0;
+  }
+  
+  .volume-container > div {
+    width: 40px !important;
+  }
+  
+  .player-actions {
+    width: 25%;
     min-width: 100px;
+    padding-right: 12px;
+    gap: 6px;
   }
 }
 
-/* For very small screens, ensure volume controls remain usable */
 @media (max-width: 480px) {
   .volume-container {
+    max-width: 40px;
+  }
+  
+  .volume-container > div {
+    width: 30px !important;
+  }
+  
+  .player-cover-art {
+    width: 45px;
+    height: 45px;
+    margin-right: 10px;
+  }
+  
+  .player-song-info {
+    min-width: 90px;
+    padding-left: 8px;
+  }
+  
+  .play-btn {
+    width: 26px;
+    height: 26px;
+  }
+  
+  .player-actions {
+    padding-right: 10px;
     min-width: 80px;
   }
+  
+  .player-controls-container {
+    min-width: 160px;
+  }
+}
+
+/* Playlist dropdown styles */
+.playlist-dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(5px);
+}
+
+.playlist-dropdown {
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.playlist-dropdown h3 {
+  margin: 0 0 1.5rem 0;
+  color: #333;
+  font-size: 1.5rem;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 0.8rem;
+}
+
+.playlist-dropdown label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.playlist-dropdown select {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+  background-color: #f8f8f8;
+}
+
+.new-playlist-input {
+  margin-bottom: 1.5rem;
+}
+
+.new-playlist-input input {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+.dropdown-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.dropdown-actions button {
+  flex: 1;
+  padding: 0.8rem;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dropdown-actions button:first-child {
+  background: #ff0000;
+  color: white;
+}
+
+.dropdown-actions button:first-child:hover:not(:disabled) {
+  background: #cc0000;
+  transform: translateY(-2px);
+}
+
+.dropdown-actions button:first-child:disabled {
+  background: #ffaaaa;
+  cursor: not-allowed;
+}
+
+.dropdown-actions button:last-child {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.dropdown-actions button:last-child:hover {
+  background: #e0e0e0;
 }

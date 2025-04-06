@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useUser } from "@clerk/clerk-react";
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import {
   FaStepBackward,
   FaPlay,
@@ -28,6 +29,12 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
   const [shuffle, setShuffle] = useState(false);
   const [liked, setLiked] = useState(false);
   const { user } = useUser(); // Clerk user object
+  
+  // Add playlist states
+  const [playlists, setPlaylists] = useState([]);
+  const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState("");
+  const [newPlaylistName, setNewPlaylistName] = useState("");
 
   // Update playback progress and handling song end
   useEffect(() => {
@@ -107,6 +114,26 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
     fetchLikeState();
   }, [currentSong, user]);
 
+  // Fetch user playlists when the user is available
+  useEffect(() => {
+    if (user) {
+      fetchUserPlaylists();
+    }
+  }, [user]);
+
+  // Fetch user playlists
+  const fetchUserPlaylists = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await axios.get(`/api/getuserplaylists/${user.id}`);
+      setPlaylists(response.data.playlists || []);
+      console.log("Playlists fetched:", response.data.playlists);
+    } catch (error) {
+      console.error("Error fetching playlists:", error);
+    }
+  };
+
   const togglePlay = () => {
     const audio = audioRef.current;
     if (!audio.paused) {
@@ -166,6 +193,84 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
       console.error("Error toggling like:", err);
       // Optionally revert local state if error occurs
       setLiked(prev => !prev);
+    }
+  };
+
+  // Handle add to playlist button click
+  const handleAddToPlaylist = () => {
+    console.log("Add to playlist button clicked for song:", currentSong?.song_id);
+    
+    if (!user) {
+      alert("Please sign in to add songs to playlists");
+      return;
+    }
+    
+    // Refresh playlists
+    fetchUserPlaylists();
+    
+    // Show the playlist dropdown
+    setShowPlaylistDropdown(true);
+  };
+
+  // Handle adding the song to a playlist
+  const addSongToPlaylist = async () => {
+    console.log("addSongToPlaylist function called with songId:", currentSong?.song_id, "and playlistId:", selectedPlaylistId);
+
+    try {
+      if (selectedPlaylistId === "create_new") {
+        if (!newPlaylistName.trim()) {
+          alert("Please enter a playlist name");
+          return;
+        }
+
+        console.log("Creating a new playlist named:", newPlaylistName);
+
+        // Create new playlist
+        const createResponse = await axios.post('/api/createPlaylist', {
+          name: newPlaylistName,
+          user_id: user.id
+        });
+
+        console.log("New playlist created:", createResponse.data);
+
+        // Add song to the new playlist
+        const addToPlaylistResponse = await axios.post('/api/addToPlaylist', {
+          playlist_id: createResponse.data.playlist_id,
+          song_id: currentSong.song_id
+        });
+
+        console.log("Song added to new playlist:", addToPlaylistResponse.data);
+
+        // Refresh playlists
+        const playlistsResponse = await axios.get(`/api/getuserplaylists/${user.id}`);
+        setPlaylists(playlistsResponse.data.playlists || []);
+
+      } else if (selectedPlaylistId) {
+        console.log("Adding song to existing playlist");
+
+        // Add to existing playlist
+        const response = await axios.post('/api/addToPlaylist', {
+          playlist_id: selectedPlaylistId,
+          song_id: currentSong.song_id
+        });
+
+        console.log("Song added to playlist response:", response.data);
+
+      } else {
+        alert("Please select a playlist");
+        return;
+      }
+
+      // Reset state and close dropdown
+      setSelectedPlaylistId("");
+      setNewPlaylistName("");
+      setShowPlaylistDropdown(false);
+
+      alert("Song added to playlist successfully!");
+
+    } catch (error) {
+      console.error("Error adding song to playlist:", error.response ? error.response.data : error);
+      alert("Failed to add song to playlist. Please try again.");
     }
   };
 
@@ -341,6 +446,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
 
         <button
           className="action-btn"
+          onClick={handleAddToPlaylist}
           aria-label="Add to playlist"
         >
           <FaPlus />
@@ -429,6 +535,77 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
           </div>
         </div>
       </div>
+
+      {/* Playlist dropdown - similar to Home.js implementation */}
+      {showPlaylistDropdown && (
+        <div
+          className="playlist-dropdown-overlay"
+          onClick={(e) => {
+            // Only close if clicking the overlay background, not the dropdown itself
+            if (e.target.className === 'playlist-dropdown-overlay') {
+              setShowPlaylistDropdown(false);
+              setSelectedPlaylistId("");
+              setNewPlaylistName("");
+            }
+          }}
+        >
+          <div
+            className="playlist-dropdown"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>Add to Playlist</h3>
+            <select
+              value={selectedPlaylistId}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedPlaylistId(value);
+                console.log("Playlist selected:", value);
+              }}
+            >
+              <option value="">-- Select a Playlist --</option>
+              {playlists.map((pl) => (
+                <option key={pl.playlist_id} value={pl.playlist_id}>
+                  {pl.name}
+                </option>
+              ))}
+              <option value="create_new">Create New Playlist</option>
+            </select>
+
+            {selectedPlaylistId === "create_new" && (
+              <div className="new-playlist-input">
+                <label htmlFor="new-playlist-name">
+                  Playlist Name:
+                </label>
+                <input
+                  type="text"
+                  id="new-playlist-name"
+                  value={newPlaylistName}
+                  onChange={(e) => setNewPlaylistName(e.target.value)}
+                  placeholder="Enter new playlist name"
+                />
+              </div>
+            )}
+
+            <div className="dropdown-actions">
+              <button
+                onClick={addSongToPlaylist}
+                disabled={!selectedPlaylistId || (selectedPlaylistId === "create_new" && !newPlaylistName.trim())}
+              >
+                Add Song
+              </button>
+              <button
+                onClick={() => {
+                  setShowPlaylistDropdown(false);
+                  setSelectedPlaylistId("");
+                  setNewPlaylistName("");
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
