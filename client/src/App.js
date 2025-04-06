@@ -1,12 +1,3 @@
-/* eslint-disable no-unused-vars */
-/**
- * Disables ESLint warnings for unused variables.
- * These variables are related to the upload song functionality, which is currently
- * commented out and will be re-implemented once user authentication is in place.
- * We need authentication to ensure that only verified users can post songs.
- * Once authentication is set up, we will restore the upload feature and remove this ESLint rule.
- */
-
 import './clerk.css';
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -24,29 +15,73 @@ import ArtistProfile from './components/ArtistProfile';
 import Search from './components/Search';
 import AlbumView from './components/AlbumView';
 import Explore from './components/Explore';
-
-
-
-
-
 import AudioPlayerUI from './components/AudioPlayerUI';
 import { AudioProvider, useAudio } from './contexts/AudioContext';
-
 import './App.css';
 
+// Audio player wrapper component
 function AudioPlayerWrapper() {
-  const { currentSong, queue, setCurrentSong, setQueue } = useAudio();
+  const { currentSong, queue, setCurrentSong, setQueue, history, addToHistory } = useAudio();
 
-  const playNext = () => {
-    if (queue.length) {
-      setCurrentSong(queue[0]);
-      setQueue(queue.slice(1));
+  function handlePlayNext(nextSong) {
+    // If a specific song is provided (from album/playlist context)
+    if (nextSong && typeof nextSong === 'object') {
+      // Add current song to history if it exists
+      if (currentSong) {
+        addToHistory(currentSong);
+      }
+      
+      // Play the provided song
+      setCurrentSong(nextSong);
+      return;
     }
-  };
+    
+    // Otherwise use the queue
+    if (queue && queue.length > 0) {
+      const nextQueueSong = queue[0];
+      const remainingQueue = queue.slice(1);
+      
+      // Add current song to history if it exists
+      if (currentSong) {
+        addToHistory(currentSong);
+      }
+      
+      // Update state
+      setCurrentSong(nextQueueSong);
+      setQueue(remainingQueue);
+    }
+  }
 
-  const playPrev = () => {
-    // Implement history if desired; placeholder no‑op for now.
-  };
+  function handlePlayPrev(prevSong) {
+    // If a specific song is provided (from album/playlist context)
+    if (prevSong && typeof prevSong === 'object') {
+      // Add current song to the beginning of the queue if it exists
+      if (currentSong) {
+        setQueue([currentSong, ...queue]);
+      }
+      
+      // Play the provided song
+      setCurrentSong(prevSong);
+      return;
+    }
+    
+    // Otherwise use the history
+    if (history && history.length > 0) {
+      const previousSong = history[history.length - 1];
+      
+      // Add current song to the beginning of the queue if it exists
+      if (currentSong) {
+        setQueue([currentSong, ...queue]);
+      }
+      
+      // Set the previous song as current
+      setCurrentSong(previousSong);
+    }
+  }
+
+  // Assign functions directly
+  const playNext = handlePlayNext;
+  const playPrev = handlePlayPrev;
 
   return (
     <AudioPlayerUI
