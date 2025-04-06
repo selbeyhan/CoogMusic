@@ -1,102 +1,133 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import './Explore.css';
+import { useAudio } from '../contexts/AudioContext';
 
 function Explore() {
-  // Mock data - replace with actual data from your backend
-  const latestSongs = [
-    { title: "Latest Hit 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-    { title: "Latest Hit 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-    { title: "Latest Hit 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-    { title: "Latest Hit 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-    { title: "Latest Hit 5", artist: "Artist 5", imageUrl: "/placeholder.jpg" },
-    { title: "Latest Hit 6", artist: "Artist 6", imageUrl: "/placeholder.jpg" },
-  ];
+  const [latestSongs, setLatestSongs] = useState([]);
+  const [genreContent, setGenreContent] = useState([]);
+  const { setCurrentSong } = useAudio(); 
 
-  const genreContent = [
-    {
-      genre: "Hip Hop",
-      songs: [
-        { title: "Hip Hop Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "Hip Hop Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "Hip Hop Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "Hip Hop Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-      ]
-    },
-    {
-      genre: "Rock",
-      songs: [
-        { title: "Rock Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "Rock Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "Rock Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "Rock Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-      ]
-    },
-    {
-      genre: "Pop",
-      songs: [
-        { title: "Pop Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "Pop Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "Pop Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "Pop Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-      ]
-    },
-    {
-      genre: "R&B",
-      songs: [
-        { title: "R&B Song 1", artist: "Artist 1", imageUrl: "/placeholder.jpg" },
-        { title: "R&B Song 2", artist: "Artist 2", imageUrl: "/placeholder.jpg" },
-        { title: "R&B Song 3", artist: "Artist 3", imageUrl: "/placeholder.jpg" },
-        { title: "R&B Song 4", artist: "Artist 4", imageUrl: "/placeholder.jpg" },
-      ]
+  useEffect(() => {
+    axios.get('/newest-songs')
+      .then((response) => {
+        const top5 = response.data.slice(0, 5).map((song) => ({
+          song_id: song.song_id,
+          title: song.title,
+          artist: song.musician_name,
+          views: song.views,
+          imageUrl: song.cover_art_url || '/coogmusiclogonobg.png',
+          audioUrl: song.audio_url
+        }));
+        setLatestSongs(top5);
+      })
+      .catch((error) => {
+        console.error('Error fetching latest songs:', error);
+      });
+
+    axios.get('/top-songs-by-genre')
+      .then((response) => {
+        const formatted = response.data.map(section => ({
+          genre: section.genre,
+          songs: section.songs.slice(0, 5).map(song => ({
+            song_id: song.song_id,
+            title: song.title,
+            artist: song.musician_name,
+            views: song.views,
+            imageUrl: song.cover_art_url || '/coogmusiclogonobg.png',
+            audioUrl: song.audio_url
+          }))
+        }));
+        setGenreContent(formatted);
+      })
+      .catch((error) => {
+        console.error('Error fetching songs by genre:', error);
+      });
+  }, []);
+
+  const playSong = (song) => {
+    console.log('Clicked song:', song);
+    setCurrentSong(song);
+    if (song.song_id !== undefined) {
+      axios.post(`/increment-view/${song.song_id}`).catch(console.error);
+    } else {
+      console.error('song_id is undefined for this song');
     }
-  ];
+  };
 
   return (
     <div className="explore-container">
-      {/* Logo Section */}
-      <div className="logo-container">
+      <div className="explore-logo-container">
         <img
           src="/coogmusiclogonobg.png"
           alt="CoogMusic Logo"
-          className="coogmusic-logo"
+          className="explore-coogmusic-logo"
         />
       </div>
 
-      {/* Latest Songs Section */}
-      <section className="latest-songs-section">
+      <section className="explore-latest-songs-section">
         <h2>Latest Releases</h2>
-        <div className="horizontal-scroll">
+        <div className="explore-horizontal-scroll">
           {latestSongs.map((song, index) => (
-            <div key={index} className="song-card">
-              <div className="song-image-placeholder"></div>
-              <div className="song-info">
+            <div
+              key={index}
+              className="explore-song-card"
+              onClick={() => playSong(song)}
+            >
+              <img
+                src={song.imageUrl}
+                alt={song.title}
+                className="explore-song-image-placeholder"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "/coogmusiclogonobg.png";
+                }}
+              />
+              <div className="explore-song-info">
                 <h3>{song.title}</h3>
                 <p>{song.artist}</p>
+                <p>{song.views} views</p>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Genre Sections */}
       {genreContent.map((genreSection, index) => (
-        <section key={index} className="genre-section">
+        <section key={index} className="explore-genre-section">
           <h2>{genreSection.genre}</h2>
-          <div className="horizontal-scroll">
-            {genreSection.songs.map((song, songIndex) => (
-              <div key={songIndex} className="song-card">
-                <div className="song-image-placeholder"></div>
-                <div className="song-info">
-                  <h3>{song.title}</h3>
-                  <p>{song.artist}</p>
+          {genreSection.songs.length > 0 ? (
+            <div className="explore-horizontal-scroll">
+              {genreSection.songs.map((song, songIndex) => (
+                <div
+                  key={songIndex}
+                  className="explore-song-card"
+                  onClick={() => playSong(song)}
+                >
+                  <img
+                    src={song.imageUrl}
+                    alt={song.title}
+                    className="explore-song-image-placeholder"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "/coogmusiclogonobg.png";
+                    }}
+                  />
+                  <div className="explore-song-info">
+                    <h3>{song.title}</h3>
+                    <p>{song.artist}</p>
+                    <p>{song.views} views</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="explore-no-songs-message">There are no songs for this genre yet.</p>
+          )}
         </section>
       ))}
     </div>
   );
 }
 
-export default Explore; 
+export default Explore;

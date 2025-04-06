@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useUser, useClerk } from '@clerk/clerk-react';
@@ -16,6 +18,11 @@ const Profile = () => {
 
   const [editingPlaylistId, setEditingPlaylistId] = useState(null);
   const [editedPlaylistName, setEditedPlaylistName] = useState('');
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [followingUsers, setFollowingUsers] = useState([]);
+
+
 
   const [editingSongId, setEditingSongId] = useState(null);
   const [editedSongData, setEditedSongData] = useState({
@@ -80,7 +87,16 @@ const [newAlbumSongData, setNewAlbumSongData] = useState({
   file: null,         
   coverArt: null      
 });
-
+const fetchSongs = async () => {
+  try {
+    const response = await axios.get(`/api/profile/${userId}`);
+    if (Array.isArray(response.data) && response.data.length > 0) {
+      setUserSongs(response.data[0].songs);
+    }
+  } catch (error) {
+    console.error("Error fetching songs:", error);
+  }
+};
 
 useEffect(() => {
   if (currentUser) {
@@ -120,6 +136,24 @@ useEffect(() => {
       } else {
         console.error("❌ Songs data is not in the expected format:", songsResponse.data);
       }
+
+
+
+      // Fetch followers and following counts
+      const followersRes = await axios.get(`/api/followers/${userId}`);
+      setFollowerCount(followersRes.data.followers?.length || 0);
+
+      // ✅ Use MySQL user_id instead of Clerk userId
+      const followingRes = await axios.get(`/api/following/${userData.user_id}`);
+      setFollowingCount(followingRes.data.following?.length || 0);
+
+      // ✅ Fetch full user info of followed users
+      const followedIds = followingRes.data.following.map(f => f.followed_id);
+      if (followedIds.length > 0) {
+        const detailsRes = await axios.post(`/api/following-details`, { ids: followedIds });
+        setFollowingUsers(detailsRes.data.users || []);
+      }
+
 
       // ALBUM FEATURE: Fetch user's albums
       const albumsResponse = await axios.get(`/api/getuseralbums/${userId}`);
@@ -368,12 +402,13 @@ useEffect(() => {
           {
             album_id: newAlbumId,
             title: newAlbumData.title,
-            album_art_url: newAlbumData.album_art_url,
+            album_art_url: response.data.album_art_url, // ✅ Use returned image URL
             description: newAlbumData.description,
             release_date: new Date().toISOString(),
             views: 0
           }
         ]);
+        
     
         setNewAlbumData({
           title: '',
@@ -437,7 +472,6 @@ useEffect(() => {
       setShowCreateAlbumInput(false);
       setNewAlbumData({
         title: '',
-        genre: '',
         description: '',
         album_art_url: 'https://via.placeholder.com/300'
       });
@@ -496,6 +530,7 @@ useEffect(() => {
         cover_art_url: 'https://via.placeholder.com/150'
       });
       setUploadFile(null);
+      await fetchSongs();  // Refresh the song list
       setIsLoading(false);
     } catch (error) {
       console.error('Error uploading song:', error);
@@ -606,6 +641,14 @@ useEffect(() => {
               <span className="stat-value">{userSongs.length}</span>
               <span className="stat-label">Songs</span>
             </div>
+            <div className="stat">
+              <span className="stat-value">{followerCount}</span>
+              <span className="stat-label">Followers</span>
+            </div>
+            <div className="stat">
+              <span className="stat-value">{followingCount}</span>
+              <span className="stat-label">Following</span>
+            </div>
           </div>
           {isOwner && userProfile.verification_status && (
             <button
@@ -678,16 +721,23 @@ useEffect(() => {
                 required
               />
             </div>
-            <div className="form-group">
+            <div className="form-group"> 
               <label htmlFor="genre">Genre</label>
-              <input
-                type="text"
+              <select
                 id="genre"
                 name="genre"
                 value={uploadFormData.genre}
                 onChange={handleUploadFormChange}
                 required
-              />
+              >
+                <option value="" disabled>Select Genre</option>
+                <option value="Hip-Hop">Hip-Hop</option>
+                <option value="Pop">Pop</option>
+                <option value="Rock">Rock</option>
+                <option value="Electronic">Electronic</option>
+                <option value="Rap">Rap</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
             <div className="form-group">
               <label htmlFor="description">Description</label>
@@ -759,6 +809,14 @@ useEffect(() => {
           >
             Likes
           </button>
+
+          <button
+            className={`tab-btn ${activeTab === 'following' ? 'active' : ''}`}
+            onClick={() => handleTabChange('following')}
+          >
+            Following
+          </button>
+
         </div>
 
         <div className="tab-content">
@@ -787,13 +845,21 @@ useEffect(() => {
                         </div>
                         <div className="form-group">
                           <label>Genre:</label>
-                          <input
-                            type="text"
+                          <select
                             value={editedSongData.genre}
                             onChange={(e) =>
                               setEditedSongData({ ...editedSongData, genre: e.target.value })
                             }
-                          />
+                            required
+                          >
+                            <option value="" disabled>Select Genre</option>
+                            <option value="Hip-Hop">Hip-Hop</option>
+                            <option value="Pop">Pop</option>
+                            <option value="Rock">Rock</option>
+                            <option value="Electronic">Electronic</option>
+                            <option value="Rap">Rap</option>
+                            <option value="Other">Other</option>
+                          </select>
                         </div>
                         <div className="form-group">
                           <label>Description:</label>
@@ -1031,14 +1097,7 @@ useEffect(() => {
               />
             </div>
             <div className="form-group">
-              <input
-                type="text"
-                name="genre"
-                placeholder="Genre"
-                value={newAlbumData.genre}
-                onChange={handleAlbumDataChange}
-                className="album-genre-input"
-              />
+              {/* Removed Genre input for albums */}
             </div>
             <div className="form-group">
               <textarea
@@ -1090,14 +1149,24 @@ useEffect(() => {
       </div>
 
       <div className="form-group">
-        <input
-          type="text"
+        <label htmlFor="albumSongGenre">Genre</label>
+        <select
+          id="albumSongGenre"
           name="genre"
-          placeholder="Genre"
           value={newAlbumSongData.genre}
           onChange={handleNewAlbumSongChange}
-        />
+          required
+        >
+          <option value="" disabled>Select Genre</option>
+          <option value="Hip-Hop">Hip-Hop</option>
+          <option value="Pop">Pop</option>
+          <option value="Rock">Rock</option>
+          <option value="Electronic">Electronic</option>
+          <option value="Rap">Rap</option>
+          <option value="Other">Other</option>
+        </select>
       </div>
+
 
       <div className="form-group">
         <textarea
@@ -1257,6 +1326,33 @@ useEffect(() => {
               </div>
             </div>
           )}
+
+
+          {activeTab === 'following' && (
+            <div className="following-tab">
+              <h2>Following</h2>
+              {followingUsers.length === 0 ? (
+                <p className="no-content">You're not following anyone yet.</p>
+              ) : (
+                <div className="artists-grid">
+                  {followingUsers.map(user => (
+                    <Link to={`/artist/${user.user_id}`} key={user.user_id} className="artist-card">
+                      <div className="artist-avatar">
+                        <img
+                          src={user.profile_picture_url || '/coogmusiclogonobg.png'}
+                          alt={user.name}
+                          onError={(e) => e.target.src = '/coogmusiclogonobg.png'}
+                        />
+                      </div>
+                      <h3>{user.name}</h3>
+                      <p>{user.account_type}</p>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           
           {activeTab === 'likes' && (
             <div className="likes-tab">

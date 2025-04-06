@@ -199,12 +199,13 @@ async function uploadProfilePicture(req, res) {
 }
 
 async function uploadSong(req, res) {
-
-
-
-
   try {
     const { title, genre, description, cover_art_url, musician_id } = req.body;
+    
+    // Inline genre validation using allowed values
+    const allowedGenres = ['Hip-Hop', 'Pop', 'Rock', 'Electronic', 'Rap', 'Other'];
+    const validatedGenre = allowedGenres.includes(genre) ? genre : 'Other';
+
     const fileBuffer = req.fileBuffer;
     const fileName = `${uuidv4()}-${req.fileName}`;
     const blockBlobClient = songContainerClient.getBlockBlobClient(fileName);
@@ -218,31 +219,30 @@ async function uploadSong(req, res) {
     console.log("File uploaded:", fileUrl);
 
     // ---------------
-    // Setting a default duration instead of using ffprobe
-    // In production, replace this with an actual duration calculation
+    // Setting a default duration instead of using ffprobe.
+    // In production, replace this with an actual duration calculation.
     const duration = 180; // Default duration of 3 minutes
     console.log("Skipping ffprobe. Using default duration:", duration);
     // ---------------
 
-// Upload cover art if a file is provided (similar to profile picture upload)
-let finalCoverArtUrl = cover_art_url; // Default to the value provided in the request body
-if (req.files && req.files.cover_art && req.files.cover_art[0]) {
-  const coverArtFile = req.files.cover_art[0];
-  const coverArtBuffer = coverArtFile.buffer;
-  const coverArtName = `${uuidv4()}-${coverArtFile.originalname}`;
+    // Upload cover art if a file is provided (similar to profile picture upload)
+    let finalCoverArtUrl = cover_art_url; // Default to the value provided in the request body
+    if (req.files && req.files.cover_art && req.files.cover_art[0]) {
+      const coverArtFile = req.files.cover_art[0];
+      const coverArtBuffer = coverArtFile.buffer;
+      const coverArtName = `${uuidv4()}-${coverArtFile.originalname}`;
+      
+      // Ensure the Azure container for song pictures exists
+      await songPictureContainerClient.createIfNotExists({ access: "container" });
+      const coverArtBlockBlobClient = songPictureContainerClient.getBlockBlobClient(coverArtName);
   
-  // Ensure the Azure container for song pictures exists (assumes songPictureContainerClient is defined)
-  await songPictureContainerClient.createIfNotExists({ access: "container" });
-  const coverArtBlockBlobClient = songPictureContainerClient.getBlockBlobClient(coverArtName);
-
-  console.log("Uploading song cover art to Azure Blob Storage...");
-  await coverArtBlockBlobClient.uploadData(coverArtBuffer, {
-    blobHTTPHeaders: { blobContentType: coverArtFile.mimetype },
-  });
-  finalCoverArtUrl = coverArtBlockBlobClient.url;
-  console.log("Song cover art uploaded:", finalCoverArtUrl);
-}
-
+      console.log("Uploading song cover art to Azure Blob Storage...");
+      await coverArtBlockBlobClient.uploadData(coverArtBuffer, {
+        blobHTTPHeaders: { blobContentType: coverArtFile.mimetype },
+      });
+      finalCoverArtUrl = coverArtBlockBlobClient.url;
+      console.log("Song cover art uploaded:", finalCoverArtUrl);
+    }
 
     const uploadDate = new Date().toISOString().slice(0, 19).replace("T", " ");
 
@@ -251,8 +251,8 @@ if (req.files && req.files.cover_art && req.files.cover_art[0]) {
       connection = await mysql.createConnection(dbConfig);
       await connection.execute(
         `INSERT INTO Songs (title, musician_id, upload_date, genre, duration, file_url, cover_art_url, description)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [title, musician_id, uploadDate, genre, duration, fileUrl, finalCoverArtUrl, description]
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [title, musician_id, uploadDate, validatedGenre, duration, fileUrl, finalCoverArtUrl, description]
       );
       console.log("✅ File metadata stored in database.");
     } catch (dbError) {
@@ -270,6 +270,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     res.end(JSON.stringify({ error: "Error uploading file", details: error.message }));
   }
 }
+
 
 
 /**
@@ -876,10 +877,15 @@ if (req.method === "POST" && req.url.startsWith("/increment-view/")) {
           updates.push("title = ?");
           params.push(title);
         }
+        
+        // Validate genre against allowed ENUM values before updating
         if (genre) {
+          const allowedGenres = ['Hip-Hop', 'Pop', 'Rock', 'Electronic', 'Rap', 'Other'];
+          const validatedGenre = allowedGenres.includes(genre) ? genre : 'Other';
           updates.push("genre = ?");
-          params.push(genre);
+          params.push(validatedGenre);
         }
+    
         if (description) {
           updates.push("description = ?");
           params.push(description);
@@ -936,6 +942,7 @@ if (req.method === "POST" && req.url.startsWith("/increment-view/")) {
     });
     return;
   }
+  
   
 
   // Create a new playlist
@@ -1420,32 +1427,55 @@ LIMIT 20
   }
 
 
+
+  //viewing other users profile
+
   if (req.method === "GET" && req.url.startsWith("/api/user-by-id/")) {
     const userId = req.url.split("/api/user-by-id/")[1];
-
+  
     try {
       const connection = await mysql.createConnection(dbConfig);
+  
+      // Get user data
       const [rows] = await connection.execute(
         "SELECT * FROM users WHERE user_id = ?",
         [userId]
       );
-      await connection.end();
-
+  
       if (rows.length === 0) {
+        await connection.end();
         res.writeHead(404, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Artist not found" }));
-      } else {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ user: rows[0] })); // ✅
+        return res.end(JSON.stringify({ error: "Artist not found" }));
       }
+  
+      const user = rows[0];
+  
+      // Get monthly listeners
+      const [monthlyListenersRows] = await connection.execute(`
+        SELECT COUNT(*) AS monthly_listeners
+        FROM \`streaming history\`
+        WHERE song_id IN (
+          SELECT song_id FROM songs WHERE musician_id = ?
+        )
+        AND timestamp >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
+      `, [userId]);
+  
+      user.monthly_listeners = monthlyListenersRows[0].monthly_listeners || 0;
+  
+      await connection.end();
+  
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ user }));
+  
     } catch (err) {
       console.error("❌ Error fetching user by ID:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Database error" }));
     }
-
+  
     return;
   }
+  
 
   if (req.method === "GET" && req.url.startsWith("/api/artist-songs/")) {
     const artistId = req.url.split("/api/artist-songs/")[1];
@@ -1472,6 +1502,36 @@ ORDER BY songs.upload_date DESC`,
 
     return;
   }
+
+
+  // Get albums for an artist by direct user_id (not Clerk ID)
+if (req.method === "GET" && req.url.startsWith("/api/getartistalbums/")) {
+  const userId = decodeURIComponent(req.url.split("/api/getartistalbums/")[1]);
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    // Fetch albums for the given user_id ordered by release date (newest first)
+    const [albums] = await connection.execute(
+      "SELECT * FROM albums WHERE musician_id = ? ORDER BY release_date DESC",
+      [userId]
+    );
+
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ albums }));
+  } catch (error) {
+    console.error("❌ Error in /getartistalbums route:", error.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Internal Server Error" }));
+  }
+}
+
+
+// ^^ viewing another users profile
+
+
 
 
   // Toggle like: user can like or unlike a song
@@ -1707,8 +1767,12 @@ if (req.method === "POST" && req.url === "/api/createAlbum") {
       );
       await connection.end();
       res.writeHead(201, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ message: "Album created successfully", album_id: result.insertId }));
-    } catch (error) {
+      return res.end(JSON.stringify({ 
+        message: "Album created successfully", 
+        album_id: result.insertId,
+        album_art_url: albumArtUrl // ✅ Include the final image URL
+      }));
+          } catch (error) {
       console.error("❌ Error creating album:", error.message);
       res.writeHead(500, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ error: "Internal Server Error" }));
@@ -1773,6 +1837,10 @@ if (req.url === "/api/upload-album-songs" && req.method === "POST") {
         const genre = Array.isArray(genres) ? genres[i] : genres;
         const description = Array.isArray(descriptions) ? descriptions[i] : descriptions;
 
+        // Inline genre validation using allowed values
+        const allowedGenres = ['Hip-Hop', 'Pop', 'Rock', 'Electronic', 'Rap', 'Other'];
+        const validatedGenre = allowedGenres.includes(genre) ? genre : 'Other';
+
         // Upload audio
         const fileName = `${uuidv4()}-${file.originalname}`;
         const audioBlob = songContainerClient.getBlockBlobClient(fileName);
@@ -1796,11 +1864,11 @@ if (req.url === "/api/upload-album-songs" && req.method === "POST") {
         const uploadDate = new Date().toISOString().slice(0, 19).replace("T", " ");
         const duration = 180;
 
-        // Insert into `songs`
+        // Insert into `songs` using the validated genre
         const [songResult] = await connection.execute(
           `INSERT INTO songs (title, musician_id, upload_date, genre, duration, file_url, cover_art_url, description)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [title, musician_id, uploadDate, genre, duration, fileUrl, coverArtUrl, description]
+          [title, musician_id, uploadDate, validatedGenre, duration, fileUrl, coverArtUrl, description]
         );
 
         const songId = songResult.insertId;
@@ -1825,6 +1893,7 @@ if (req.url === "/api/upload-album-songs" && req.method === "POST") {
 
   return;
 }
+
 
 
 if (req.method === "GET" && req.url.startsWith("/api/album/")) {
@@ -1948,6 +2017,234 @@ if (req.method === "PATCH" && req.url === "/editalbumtitleorpic") {
 }
 
 
+if (req.method === 'DELETE' && req.url.startsWith('/api/album/')) {
+  const albumId = req.url.split('/api/album/')[1];
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    // Delete songs only linked to this album BEFORE album is deleted
+    await connection.execute(`
+      DELETE FROM songs
+      WHERE song_id IN (
+        SELECT song_id FROM album_songs WHERE album_id = ?
+      )
+      AND song_id NOT IN (
+        SELECT song_id FROM album_songs WHERE album_id != ?
+      );
+    `, [albumId, albumId]);
+
+    // Now delete the album (cascades album_songs)
+    await connection.execute(`DELETE FROM albums WHERE album_id = ?`, [albumId]);
+
+    await connection.end();
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ message: 'Album and any exclusive songs deleted' }));
+  } catch (err) {
+    console.error("❌ Error deleting album and cleanup:", err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Failed to delete album' }));
+  }
+
+  return;
+}
+
+
+
+
+//following feature 
+
+// 1. Follow an artist
+if (req.method === "POST" && req.url === "/api/follow") {
+  let body = "";
+  req.on("data", chunk => body += chunk.toString());
+  req.on("end", async () => {
+    try {
+      const { follower_id, followed_id } = JSON.parse(body);
+      const connection = await mysql.createConnection(dbConfig);
+      await connection.execute(
+        "INSERT INTO `user followers` (follower_id, followed_id, timestamp) VALUES (?, ?, NOW())",
+        [follower_id, followed_id]
+      );
+      await connection.end();
+      console.log(`✅ User ${follower_id} has followed user ${followed_id}`);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Followed successfully" }));
+    } catch (err) {
+      console.error("❌ Follow error:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Follow failed" }));
+    }
+  });
+  return;
+}
+
+// 2. Unfollow an artist
+if (req.method === "DELETE" && req.url === "/api/unfollow") {
+  let body = "";
+  req.on("data", chunk => body += chunk.toString());
+  req.on("end", async () => {
+    try {
+      const { follower_id, followed_id } = JSON.parse(body);
+      const connection = await mysql.createConnection(dbConfig);
+      await connection.execute(
+        "DELETE FROM `user followers` WHERE follower_id = ? AND followed_id = ?",
+        [follower_id, followed_id]
+      );
+      await connection.end();
+      console.log(`⚠️ User ${follower_id} has unfollowed user ${followed_id}`);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Unfollowed successfully" }));
+    } catch (err) {
+      console.error("❌ Unfollow error:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Unfollow failed" }));
+    }
+  });
+  return;
+}
+
+
+// 3. Get followers of an artist
+if (req.method === "GET" && req.url.startsWith("/api/followers/")) {
+  const artistId = req.url.split("/api/followers/")[1];
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [followers] = await connection.execute(
+      "SELECT * FROM `user followers` WHERE followed_id = ?",
+      [artistId]
+    );
+    await connection.end();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ followers }));
+  } catch (err) {
+    console.error("❌ Error fetching followers:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to fetch followers" }));
+  }
+  return;
+}
+
+// 4. Check if user is following an artist
+if (req.method === "GET" && req.url.startsWith("/api/is-following/")) {
+  const parts = req.url.split("/api/is-following/")[1].split("/");
+  const [followerId, followedId] = parts;
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [rows] = await connection.execute(
+      "SELECT * FROM `user followers` WHERE follower_id = ? AND followed_id = ?",
+      [followerId, followedId]
+    );
+    await connection.end();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ isFollowing: rows.length > 0 }));
+  } catch (err) {
+    console.error("❌ Error checking follow status:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to check follow status" }));
+  }
+  return;
+}
+
+// 5. Get users the current user is following
+// used for the profile.js file (to show how many people current user is following)
+//since artistprofie.js doesnt show how many people a user is following
+if (req.method === "GET" && req.url.startsWith("/api/following/")) {
+  const userId = req.url.split("/api/following/")[1];
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [following] = await connection.execute(
+      "SELECT * FROM `user followers` WHERE follower_id = ?",
+      [userId]
+    );
+    await connection.end();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ following }));
+  } catch (err) {
+    console.error("❌ Error fetching following:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to fetch following" }));
+  }
+  return;
+}
+
+//get user details by ID list 
+//for the profile page,, shows details for all the users that the current user is following
+if (req.method === "POST" && req.url === "/api/following-details") {
+  let body = "";
+  req.on("data", chunk => body += chunk.toString());
+  req.on("end", async () => {
+    try {
+      const { ids } = JSON.parse(body);
+      if (!Array.isArray(ids) || ids.length === 0) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Invalid ID list" }));
+      }
+
+      const placeholders = ids.map(() => '?').join(',');
+      const connection = await mysql.createConnection(dbConfig);
+      const [users] = await connection.execute(
+        `SELECT user_id, name, profile_picture_url, account_type FROM users WHERE user_id IN (${placeholders})`,
+        ids
+      );
+      await connection.end();
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ users }));
+    } catch (err) {
+      console.error("❌ Error fetching followed users:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Failed to fetch followed user details" }));
+    }
+  });
+  return;
+}
+
+
+
+//following feature 
+
+
+
+
+//gets the top songs by genre 
+//used to get the top 5 songs in the explore page
+//route has 20 songs per genre, explore page only takes the top 5 
+if (req.url === "/top-songs-by-genre" && req.method === "GET") {
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    const genres = ['Hip-Hop', 'Pop', 'Rock', 'Electronic', 'Rap', 'Other'];
+    const genreSections = [];
+
+    for (const genre of genres) {
+      const [rows] = await connection.execute(`
+        SELECT s.song_id, s.title, s.musician_id, s.upload_date, s.genre,
+               s.duration, s.file_url, s.cover_art_url, s.description,
+               s.views, u.name AS musician_name
+        FROM songs s
+        JOIN users u ON s.musician_id = u.user_id
+        WHERE s.genre = ?
+        ORDER BY s.views DESC
+        LIMIT 20
+      `, [genre]);
+
+      genreSections.push({ genre, songs: rows });
+    }
+
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(genreSections));
+  } catch (err) {
+    console.error("❌ Error fetching top songs by genre:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to fetch songs by genre" }));
+  }
+  return;
+}
 
 
   // Serve React Frontend (Static Files)

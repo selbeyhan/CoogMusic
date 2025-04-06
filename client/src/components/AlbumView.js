@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
@@ -17,6 +19,7 @@ const AlbumView = () => {
   const [newDescription, setNewDescription] = useState('');
   const coverInputRef = useRef(null);
   const { setCurrentSong } = useAudio();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // New states for adding a song to the album
   const [showAddSongModal, setShowAddSongModal] = useState(false);
@@ -27,6 +30,8 @@ const AlbumView = () => {
     file: null,
     coverArt: null,
   });
+  // New state to prevent multiple submissions
+  const [isAddingSong, setIsAddingSong] = useState(false);
 
   // New refs for file inputs in the Add Song modal
   const audioFileRef = useRef(null);
@@ -72,6 +77,21 @@ const AlbumView = () => {
     }
   };
 
+  const handleDeleteAlbum = async () => {
+    try {
+      await axios.delete(`/api/album/${albumId}`);
+      alert("Album deleted successfully.");
+      if (user?.id) {
+        window.location.href = `/profile/${user.id}`;
+      } else {
+        window.location.href = "/";
+      }
+    } catch (err) {
+      console.error("Error deleting album:", err);
+      alert("Failed to delete album.");
+    }
+  };
+
   const handleAlbumEdit = () => {
     setNewTitle(albumInfo?.title || '');
     setNewDescription(albumInfo?.description || '');
@@ -105,13 +125,21 @@ const AlbumView = () => {
   };
 
   // Handler for adding a song to the album
-  const handleAddSongToAlbum = async () => {
+  const handleAddSongToAlbum = async (e) => {
+    e.preventDefault(); // Prevent default form submission
+
+    // Prevent multiple submissions if one is already in progress
+    if (isAddingSong) return;
+    setIsAddingSong(true);
+
     if (!newSongData.title.trim()) {
       alert("Song title is required.");
+      setIsAddingSong(false);
       return;
     }
     if (!newSongData.file) {
       alert("Please select an audio file for the song.");
+      setIsAddingSong(false);
       return;
     }
 
@@ -135,21 +163,28 @@ const AlbumView = () => {
       const updatedAlbum = await axios.get(`/api/album/${albumId}`);
       setSongs(updatedAlbum.data.songs || []);
       alert("Song added to album!");
-      setShowAddSongModal(false);
-      setNewSongData({
-        title: '',
-        genre: '',
-        description: '',
-        file: null,
-        coverArt: null,
-      });
-      // Clear file inputs
-      if (audioFileRef.current) audioFileRef.current.value = "";
-      if (coverArtRef.current) coverArtRef.current.value = "";
+      // Reset the new song data and close the modal
+      handleCancelAddSong();
     } catch (err) {
       console.error("Error uploading song:", err);
       alert("Upload failed.");
+    } finally {
+      setIsAddingSong(false);
     }
+  };
+
+  // Helper to clear new song data when canceling the Add Song modal
+  const handleCancelAddSong = () => {
+    setNewSongData({
+      title: '',
+      genre: '',
+      description: '',
+      file: null,
+      coverArt: null,
+    });
+    if (audioFileRef.current) audioFileRef.current.value = "";
+    if (coverArtRef.current) coverArtRef.current.value = "";
+    setShowAddSongModal(false);
   };
 
   if (isLoading) return <div className="loading">Loading album...</div>;
@@ -164,6 +199,7 @@ const AlbumView = () => {
           <>
             <button onClick={handleAlbumEdit} className="edit-button">Edit Album</button>
             <button onClick={() => setShowAddSongModal(true)} className="add-song-button">Add Song</button>
+            <button onClick={() => setShowDeleteModal(true)} className="delete-album-button">Delete Album</button>
           </>
         )}
       </div>
@@ -247,56 +283,95 @@ const AlbumView = () => {
         </div>
       )}
 
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Delete Album</h3>
+            <p>Are you sure you want to delete this album? This action cannot be undone.</p>
+            <div className="modal-actions">
+              <button onClick={handleDeleteAlbum}>Yes, Delete</button>
+              <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Song Modal */}
       {showAddSongModal && (
         <div className="modal-overlay">
           <div className="modal">
             <h3>Add Song to Album</h3>
-            <div className="form-group">
-              <label>Song Title:</label>
-              <input
-                type="text"
-                value={newSongData.title}
-                onChange={(e) => setNewSongData({ ...newSongData, title: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label>Genre:</label>
-              <input
-                type="text"
-                value={newSongData.genre}
-                onChange={(e) => setNewSongData({ ...newSongData, genre: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label>Description:</label>
-              <textarea
-                value={newSongData.description}
-                onChange={(e) => setNewSongData({ ...newSongData, description: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label>Audio File:</label>
-              <input
-                type="file"
-                accept="audio/*"
-                ref={audioFileRef}
-                onChange={(e) => setNewSongData({ ...newSongData, file: e.target.files[0] })}
-              />
-            </div>
-            <div className="form-group">
-              <label>Cover Art (Optional):</label>
-              <input
-                type="file"
-                accept="image/*"
-                ref={coverArtRef}
-                onChange={(e) => setNewSongData({ ...newSongData, coverArt: e.target.files[0] })}
-              />
-            </div>
-            <div className="modal-actions">
-              <button onClick={handleAddSongToAlbum}>Save Song</button>
-              <button onClick={() => setShowAddSongModal(false)}>Cancel</button>
-            </div>
+            <form onSubmit={handleAddSongToAlbum}>
+              <div className="form-group">
+                <label>Song Title:</label>
+                <input
+                  type="text"
+                  value={newSongData.title}
+                  onChange={(e) =>
+                    setNewSongData({ ...newSongData, title: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Genre:</label>
+                <select
+                  value={newSongData.genre}
+                  onChange={(e) =>
+                    setNewSongData({ ...newSongData, genre: e.target.value })
+                  }
+                  required
+                >
+                  <option value="" disabled>
+                    Select Genre
+                  </option>
+                  <option value="Hip-Hop">Hip-Hop</option>
+                  <option value="Pop">Pop</option>
+                  <option value="Rock">Rock</option>
+                  <option value="Electronic">Electronic</option>
+                  <option value="Rap">Rap</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Description:</label>
+                <textarea
+                  value={newSongData.description}
+                  onChange={(e) =>
+                    setNewSongData({ ...newSongData, description: e.target.value })
+                  }
+                />
+              </div>
+              <div className="form-group">
+                <label>Audio File:</label>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  ref={audioFileRef}
+                  onChange={(e) =>
+                    setNewSongData({ ...newSongData, file: e.target.files[0] })
+                  }
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Cover Art (Optional):</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={coverArtRef}
+                  onChange={(e) =>
+                    setNewSongData({ ...newSongData, coverArt: e.target.files[0] })
+                  }
+                />
+              </div>
+              <div className="modal-actions">
+                <button type="submit">Save Song</button>
+                <button type="button" onClick={handleCancelAddSong}>
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-vars */
-
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useUser } from '@clerk/clerk-react';
 import { useAudio } from '../contexts/AudioContext';
@@ -14,27 +13,46 @@ const ArtistProfile = () => {
 
   const [artist, setArtist] = useState(null);
   const [artistSongs, setArtistSongs] = useState([]);
+  const [albums, setAlbums] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('songs');
 
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+
   useEffect(() => {
     const fetchArtistData = async () => {
       try {
-        // First, get the user information
         const userResponse = await axios.get(`/api/user-by-id/${artistId}`);
-
         if (!userResponse.data || !userResponse.data.user) {
           setError("Artist not found");
           setIsLoading(false);
           return;
         }
 
-        setArtist(userResponse.data.user);
+        const artistData = userResponse.data.user;
+        setArtist(artistData);
 
-        // Then get the songs by this artist
         const songsResponse = await axios.get(`/api/artist-songs/${artistId}`);
         setArtistSongs(songsResponse.data || []);
+
+        const albumsResponse = await axios.get(`/api/getartistalbums/${artistData.user_id}`);
+        setAlbums(albumsResponse.data.albums || []);
+
+        const followersRes = await axios.get(`/api/followers/${artistId}`);
+        setFollowerCount(followersRes.data.followers?.length || 0);
+
+        if (currentUser) {
+          const res = await axios.get(`/user/${currentUser.id}`);
+          const myId = res.data.user.user_id;
+          setCurrentUserId(myId);
+
+          const isFollowingRes = await axios.get(`/api/is-following/${myId}/${artistId}`);
+          setIsFollowing(isFollowingRes.data.isFollowing);
+        }
 
         setIsLoading(false);
       } catch (error) {
@@ -45,21 +63,48 @@ const ArtistProfile = () => {
     };
 
     fetchArtistData();
-  }, [artistId]);
+  }, [artistId, currentUser]);
+
+
+
+  const toggleFollow = async () => {
+    if (!currentUserId || !artistId || isButtonDisabled) return;
+  
+    setIsButtonDisabled(true); // Disable button while request is in flight
+  
+    try {
+      if (isFollowing) {
+        await axios.delete('/api/unfollow', {
+          data: { follower_id: currentUserId, followed_id: artistId }
+        });
+        setIsFollowing(false);
+        setFollowerCount(prev => prev - 1);
+      } else {
+        await axios.post('/api/follow', {
+          follower_id: currentUserId,
+          followed_id: artistId
+        });
+        setIsFollowing(true);
+        setFollowerCount(prev => prev + 1);
+      }
+    } catch (err) {
+      console.error("Follow toggle error:", err);
+    } finally {
+      setIsButtonDisabled(false); // Re-enable after response is complete
+    }
+  };
+  
+  
 
   const playSong = (song) => {
     setCurrentSong(song);
-    // Increment view count
     axios.post(`/increment-view/${song.song_id}`).catch(console.error);
   };
 
-  if (isLoading) {
-    return <div className="loading-container">Loading artist profile...</div>;
-  }
+  if (isLoading) return <div className="loading-container">Loading artist profile...</div>;
+  if (error) return <div className="error-container">{error}</div>;
 
-  if (error) {
-    return <div className="error-container">{error}</div>;
-  }
+  const isOwnProfile = currentUserId === parseInt(artistId);
 
   return (
     <div className="artist-profile-container">
@@ -76,10 +121,27 @@ const ArtistProfile = () => {
           <p className="artist-bio">{artist.bio || "No bio available."}</p>
           <div className="artist-stats">
             <div className="stat">
+              <span className="stat-value">{artist.monthly_listeners || 0}</span>
+              <span className="stat-label">Monthly Views</span>
+            </div>
+            <div className="stat">
               <span className="stat-value">{artistSongs.length}</span>
               <span className="stat-label">Songs</span>
             </div>
+            <div className="stat">
+              <span className="stat-value">{albums.length}</span>
+              <span className="stat-label">Albums</span>
+            </div>
+            <div className="stat">
+              <span className="stat-value">{followerCount}</span>
+              <span className="stat-label">Followers</span>
+            </div>
           </div>
+          {!isOwnProfile && (
+            <button className="follow-btn" onClick={toggleFollow} disabled={isButtonDisabled}>
+              {isFollowing ? "Unfollow" : "Follow"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -90,6 +152,12 @@ const ArtistProfile = () => {
             onClick={() => setActiveTab('songs')}
           >
             Songs
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'albums' ? 'active' : ''}`}
+            onClick={() => setActiveTab('albums')}
+          >
+            Albums
           </button>
           <button
             className={`tab-btn ${activeTab === 'about' ? 'active' : ''}`}
@@ -136,6 +204,36 @@ const ArtistProfile = () => {
             </div>
           )}
 
+          {activeTab === 'albums' && (
+            <div className="albums-tab">
+              <h2>Albums</h2>
+              {albums.length === 0 ? (
+                <p className="no-content">No albums available.</p>
+              ) : (
+                <div className="albums-list">
+                  {albums.map((album) => (
+                    <Link key={album.album_id} to={`/album/${album.album_id}`} className="album-card">
+                      <div className="album-cover">
+                        <img
+                          src={album.album_art_url || 'https://via.placeholder.com/300'}
+                          alt={album.title}
+                          onError={(e) => e.target.src = 'https://via.placeholder.com/300'}
+                        />
+                      </div>
+                      <div className="album-info">
+                        <h3>{album.title}</h3>
+                        <p className="album-date">
+                          Released: {new Date(album.release_date).toLocaleDateString()}
+                        </p>
+                        <p className="album-views">Views: {album.views}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === 'about' && (
             <div className="about-tab">
               <h2>About {artist.name}</h2>
@@ -146,7 +244,9 @@ const ArtistProfile = () => {
               <div className="info-item">
                 <span className="label">Member Since:</span>
                 <span className="value">
-                  {artist.registration_date ? new Date(artist.registration_date).toLocaleDateString() : "Not available"}
+                  {artist.registration_date
+                    ? new Date(artist.registration_date).toLocaleDateString()
+                    : "Not available"}
                 </span>
               </div>
               <div className="bio-section">

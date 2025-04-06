@@ -1,193 +1,110 @@
 .explore-container {
-    padding: 2rem;
-    max-width: 1400px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  /* Logo styles */
-  .logo-container {
-    margin-bottom: 2rem;
-    text-align: center;
-  }
-  
-  .coogmusic-logo {
-    width: 200px;
-    height: auto;
-    margin-bottom: 1rem;
-  }
-  
-  .explore-container section {
-    margin-bottom: 3rem;
-  }
-  
-  .explore-container h2 {
-    margin-bottom: 1.5rem;
-    color: #333;
-    font-size: 1.8rem;
-    font-weight: 700;
-  }
-  
-  .horizontal-scroll {
-    display: flex;
-    overflow-x: auto;
-    gap: 1.5rem;
-    padding: 0.5rem 0;
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox */
-  }
-  
-  .horizontal-scroll::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Edge */
-  }
-  
-  .song-card {
-    flex: 0 0 auto;
-    width: 200px;
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    transition: transform 0.3s, box-shadow 0.3s;
-    cursor: pointer;
-  }
-  
-  .song-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  }
-  
-  .song-image-placeholder {
-    width: 100%;
-    height: 200px;
-    background-color: #f0f0f0;
-    position: relative;
-  }
-  
-  .song-image-placeholder::after {
-    content: '♪';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 2rem;
-    color: #999;
-  }
-  
-  .song-info {
-    padding: 1rem;
-  }
-  
-  .song-info h3 {
-    margin: 0;
-    font-size: 1rem;
-    color: #333;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  
-  .song-info p {
-    margin: 0.5rem 0 0;
-    color: #666;
-    font-size: 0.9rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  
-  .latest-songs-section {
-    margin-bottom: 4rem;
-  }
-  
-  .genre-section {
-    position: relative;
-  }
-  
-  /* Add gradient fade effect to indicate more content */
-  .horizontal-scroll::after {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 0;
-    height: 100%;
-    width: 50px;
-    background: linear-gradient(to right, transparent, white);
-    pointer-events: none;
-  }
-  
-  .genres-section {
-    margin-bottom: 3rem;
-  }
-  
-  .genres-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
-  }
-  
-  .genre-card {
-    background: linear-gradient(45deg, #ff0000, #ff4444);
-    color: white;
-    padding: 2rem;
-    border-radius: 8px;
-    text-align: center;
-    cursor: pointer;
-    transition: transform 0.3s;
-  }
-  
-  .genre-card:hover {
-    transform: translateY(-4px);
-  }
-  
-  .genre-card h3 {
-    margin: 0;
-    font-size: 1.2rem;
-  }
-  
-  .category-section {
-    margin-bottom: 3rem;
-  }
-  
-  .category-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1.5rem;
-  }
-  
-  .item-card {
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    transition: transform 0.3s;
-  }
-  
-  .item-card:hover {
-    transform: translateY(-4px);
-  }
-  
-  .item-image-placeholder {
-    width: 100%;
-    height: 160px;
-    background-color: #f0f0f0;
-  }
-  
-  .item-info {
-    padding: 1rem;
-  }
-  
-  .item-info h3 {
-    margin: 0;
-    font-size: 1.1rem;
-    color: #333;
-  }
-  
-  .item-info p {
-    margin: 0.5rem 0 0;
-    color: #666;
-    font-size: 0.9rem;
-  } 
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Logo styles */
+.explore-logo-container {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.explore-coogmusic-logo {
+  width: 200px;
+  height: auto;
+  margin-bottom: 1rem;
+}
+
+.explore-container section {
+  margin-bottom: 3rem;
+}
+
+.explore-container h2 {
+  margin-bottom: 1.5rem;
+  color: #333;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.explore-horizontal-scroll {
+  position: relative;
+  display: flex;
+  overflow-x: auto;
+  gap: 1.5rem;
+  padding: 0.5rem 0;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+}
+
+.explore-horizontal-scroll::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+.explore-horizontal-scroll::after {
+  display: none; /* Disable gradient for now */
+}
+
+.explore-song-card {
+  flex: 0 0 auto;
+  width: 200px;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+  cursor: pointer;
+}
+
+.explore-song-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.explore-song-image-placeholder {
+  width: 100%;
+  height: 200px;
+  background-color: #f0f0f0;
+  object-fit: cover;
+}
+
+.explore-song-info {
+  padding: 1rem;
+}
+
+.explore-song-info h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.explore-song-info p {
+  margin: 0.5rem 0 0;
+  color: #666;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.explore-latest-songs-section {
+  margin-bottom: 4rem;
+}
+
+.explore-genre-section {
+  position: relative;
+}
+
+.explore-no-songs-message {
+  text-align: center;
+  font-size: 1rem;
+  color: #888;
+  margin-top: 1rem;
+}
