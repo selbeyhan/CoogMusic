@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useUser } from "@clerk/clerk-react";
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
   FaStepBackward,
@@ -17,6 +17,7 @@ import {
   FaListUl,
 } from 'react-icons/fa';
 import './AudioPlayerUI.css';
+import { useAudio } from '../contexts/AudioContext';
 
 export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
   const audioRef = useRef(new Audio());
@@ -28,15 +29,23 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
   const [repeatMode, setRepeatMode] = useState('off');
   const [shuffle, setShuffle] = useState(false);
   const [liked, setLiked] = useState(false);
-  const { user } = useUser(); // Clerk user object
+  const { user } = useUser();
+  const location = useLocation();
+  const audioContext = useAudio();
   
-  // Add playlist states
+  // Playlist states
   const [playlists, setPlaylists] = useState([]);
   const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState("");
   const [newPlaylistName, setNewPlaylistName] = useState("");
+  
+  // Context for album/playlist navigation
+  const [contextSongs, setContextSongs] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [contextType, setContextType] = useState(null);
+  const [contextId, setContextId] = useState(null);
 
-  // Update playback progress and handling song end
+  // Update playback progress and handle song end
   useEffect(() => {
     const audio = audioRef.current;
 
@@ -53,12 +62,14 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
 
     const handleEnded = () => {
       if (repeatMode === 'all') {
-        onNext();
+        handleNextSong();
       } else if (repeatMode === 'one') {
         audio.currentTime = 0;
         audio.play().catch(err => console.error("Playback error:", err));
       } else {
-        if (queue.length > 0) {
+        if (contextSongs.length > 0 && currentIndex < contextSongs.length - 1) {
+          handleNextSong();
+        } else if (queue.length > 0) {
           onNext();
         } else {
           setPlaying(false);
@@ -75,14 +86,68 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [repeatMode, onNext, queue.length]);
+  }, [repeatMode, onNext, queue.length, contextSongs, currentIndex]);
 
-  // Load new song and fetch like state from backend
+  // Detect if we're viewing an album or playlist
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.includes('/album/')) {
+      const albumId = path.split('/album/')[1];
+      setContextType('album');
+      setContextId(albumId);
+      fetchAlbumSongs(albumId);
+    } else if (path.includes('/playlist/')) {
+      const playlistId = path.split('/playlist/')[1];
+      setContextType('playlist');
+      setContextId(playlistId);
+      fetchPlaylistSongs(playlistId);
+    } else {
+      setContextType(null);
+      setContextId(null);
+      setContextSongs([]);
+      setCurrentIndex(-1);
+    }
+  }, [location.pathname]);
+
+  // When a new song is selected, find its index in the context
+  useEffect(() => {
+    if (currentSong && contextSongs.length > 0) {
+      const index = contextSongs.findIndex(song => song.song_id === currentSong.song_id);
+      if (index !== -1) {
+        setCurrentIndex(index);
+      }
+    }
+  }, [currentSong, contextSongs]);
+
+  // Fetch album songs for navigation
+  const fetchAlbumSongs = async (albumId) => {
+    try {
+      const response = await axios.get(`/api/album/${albumId}`);
+      if (response.data && response.data.songs) {
+        setContextSongs(response.data.songs);
+      }
+    } catch (error) {
+      console.error("Error fetching album songs:", error);
+    }
+  };
+
+  // Fetch playlist songs for navigation
+  const fetchPlaylistSongs = async (playlistId) => {
+    try {
+      const response = await axios.get(`/api/playlist/${playlistId}`);
+      if (response.data && response.data.songs) {
+        setContextSongs(response.data.songs);
+      }
+    } catch (error) {
+      console.error("Error fetching playlist songs:", error);
+    }
+  };
+
+  // Load new song and fetch like state
   useEffect(() => {
     if (!currentSong) return;
     const audio = audioRef.current;
 
-    console.log("Loading new song:", currentSong.title);
     audio.pause();
     audio.src = "";
     audio.load();
@@ -128,7 +193,6 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
     try {
       const response = await axios.get(`/api/getuserplaylists/${user.id}`);
       setPlaylists(response.data.playlists || []);
-      console.log("Playlists fetched:", response.data.playlists);
     } catch (error) {
       console.error("Error fetching playlists:", error);
     }
@@ -137,11 +201,9 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
   const togglePlay = () => {
     const audio = audioRef.current;
     if (!audio.paused) {
-      console.log("Pausing audio.");
       audio.pause();
       setPlaying(false);
     } else {
-      console.log("Resuming audio.");
       audio.play().catch(err => console.error("Playback error:", err));
       setPlaying(true);
     }
@@ -174,6 +236,120 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
 
   const toggleShuffle = () => setShuffle(s => !s);
 
+  const handleNextSong = () => {
+    try {
+      // First check if we're in a context (album/playlist)
+      if (contextSongs.length > 0 && currentIndex !== -1) {
+        // Calculate next index based on shuffle setting
+        let nextIndex;
+        if (shuffle) {
+          // Pick a random song that's not the current one
+          do {
+            nextIndex = Math.floor(Math.random() * contextSongs.length);
+          } while (nextIndex === currentIndex && contextSongs.length > 1);
+        } else {
+          // Go to next song in order
+          nextIndex = (currentIndex + 1) % contextSongs.length;
+        }
+        
+        const nextSong = contextSongs[nextIndex];
+        
+        if (nextSong && nextSong.song_id) {
+          // First check which function exists to set current song
+          if (typeof audioContext.setCurrentSong === 'function') {
+            // Check if the history function exists
+            if (typeof audioContext.addToHistory === 'function' && currentSong) {
+              audioContext.addToHistory(currentSong);
+            }
+            
+            // Play the next song
+            audioContext.setCurrentSong(nextSong);
+          } else {
+            // Fall back to the traditional way
+            onNext(nextSong);
+          }
+          
+          // Increment view count
+          try {
+            incrementViewCount(nextSong.song_id);
+          } catch (viewError) {
+            console.error("Failed to increment view count:", viewError);
+          }
+          
+          return;
+        }
+      }
+      
+      // If we're not in a context or couldn't find next song, use the queue
+      if (audioContext.queue && audioContext.queue.length > 0 && 
+          typeof audioContext.setCurrentSong === 'function' && 
+          typeof audioContext.setQueue === 'function') {
+        
+        const nextQueueSong = audioContext.queue[0];
+        const remainingQueue = audioContext.queue.slice(1);
+        
+        // Add current song to history if the function exists
+        if (currentSong && typeof audioContext.addToHistory === 'function') {
+          audioContext.addToHistory(currentSong);
+        }
+        
+        // Update state directly
+        audioContext.setCurrentSong(nextQueueSong);
+        audioContext.setQueue(remainingQueue);
+      } else {
+        // Fall back to the traditional approach
+        onNext();
+      }
+    } catch (error) {
+      console.error("Error in handleNextSong:", error);
+      onNext();
+    }
+  };
+
+  const handlePrevSong = () => {
+    try {
+      if (contextSongs.length === 0 || currentIndex === -1) {
+        // If no context or not in context, use the default prev
+        onPrev();
+        return;
+      }
+
+      let prevIndex;
+      if (shuffle) {
+        // Pick a random song that's not the current one
+        do {
+          prevIndex = Math.floor(Math.random() * contextSongs.length);
+        } while (prevIndex === currentIndex && contextSongs.length > 1);
+      } else {
+        // Go to previous song in order or wrap to the end
+        prevIndex = currentIndex === 0 ? contextSongs.length - 1 : currentIndex - 1;
+      }
+
+      const prevSong = contextSongs[prevIndex];
+      
+      if (prevSong && prevSong.song_id) {
+        onPrev(prevSong);
+        incrementViewCount(prevSong.song_id);
+      } else {
+        // Fallback if prevSong isn't valid
+        onPrev();
+      }
+    } catch (error) {
+      console.error("Error in handlePrevSong:", error);
+      // Fallback to default behavior
+      onPrev();
+    }
+  };
+
+  // Increment view count for the song
+  const incrementViewCount = async (songId) => {
+    try {
+      await axios.post(`/increment-view/${songId}`);
+    } catch (error) {
+      console.error('Error incrementing view count:', error);
+    }
+  };
+
   const toggleLike = async () => {
     if (!currentSong || !user?.id) return;
 
@@ -198,8 +374,6 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
 
   // Handle add to playlist button click
   const handleAddToPlaylist = () => {
-    console.log("Add to playlist button clicked for song:", currentSong?.song_id);
-    
     if (!user) {
       alert("Please sign in to add songs to playlists");
       return;
@@ -214,8 +388,6 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
 
   // Handle adding the song to a playlist
   const addSongToPlaylist = async () => {
-    console.log("addSongToPlaylist function called with songId:", currentSong?.song_id, "and playlistId:", selectedPlaylistId);
-
     try {
       if (selectedPlaylistId === "create_new") {
         if (!newPlaylistName.trim()) {
@@ -223,15 +395,11 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
           return;
         }
 
-        console.log("Creating a new playlist named:", newPlaylistName);
-
         // Create new playlist
         const createResponse = await axios.post('/api/createPlaylist', {
           name: newPlaylistName,
           user_id: user.id
         });
-
-        console.log("New playlist created:", createResponse.data);
 
         // Add song to the new playlist
         const addToPlaylistResponse = await axios.post('/api/addToPlaylist', {
@@ -239,23 +407,16 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
           song_id: currentSong.song_id
         });
 
-        console.log("Song added to new playlist:", addToPlaylistResponse.data);
-
         // Refresh playlists
         const playlistsResponse = await axios.get(`/api/getuserplaylists/${user.id}`);
         setPlaylists(playlistsResponse.data.playlists || []);
 
       } else if (selectedPlaylistId) {
-        console.log("Adding song to existing playlist");
-
         // Add to existing playlist
         const response = await axios.post('/api/addToPlaylist', {
           playlist_id: selectedPlaylistId,
           song_id: currentSong.song_id
         });
-
-        console.log("Song added to playlist response:", response.data);
-
       } else {
         alert("Please select a playlist");
         return;
@@ -386,7 +547,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
 
           <button
             className="control-btn"
-            onClick={onPrev}
+            onClick={handlePrevSong}
             aria-label="Previous track"
           >
             <FaStepBackward />
@@ -402,7 +563,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
 
           <button
             className="control-btn"
-            onClick={onNext}
+            onClick={handleNextSong}
             aria-label="Next track"
           >
             <FaStepForward />
@@ -453,8 +614,8 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
         </button>
 
         <button
-          className={`action-btn ${queue.length > 0 ? 'active' : ''}`}
-          aria-label="Queue"
+          className={`action-btn ${contextSongs.length > 0 ? 'active' : ''}`}
+          aria-label="Context Queue"
         >
           <FaListUl />
         </button>
@@ -536,7 +697,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
         </div>
       </div>
 
-      {/* Playlist dropdown - similar to Home.js implementation */}
+      {/* Playlist dropdown */}
       {showPlaylistDropdown && (
         <div
           className="playlist-dropdown-overlay"
@@ -559,7 +720,6 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
               onChange={(e) => {
                 const value = e.target.value;
                 setSelectedPlaylistId(value);
-                console.log("Playlist selected:", value);
               }}
             >
               <option value="">-- Select a Playlist --</option>
