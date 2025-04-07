@@ -23,6 +23,7 @@ import { useAudio } from '../contexts/AudioContext';
 
 export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
   const audioRef = useRef(new Audio());
+  const likeErrorRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -333,21 +334,42 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
 
   const toggleLike = async () => {
     if (!currentSong || !user?.id) return;
-    setLiked(prev => !prev);
     try {
-      await fetch("/api/toggle-like", {
+      const response = await fetch("/api/toggle-like", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clerk_user_id: user.id,
-          song_id: currentSong.song_id
-        })
+          song_id: currentSong.song_id,
+        }),
       });
+  
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const errorMsg = data.error || "Failed to toggle like.";
+        console.error("Server error:", errorMsg);
+  
+        if (likeErrorRef.current) {
+          likeErrorRef.current.setCustomValidity(errorMsg);
+          likeErrorRef.current.reportValidity(); // shows native popup
+          setTimeout(() => likeErrorRef.current.setCustomValidity(""), 1000); // reset
+        }
+        return;
+      }
+  
+      const data = await response.json();
+      if (data.message.toLowerCase().includes("liked")) {
+        setLiked(true);
+      } else if (data.message.toLowerCase().includes("unliked")) {
+        setLiked(false);
+      }
     } catch (err) {
       console.error("Error toggling like:", err);
-      setLiked(prev => !prev);
+      alert("Error toggling like.");
     }
   };
+  
+  
 
   const handleAddToPlaylist = () => {
     if (!user) {
@@ -549,6 +571,17 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
         >
           <FaHeart />
         </button>
+        <p
+        ref={likeErrorRef}
+        style={{
+          color: 'red',
+          fontSize: '0.85rem',
+          marginTop: '4px',
+          marginBottom: '0',
+          textAlign: 'center',
+          minHeight: '1em'
+        }}
+      ></p>
 
         <button
           className="action-btn"
