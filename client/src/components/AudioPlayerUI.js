@@ -23,7 +23,6 @@ import { useAudio } from '../contexts/AudioContext';
 
 export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
   const audioRef = useRef(new Audio());
-  const likeErrorRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -334,41 +333,36 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
 
   const toggleLike = async () => {
     if (!currentSong || !user?.id) return;
+  
     try {
-      const response = await fetch("/api/toggle-like", {
+      const res = await fetch("/api/toggle-like", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clerk_user_id: user.id,
-          song_id: currentSong.song_id,
-        }),
+          song_id: currentSong.song_id
+        })
       });
   
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        const errorMsg = data.error || "Failed to toggle like.";
-        console.error("Server error:", errorMsg);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg = data.error?.toLowerCase() || "";
   
-        if (likeErrorRef.current) {
-          likeErrorRef.current.setCustomValidity(errorMsg);
-          likeErrorRef.current.reportValidity(); // shows native popup
-          setTimeout(() => likeErrorRef.current.setCustomValidity(""), 1000); // reset
+        if (msg.includes("your own song")) {
+          alert("You cannot like your own song.");
+        } else {
+          alert("Failed to toggle like.");
         }
         return;
       }
   
-      const data = await response.json();
-      if (data.message.toLowerCase().includes("liked")) {
-        setLiked(true);
-      } else if (data.message.toLowerCase().includes("unliked")) {
-        setLiked(false);
-      }
+      // Only toggle like status if the server accepted it
+      setLiked(prev => !prev);
     } catch (err) {
       console.error("Error toggling like:", err);
       alert("You cannot like your own song.");
     }
   };
-  
   
 
   const handleAddToPlaylist = () => {
@@ -571,17 +565,6 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
         >
           <FaHeart />
         </button>
-        <p
-        ref={likeErrorRef}
-        style={{
-          color: 'red',
-          fontSize: '0.85rem',
-          marginTop: '4px',
-          marginBottom: '0',
-          textAlign: 'center',
-          minHeight: '1em'
-        }}
-      ></p>
 
         <button
           className="action-btn"
