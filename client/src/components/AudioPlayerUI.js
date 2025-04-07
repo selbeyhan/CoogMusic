@@ -365,7 +365,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
       }
     } catch (err) {
       console.error("Error toggling like:", err);
-      alert("Error toggling like.");
+      alert("You cannot like your own song.");
     }
   };
   
