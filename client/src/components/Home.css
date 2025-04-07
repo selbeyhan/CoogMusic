@@ -864,3 +864,17 @@
   max-width: 90% !important;
   box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
 }
+
+
+
+/* Top Liked Songs Section */
+.top-liked-section {
+  margin-bottom: 4rem;
+}
+
+.top-liked-grid {
+  padding: 0 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
