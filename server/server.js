@@ -2247,6 +2247,39 @@ if (req.url === "/top-songs-by-genre" && req.method === "GET") {
 }
 
 
+//get the most liked songs (top 50) 
+if (req.url === "/api/top-liked-songs" && req.method === "GET") {
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    const [rows] = await connection.execute(`
+      SELECT 
+        s.song_id, s.title, s.musician_id, s.upload_date, s.genre,
+        s.duration, s.file_url, s.cover_art_url, s.description,
+        s.views, u.name AS musician_name,
+        COUNT(l.like_id) AS like_count
+      FROM songs s
+      JOIN users u ON s.musician_id = u.user_id
+      LEFT JOIN likes l ON s.song_id = l.song_id
+      GROUP BY s.song_id
+      ORDER BY like_count DESC
+      LIMIT 50
+    `);
+
+    await connection.end();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(rows));
+  } catch (err) {
+    console.error("❌ Error fetching top liked songs:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to fetch top liked songs" }));
+  }
+  return;
+}
+
+
+
   // Serve React Frontend (Static Files)
   const buildPath = path.join(__dirname, "build");
 

@@ -15,6 +15,8 @@ function Home() {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const { currentSong, setCurrentSong } = useAudio();
   const { user: currentUser } = useUser();
+  const [topLikedSongs, setTopLikedSongs] = useState([]);
+
 
   // Keep existing playlist dropdown states
   const [playlists, setPlaylists] = useState([]);
@@ -30,20 +32,33 @@ function Home() {
       .catch(error => {
         console.error('Error fetching top songs:', error);
       });
-
+  
     axios.get('/newest-songs')
       .then(response => setNewestSongs(response.data))
       .catch(error => {
         console.error('Error fetching newest songs:', error);
       });
-
-    // New: fetch featured artists
+  
+    axios.get('/api/top-liked-songs')
+      .then(response => {
+        if (Array.isArray(response.data)) {
+          setTopLikedSongs(response.data);
+        } else {
+          console.error('Top liked songs response is not an array:', response.data);
+          setTopLikedSongs([]);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching top liked songs:', error);
+      });
+  
     axios.get('/featured-artists')
       .then(response => setFeaturedArtists(response.data))
       .catch(error => {
         console.error('Error fetching featured artists:', error);
       });
   }, []);
+  
 
   // Keep existing user playlist fetching
   useEffect(() => {
@@ -321,6 +336,68 @@ function Home() {
           ))}
         </div>
       </section>
+
+{/* Top Liked Songs Section */}
+<section className="top-liked-section">
+  <div className="section-header">
+    <h2>Top Liked Songs</h2>
+  </div>
+  <div className="top-liked-grid">
+    {topLikedSongs.slice(0, 50).map((song, index) => (
+      <div className="song-card" key={index}>
+        <div className="song-artwork" onClick={() => handleSongClick(song)}>
+          <img
+            src={song.cover_art_url || "/coogmusiclogonobg.png"}
+            alt={song.title}
+            onError={(e) => e.target.src = "/coogmusiclogonobg.png"}
+          />
+          <div className="play-overlay">
+            <span className="play-icon">▶</span>
+          </div>
+        </div>
+        <div className="song-details">
+          <h3 className="song-title">{song.title}</h3>
+          <Link to={`/artist/${song.musician_id}`} className="song-artist">
+            {song.musician_name}
+          </Link>
+          <div className="song-meta">
+            <span className="views">{song.like_count || 0} likes</span>
+            <button
+              type="button"
+              className="add-to-playlist-btn"
+              style={{
+                width: "28px", height: "28px", borderRadius: "50%",
+                background: "#f0f0f0", border: "none", display: "flex",
+                justifyContent: "center", alignItems: "center", fontSize: "1.2rem",
+                cursor: "pointer", transition: "all 0.2s", color: "#333",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)", fontWeight: "bold", padding: 0, zIndex: 20
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = "#ff0000";
+                e.currentTarget.style.color = "white";
+                e.currentTarget.style.transform = "scale(1.1)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = "#f0f0f0";
+                e.currentTarget.style.color = "#333";
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleAddToPlaylist(song.song_id);
+              }}
+            >
+              +
+            </button>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+</section>
+
+
 
       {/* Categories Section */}
       <section className="categories-section">
