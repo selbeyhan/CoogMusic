@@ -345,18 +345,29 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
       });
   
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
+        let data = {};
+        try {
+          data = await res.json();
+        } catch (parseError) {
+          // If JSON parsing fails, log the error and get the raw response text
+          console.error("Error parsing JSON:", parseError);
+          const text = await res.text();
+          console.log("Raw response text:", text);
+        }
+        
         const msg = data.error?.toLowerCase() || "";
-  
+        
+        // Log the server error message for debugging
+        console.log("Server error message:", msg);
+        
         if (msg.includes("your own song")) {
           alert("You cannot like your own song.");
         } else {
-          alert("Failed to toggle like.");
+          alert("You are not verified to like songs.");
         }
         return;
       }
-  
-      // Only toggle like status if the server accepted it
+      
       setLiked(prev => !prev);
     } catch (err) {
       console.error("Error toggling like:", err);
