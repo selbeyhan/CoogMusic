@@ -794,14 +794,15 @@ useEffect(() => {
             About
           </button>
 
-          {/* ALBUM FEATURE: Added Albums tab */}
-          <button
-            className={`tab-btn ${activeTab === 'albums' ? 'active' : ''}`}
-            onClick={() => handleTabChange('albums')}
-          >
-            Albums
-          </button>
-
+          {/* Only render Albums tab if the profile owner is verified */}
+          {userProfile?.verification_status && (
+            <button
+              className={`tab-btn ${activeTab === 'albums' ? 'active' : ''}`}
+              onClick={() => handleTabChange('albums')}
+            >
+              Albums
+            </button>
+          )}
 
           <button
             className={`tab-btn ${activeTab === 'likes' ? 'active' : ''}`}
@@ -1071,7 +1072,7 @@ useEffect(() => {
             </div>
           )}
 
-{activeTab === 'albums' && (
+{activeTab === 'albums' && userProfile?.verification_status && (
   <div className="albums-tab">
     <h2>Albums</h2>
     {isOwner && (
