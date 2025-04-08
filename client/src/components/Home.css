@@ -1,12 +1,5 @@
 /* Home.css */
 
-/* Use a cleaner, modern font (e.g., Roboto).
-   Add this link to your public/index.html <head> if you haven't already:
-   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" />
-*/
-
-/* Home.css */
-
 /* Base container adjustments */
 .home-container.modern {
   padding: 0;
@@ -14,10 +7,14 @@
   background-color: #f8f9fa;
 }
 
-/* Logo container adjustments */
+/* Logo container adjustments: Now centered horizontally */
+/* Example: match the same width as .banner-text or the black overlay ~600px */
 .home-container.modern .logo-container {
-  margin: 1rem 0;
-  padding: 0 2rem;
+  max-width: 600px;      /* Align with the ~600px width of .banner-text */
+  width: 100%;           /* So it shrinks on smaller screens */
+  margin: 1rem auto;     /* Center horizontally (auto left/right) */
+  padding: 0 2rem;       /* Optional if you want side padding */
+  text-align: center;    /* Center the logo image inside this container */
 }
 
 .home-container.modern .coogmusic-logo {
@@ -27,10 +24,15 @@
 /* Hero Banner Carousel */
 .hero-banner {
   width: 100%;
-  height: 500px;
+  height: 500px;       /* Fixed height for the banner */
   margin-bottom: 3rem;
   position: relative;
   overflow: hidden;
+  
+  /* Center the banner content vertically and horizontally */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .banner-content {
@@ -39,16 +41,22 @@
   background-size: cover;
   background-position: center;
   position: relative;
+  
+  /* Flex settings for centering the text block */
   display: flex;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  padding: 0 5%;
+  
   color: white;
   transition: background-image 0.5s ease-in-out;
+  padding: 0 5%;
 }
 
 .banner-text {
   max-width: 600px;
-  z-index: 1;
+  text-align: center;
+  margin: 0 auto;
 }
 
 .banner-text h1 {
@@ -57,14 +65,21 @@
   font-weight: 700;
 }
 
-.banner-featured-song {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: rgba(0,0,0,0.6);
-  border-radius: 10px;
-  backdrop-filter: blur(5px);
+.banner-text p {
+  margin-bottom: 1.5rem;
 }
 
+/* Featured Song Container - Tweak margin & padding to move text up */
+.banner-featured-song {
+  margin-top: 1rem;  /* Reduced from previous value so the box sits higher */
+  padding: 1rem;     /* Slightly reduced padding so the text is closer to the top */
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 10px;
+  backdrop-filter: blur(5px);
+  text-align: center;
+}
+
+/* Now Trending badge */
 .now-trending {
   display: inline-block;
   background: #ff0000;
@@ -75,24 +90,28 @@
   margin-bottom: 0.8rem;
 }
 
+/* Song Title & Artist Text */
 .banner-featured-song h2 {
+  margin: 0 0 0.5rem 0;  /* Removed top margin */
   font-size: 2.2rem;
-  margin-bottom: 0.5rem;
 }
 
 .banner-featured-song p {
+  margin-bottom: 1rem;
   font-size: 1.2rem;
-  margin-bottom: 1.5rem;
 }
 
 .banner-featured-song p a {
-  color: #ff0000;
+  color: #ff0000; /* Artist link set to red */
   text-decoration: none;
 }
 
-.banner-actions {
+/* Buttons */
+.banner-featured-song .banner-actions {
+  margin-top: 1rem;
   display: flex;
-  gap: 1rem;
+  gap: 1rem;               /* Adds horizontal space between the buttons */
+  justify-content: center; /* Centers the buttons horizontally */
 }
 
 .play-now-btn, .add-to-playlist-btn {
@@ -124,13 +143,13 @@
   background: rgba(255,255,255,0.3);
 }
 
+/* Carousel Indicators */
 .carousel-indicators {
   position: absolute;
   bottom: 20px;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  justify-content: center;
   gap: 0.5rem;
 }
 
@@ -287,25 +306,6 @@
   align-items: center;
   font-size: 0.8rem;
   color: #666;
-}
-
-.add-to-playlist {
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-  background: #f0f0f0;
-  border: none;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.add-to-playlist:hover {
-  background: #ff0000;
-  color: white;
 }
 
 /* Categories Section */
@@ -505,130 +505,7 @@
   transform: scale(1.1);
 }
 
-/* Updated playlist dropdown overlay */
-.playlist-dropdown-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  z-index: 9999;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  backdrop-filter: blur(5px);
-}
-
-.playlist-dropdown {
-  background: white;
-  padding: 2rem;
-  border-radius: 10px;
-  width: 400px;
-  max-width: 90%;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-}
-
-.playlist-dropdown label {
-  display: block;
-  margin-bottom: 1rem;
-  font-weight: bold;
-  color: #333;
-}
-
-.playlist-dropdown select {
-  width: 100%;
-  padding: 0.8rem;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  margin-bottom: 1.5rem;
-  font-size: 1rem;
-}
-
-.dropdown-actions {
-  display: flex;
-  gap: 1rem;
-}
-
-.dropdown-actions button {
-  flex: 1;
-  padding: 0.8rem;
-  border: none;
-  border-radius: 5px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.dropdown-actions button:first-child {
-  background: #ff0000;
-  color: white;
-}
-
-.dropdown-actions button:last-child {
-  background: #f0f0f0;
-  color: #333;
-}
-
-/* Responsive adjustments */
-@media (max-width: 1200px) {
-  .staggered-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 992px) {
-  .hero-banner {
-    height: 400px;
-  }
-
-  .banner-text h1 {
-    font-size: 2.5rem;
-  }
-
-  .banner-featured-song h2 {
-    font-size: 1.8rem;
-  }
-
-  .staggered-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .hero-banner {
-    height: 350px;
-  }
-
-  .banner-text h1 {
-    font-size: 2rem;
-  }
-
-  .banner-featured-song {
-    padding: 1rem;
-  }
-
-  .banner-featured-song h2 {
-    font-size: 1.5rem;
-  }
-
-  .section-header {
-    padding: 0 1rem;
-  }
-
-  .songs-grid, .categories-grid, .artists-grid, .staggered-grid {
-    padding: 0 1rem;
-  }
-
-  .staggered-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .release-card.large {
-    grid-column: span 1;
-    grid-row: span 1;
-  }
-}
-
+/* Playlist Dropdown Styles */
 .playlist-dropdown-overlay {
   position: fixed;
   top: 0;
@@ -728,145 +605,6 @@
   background: #e0e0e0;
 }
 
-.add-to-playlist {
-  width: 28px !important;
-  height: 28px !important;
-  border-radius: 50% !important;
-  background: #f0f0f0 !important;
-  border: none !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  font-size: 1.2rem !important;
-  cursor: pointer !important;
-  transition: all 0.2s !important;
-  color: #333 !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-  font-weight: bold !important;
-  padding: 0 !important;
-}
-
-.add-to-playlist:hover {
-  background: #ff0000 !important;
-  color: white !important;
-  transform: scale(1.1) !important;
-  box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
-}
-
-/* Style for the add button in the release cards */
-.add-button {
-  position: absolute !important;
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: 50% !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  border: none !important;
-  cursor: pointer !important;
-  transition: transform 0.2s, background-color 0.2s !important;
-  top: 15px !important;
-  right: 65px !important;
-  background-color: white !important;
-  color: #333 !important;
-  font-weight: bold !important;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
-  font-size: 1.2rem !important;
-  z-index: 10 !important;
-}
-
-.add-button:hover {
-  transform: scale(1.1) !important;
-  background-color: #ff0000 !important;
-  color: white !important;
-}
-
-/* Make sure the playlist dropdown appears above everything else */
-.playlist-dropdown-overlay {
-  z-index: 9999 !important;
-}
-
-/* Enhanced add-to-playlist button styles */
-.add-to-playlist-btn {
-  width: 28px !important;
-  height: 28px !important;
-  border-radius: 50% !important;
-  background: #f0f0f0 !important;
-  border: none !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  font-size: 1.2rem !important;
-  cursor: pointer !important;
-  transition: all 0.2s !important;
-  color: #333 !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-  font-weight: bold !important;
-  padding: 0 !important;
-  z-index: 20 !important;
-}
-
-.add-to-playlist-btn:hover {
-  background: #ff0000 !important;
-  color: white !important;
-  transform: scale(1.1) !important;
-  box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
-}
-
-/* Style for the add button in release cards */
-.add-button {
-  position: absolute !important;
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: 50% !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  border: none !important;
-  cursor: pointer !important;
-  transition: transform 0.2s, background-color 0.2s !important;
-  top: 15px !important;
-  right: 65px !important;
-  background-color: white !important;
-  color: #333 !important;
-  font-weight: bold !important;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
-  font-size: 1.2rem !important;
-  z-index: 10 !important;
-}
-
-.add-button:hover {
-  transform: scale(1.1) !important;
-  background-color: #ff0000 !important;
-  color: white !important;
-}
-
-/* Ensure the playlist dropdown appears above everything else */
-.playlist-dropdown-overlay {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  background-color: rgba(0, 0, 0, 0.7) !important;
-  z-index: 9999 !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  backdrop-filter: blur(5px) !important;
-}
-
-.playlist-dropdown {
-  background: white !important;
-  padding: 2rem !important;
-  border-radius: 10px !important;
-  width: 400px !important;
-  max-width: 90% !important;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
-}
-
-
-
 /* Top Liked Songs Section */
 .top-liked-section {
   margin-bottom: 4rem;
@@ -877,4 +615,54 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .staggered-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .hero-banner {
+    height: 400px; /* Optional: Smaller banner on mid-size screens */
+  }
+  .banner-text h1 {
+    font-size: 2.5rem;
+  }
+  .banner-featured-song h2 {
+    font-size: 1.8rem;
+  }
+  .staggered-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-banner {
+    height: 350px; /* Optional tweak for small screens */
+  }
+  .banner-text h1 {
+    font-size: 2rem;
+  }
+  .banner-featured-song {
+    padding: 1rem;
+  }
+  .banner-featured-song h2 {
+    font-size: 1.5rem;
+  }
+  .section-header {
+    padding: 0 1rem;
+  }
+  .songs-grid, .categories-grid, .artists-grid, .staggered-grid {
+    padding: 0 1rem;
+  }
+  .staggered-grid {
+    grid-template-columns: 1fr;
+  }
+  .release-card.large {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
 }
