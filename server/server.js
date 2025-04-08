@@ -1591,7 +1591,7 @@ if (req.method === "GET" && req.url.startsWith("/api/getartistalbums/")) {
       } catch (err) {
         console.error("❌ Error toggling like:", err.message);
         res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Internal Server Error" }));
+        res.end(JSON.stringify({ error: err.message }));
       }
     });
     return;
