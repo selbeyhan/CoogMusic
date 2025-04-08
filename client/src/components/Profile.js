@@ -451,6 +451,10 @@ useEffect(() => {
         alert("Song title required");
         return;
       }
+      if (!newAlbumSongData.genre) { // <-- Manual check for genre
+        alert("Song genre is required");
+        return;
+      }
       if (!newAlbumSongData.file) {
         alert("Please select an audio file for the song.");
         return;
