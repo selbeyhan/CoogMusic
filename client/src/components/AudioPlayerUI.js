@@ -220,21 +220,51 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
     }
   };
 
-  // Load new song and fetch like state
+  // Load new song and fetch like state - WITH FIXES FOR AUDIO SOURCE ISSUES
   useEffect(() => {
     if (!currentSong) return;
     const audio = audioRef.current;
 
+    console.log("Loading new song:", currentSong);
+    
+    // Pause and reset the audio element
     audio.pause();
     audio.src = "";
     audio.load();
-    audio.src = `/stream/${currentSong.song_id}`;
+    
+    // Try multiple source formats with fallbacks
+    const sourceUrl = currentSong.file_url || currentSong.url || `/api/stream/${currentSong.song_id}`;
+    console.log("Setting audio source to:", sourceUrl);
+    audio.src = sourceUrl;
     audio.load();
+
+    // Add error handler for debugging and recovery
+    const handleError = (e) => {
+      console.error("Audio error:", e);
+      console.log("Failed source:", audio.src);
+      
+      // If the current source failed and it's not already using the stream API, try that as fallback
+      if (!audio.src.includes('/api/stream/') && currentSong.song_id) {
+        console.log("Trying fallback source: /api/stream/" + currentSong.song_id);
+        audio.src = `/api/stream/${currentSong.song_id}`;
+        audio.load();
+      } else if (!audio.src.includes('/stream/') && currentSong.song_id) {
+        // Try another fallback without the /api prefix
+        console.log("Trying second fallback source: /stream/" + currentSong.song_id);
+        audio.src = `/stream/${currentSong.song_id}`;
+        audio.load();
+      }
+    };
+    
+    audio.addEventListener('error', handleError);
 
     const handleLoadedMetadata = () => {
       setProgress(0);
       setDuration(audio.duration);
-      audio.play().catch(err => console.error("Playback error:", err));
+      audio.play().catch(err => {
+        console.error("Playback error:", err);
+        setPlaying(false);
+      });
       setPlaying(true);
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
     };
@@ -254,6 +284,12 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
     };
 
     fetchLikeState();
+    
+    // Clean up event listeners
+    return () => {
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener('error', handleError);
+    };
   }, [currentSong, user]);
 
   // Fetch user playlists when the user is available
@@ -278,8 +314,47 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
     const audio = audioRef.current;
     if (audio.duration) {
       const pct = +e.target.value;
-      audio.currentTime = (pct / 100) * audio.duration;
+      const newTime = (pct / 100) * audio.duration;
+      
+      // Temporarily pause audio while seeking to prevent stuttering
+      const wasPlaying = !audio.paused;
+      if (wasPlaying) {
+        audio.pause();
+      }
+      
+      // Update the progress visually immediately
       setProgress(pct);
+      setCurrentTime(newTime);
+      
+      // Use a more robust seeking approach
+      try {
+        audio.currentTime = newTime;
+        
+        // Add a small delay before resuming playback to allow buffering
+        if (wasPlaying) {
+          setTimeout(() => {
+            audio.play()
+              .catch(err => {
+                console.error("Playback error after seeking:", err);
+                setPlaying(false);
+              });
+          }, 100);
+        }
+      } catch (seekErr) {
+        console.error("Seeking error:", seekErr);
+        // If seeking fails, try again after a short delay
+        setTimeout(() => {
+          try {
+            audio.currentTime = newTime;
+            if (wasPlaying) {
+              audio.play()
+                .catch(err => console.error("Playback retry error:", err));
+            }
+          } catch (retryErr) {
+            console.error("Retry seeking error:", retryErr);
+          }
+        }, 200);
+      }
     }
   };
 
@@ -349,15 +424,12 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
         try {
           data = await res.json();
         } catch (parseError) {
-          // If JSON parsing fails, log the error and get the raw response text
           console.error("Error parsing JSON:", parseError);
           const text = await res.text();
           console.log("Raw response text:", text);
         }
         
         const msg = data.error?.toLowerCase() || "";
-        
-        // Log the server error message for debugging
         console.log("Server error message:", msg);
         
         if (msg.includes("your own song")) {
@@ -618,12 +690,12 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
               borderRadius: '3px'
             }}></div>
             
-            {/* Green fill */}
+            {/* Red fill */}
             <div style={{
               position: 'absolute',
               width: `${volume * 100}%`,
               height: '6px',
-              backgroundColor: '#1db954',
+              backgroundColor: 'red',
               borderRadius: '3px',
               zIndex: 1
             }}></div>
