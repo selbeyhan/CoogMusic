@@ -116,7 +116,7 @@ useEffect(() => {
         id: userData.user_id,
         name: userData.name,
         email: userData.email,
-        bio: userData.bio || "Music enthusiast and UH student.",
+        bio: userData.bio || "No bio yet.",
         profilePicture: userData.profile_picture_url || currentUser?.profileImageUrl,
         accountType: userData.account_type || "Musician",
         registrationDate: userData.registration_date || "2023-01-15",
