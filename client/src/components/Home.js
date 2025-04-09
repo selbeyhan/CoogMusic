@@ -103,17 +103,14 @@ function Home() {
       return;
     }
 
-    if (currentUser) {
-      axios.get(`/api/getuserplaylists/${currentUser.id}`)
-        .then(response => {
-          setPlaylists(response.data.playlists || []);
-          console.log("Playlists fetched:", response.data.playlists);
-        })
-        .catch(error => console.error("Error fetching playlists:", error));
-    }
+    axios.get(`/api/getuserplaylists/${currentUser.id}`)
+      .then(response => {
+        setPlaylists(response.data.playlists || []);
+        console.log("Playlists fetched:", response.data.playlists);
+      })
+      .catch(error => console.error("Error fetching playlists:", error));
 
     setSelectedSongId(songId);
-
     // Delay opening the dropdown slightly to ensure state updates
     setTimeout(() => {
       setShowPlaylistDropdown(true);
@@ -126,57 +123,43 @@ function Home() {
   // Adding a song to the playlist
   const addSongToPlaylist = async () => {
     console.log("addSongToPlaylist called with songId:", selectedSongId, "and playlistId:", selectedPlaylistId);
-
     try {
       if (selectedPlaylistId === "create_new") {
         if (!newPlaylistName.trim()) {
           alert("Please enter a playlist name");
           return;
         }
-
         console.log("Creating a new playlist named:", newPlaylistName);
-
         const createResponse = await axios.post('/api/createPlaylist', {
           name: newPlaylistName,
           user_id: currentUser.id
         });
-
         console.log("New playlist created:", createResponse.data);
-
         const addToPlaylistResponse = await axios.post('/api/addToPlaylist', {
           playlist_id: createResponse.data.playlist_id,
           song_id: selectedSongId
         });
-
         console.log("Song added to new playlist:", addToPlaylistResponse.data);
-
         // Refresh playlists
         const playlistsResponse = await axios.get(`/api/getuserplaylists/${currentUser.id}`);
         setPlaylists(playlistsResponse.data.playlists || []);
-
       } else if (selectedPlaylistId) {
         console.log("Adding song to existing playlist");
-
         const response = await axios.post('/api/addToPlaylist', {
           playlist_id: selectedPlaylistId,
           song_id: selectedSongId
         });
-
         console.log("Song added to playlist response:", response.data);
-
       } else {
         alert("Please select a playlist");
         return;
       }
-
       // Reset state and close dropdown
       setSelectedPlaylistId("");
       setNewPlaylistName("");
       setSelectedSongId(null);
       setShowPlaylistDropdown(false);
-
       alert("Song added to playlist successfully!");
-
     } catch (error) {
       console.error("Error adding song to playlist:", error.response ? error.response.data : error);
       alert("Failed to add song to playlist. Please try again.");
@@ -281,12 +264,10 @@ function Home() {
                       e.preventDefault();
                       e.stopPropagation();
                       console.log("Add to playlist button clicked for:", song.title);
-
                       if (!currentUser) {
                         alert("Please sign in to add songs to playlists");
                         return;
                       }
-
                       setSelectedSongId(song.song_id);
                       setTimeout(() => {
                         setShowPlaylistDropdown(true);

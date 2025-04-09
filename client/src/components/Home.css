@@ -7,14 +7,13 @@
   background-color: #f8f9fa;
 }
 
-/* Logo container adjustments: Now centered horizontally */
-/* Example: match the same width as .banner-text or the black overlay ~600px */
+/* Logo container adjustments */
 .home-container.modern .logo-container {
-  max-width: 600px;      /* Align with the ~600px width of .banner-text */
-  width: 100%;           /* So it shrinks on smaller screens */
-  margin: 1rem auto;     /* Center horizontally (auto left/right) */
-  padding: 0 2rem;       /* Optional if you want side padding */
-  text-align: center;    /* Center the logo image inside this container */
+  max-width: 600px;
+  width: 100%;
+  margin: 1rem auto;
+  padding: 0 2rem;
+  text-align: center;
 }
 
 .home-container.modern .coogmusic-logo {
@@ -24,12 +23,10 @@
 /* Hero Banner Carousel */
 .hero-banner {
   width: 100%;
-  height: 500px;       /* Fixed height for the banner */
+  height: 500px;
   margin-bottom: 3rem;
   position: relative;
   overflow: hidden;
-  
-  /* Center the banner content vertically and horizontally */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -41,13 +38,10 @@
   background-size: cover;
   background-position: center;
   position: relative;
-  
-  /* Flex settings for centering the text block */
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  
   color: white;
   transition: background-image 0.5s ease-in-out;
   padding: 0 5%;
@@ -69,17 +63,15 @@
   margin-bottom: 1.5rem;
 }
 
-/* Featured Song Container - Tweak margin & padding to move text up */
 .banner-featured-song {
-  margin-top: 1rem;  /* Reduced from previous value so the box sits higher */
-  padding: 1rem;     /* Slightly reduced padding so the text is closer to the top */
+  margin-top: 1rem;
+  padding: 1rem;
   background: rgba(0, 0, 0, 0.6);
   border-radius: 10px;
   backdrop-filter: blur(5px);
   text-align: center;
 }
 
-/* Now Trending badge */
 .now-trending {
   display: inline-block;
   background: #ff0000;
@@ -90,9 +82,8 @@
   margin-bottom: 0.8rem;
 }
 
-/* Song Title & Artist Text */
 .banner-featured-song h2 {
-  margin: 0 0 0.5rem 0;  /* Removed top margin */
+  margin: 0 0 0.5rem 0;
   font-size: 2.2rem;
 }
 
@@ -102,16 +93,16 @@
 }
 
 .banner-featured-song p a {
-  color: #ff0000; /* Artist link set to red */
+  color: #ff0000;
   text-decoration: none;
 }
 
-/* Buttons */
+/* Buttons in the banner */
 .banner-featured-song .banner-actions {
   margin-top: 1rem;
   display: flex;
-  gap: 1rem;               /* Adds horizontal space between the buttons */
-  justify-content: center; /* Centers the buttons horizontally */
+  gap: 1rem;
+  justify-content: center;
 }
 
 .play-now-btn, .add-to-playlist-btn {
@@ -582,7 +573,7 @@
 
 @media (max-width: 992px) {
   .hero-banner {
-    height: 400px; /* Optional: Smaller banner on mid-size screens */
+    height: 400px;
   }
   .banner-text h1 {
     font-size: 2.5rem;
@@ -597,7 +588,7 @@
 
 @media (max-width: 768px) {
   .hero-banner {
-    height: 350px; /* Optional tweak for small screens */
+    height: 350px;
   }
   .banner-text h1 {
     font-size: 2rem;
@@ -611,7 +602,7 @@
   .section-header {
     padding: 0 1rem;
   }
-  .songs-grid, .categories-grid, .artists-grid, .staggered-grid {
+  .songs-grid, .artists-grid, .staggered-grid {
     padding: 0 1rem;
   }
   .staggered-grid {
