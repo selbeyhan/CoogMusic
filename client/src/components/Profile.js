@@ -140,7 +140,7 @@ useEffect(() => {
 
 
       // Fetch followers and following counts
-      const followersRes = await axios.get(`/api/followers/${userId}`);
+      const followersRes = await axios.get(`/api/followers/${userData.user_id}`);
       setFollowerCount(followersRes.data.followers?.length || 0);
 
       // ✅ Use MySQL user_id instead of Clerk userId
