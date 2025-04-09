@@ -530,3 +530,30 @@
 .dropdown-actions button:last-child:hover {
   background: #e0e0e0;
 }
+
+/* --- Custom styles to remove the default slider thumb --- */
+.volume-slider-touch::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.volume-slider-touch::-moz-range-thumb {
+  width: 0;
+  height: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.volume-slider-touch::-ms-thumb {
+  width: 0;
+  height: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}

@@ -349,15 +349,12 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
         try {
           data = await res.json();
         } catch (parseError) {
-          // If JSON parsing fails, log the error and get the raw response text
           console.error("Error parsing JSON:", parseError);
           const text = await res.text();
           console.log("Raw response text:", text);
         }
         
         const msg = data.error?.toLowerCase() || "";
-        
-        // Log the server error message for debugging
         console.log("Server error message:", msg);
         
         if (msg.includes("your own song")) {
@@ -618,12 +615,12 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
               borderRadius: '3px'
             }}></div>
             
-            {/* Green fill */}
+            {/* Red fill */}
             <div style={{
               position: 'absolute',
               width: `${volume * 100}%`,
               height: '6px',
-              backgroundColor: '#1db954',
+              backgroundColor: 'red',
               borderRadius: '3px',
               zIndex: 1
             }}></div>
