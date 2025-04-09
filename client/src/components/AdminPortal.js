@@ -39,7 +39,6 @@ function AdminPortal() {
 
     try {
       const response = await fetch(endpoint, { method: 'DELETE' });
-
       if (response.ok) {
         setUsers(prev => prev.filter(u =>
           u.clerk_user_id !== user.clerk_user_id && u.user_id !== user.user_id
@@ -57,7 +56,6 @@ function AdminPortal() {
     }
   };
 
-  // ✅ Handle verification status dropdown change
   const handleVerificationChange = async (userId, newStatus) => {
     try {
       const response = await fetch(`/update-verification/${userId}`, {
@@ -179,12 +177,8 @@ function AdminPortal() {
                 <td>{user.user_id}</td>
                 <td>{user.clerk_user_id}</td>
                 <td>
-                  <button onClick={() => console.log("Edit user:", user.user_id)}>
-                    Edit
-                  </button>
-                  <button onClick={() => handleDelete(user)}>
-                    Delete
-                  </button>
+                  {/* Remove the Edit button, keep the Delete button */}
+                  <button onClick={() => handleDelete(user)}>Delete</button>
                 </td>
               </tr>
             ))

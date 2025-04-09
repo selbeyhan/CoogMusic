@@ -346,23 +346,6 @@ function Home() {
         </div>
       </section>
 
-      {/* Categories Section */}
-      <section className="categories-section">
-        <div className="section-header">
-          <h2>Browse Categories</h2>
-        </div>
-        <div className="categories-grid">
-          {['Hip-Hop', 'Pop', 'Rock', 'Electronic', 'Rap', 'Other'].map((genre, index) => (
-            <div className="category-card" key={index}>
-              <div className="category-image" style={{ backgroundColor: `hsl(${index * 60}, 70%, 65%)` }}>
-                <span className="category-icon">♪</span>
-              </div>
-              <h3>{genre}</h3>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Featured Artists Section */}
       <section className="featured-section">
         <div className="section-header">
