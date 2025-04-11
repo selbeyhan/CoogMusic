@@ -201,7 +201,7 @@ async function uploadProfilePicture(req, res) {
 async function uploadSong(req, res) {
   try {
     const { title, genre, description, cover_art_url, musician_id } = req.body;
-    
+
     // Inline genre validation using allowed values
     const allowedGenres = ['Hip-Hop', 'Pop', 'Rock', 'Electronic', 'Rap', 'Other'];
     const validatedGenre = allowedGenres.includes(genre) ? genre : 'Other';
@@ -231,11 +231,11 @@ async function uploadSong(req, res) {
       const coverArtFile = req.files.cover_art[0];
       const coverArtBuffer = coverArtFile.buffer;
       const coverArtName = `${uuidv4()}-${coverArtFile.originalname}`;
-      
+
       // Ensure the Azure container for song pictures exists
       await songPictureContainerClient.createIfNotExists({ access: "container" });
       const coverArtBlockBlobClient = songPictureContainerClient.getBlockBlobClient(coverArtName);
-  
+
       console.log("Uploading song cover art to Azure Blob Storage...");
       await coverArtBlockBlobClient.uploadData(coverArtBuffer, {
         blobHTTPHeaders: { blobContentType: coverArtFile.mimetype },
@@ -423,17 +423,17 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ error: "File upload failed" }));
         return;
       }
-  
+
       try {
         console.log("✅ File upload received");
         console.log("Received req.body:", req.body);
         console.log("Received files:", req.files);
-  
+
         // Extract audio file from req.files
         req.fileBuffer = req.files.file[0].buffer;
         req.fileName = req.files.file[0].originalname;
         req.fileType = req.files.file[0].mimetype;
-  
+
         await uploadSong(req, res);
       } catch (error) {
         console.error("❌ Upload processing error:", error);
@@ -443,7 +443,7 @@ const server = http.createServer(async (req, res) => {
     });
     return;
   }
-  
+
   // Fetch Top Songs from Database (only the top 5)
   if (req.url === "/top-songs" && req.method === "GET") {
     try {
@@ -506,8 +506,8 @@ if (req.method === "GET" && req.url.startsWith("/user/")) {
       SELECT COUNT(*) AS monthly_listeners
       FROM \`streaming history\`
       WHERE song_id IN (
-        SELECT song_id 
-        FROM songs 
+        SELECT song_id
+        FROM songs
         WHERE musician_id = ?
       )
       AND timestamp >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
@@ -547,7 +547,7 @@ if (req.method === "GET" && req.url.startsWith("/user/")) {
 if (req.method === "POST" && req.url.startsWith("/increment-view/")) {
   // Extract the songId from the URL
   const songId = req.url.split("/increment-view/")[1];
-  
+
   if (!songId) {
     res.statusCode = 400;
     return res.end(JSON.stringify({ error: "Song ID is required" }));
@@ -864,20 +864,20 @@ if (req.method === "POST" && req.url.startsWith("/increment-view/")) {
           res.writeHead(400, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "Missing song ID" }));
         }
-    
+
         // Parse text fields from req.body (assumes JSON fields sent as text)
         const { title, genre, description, cover_art_url } = req.body;
-    
+
         // Start building the update query dynamically
         let sql = "UPDATE songs SET ";
         const updates = [];
         const params = [];
-    
+
         if (title) {
           updates.push("title = ?");
           params.push(title);
         }
-        
+
         // Validate genre against allowed ENUM values before updating
         if (genre) {
           const allowedGenres = ['Hip-Hop', 'Pop', 'Rock', 'Electronic', 'Rap', 'Other'];
@@ -885,28 +885,28 @@ if (req.method === "POST" && req.url.startsWith("/increment-view/")) {
           updates.push("genre = ?");
           params.push(validatedGenre);
         }
-    
+
         if (description) {
           updates.push("description = ?");
           params.push(description);
         }
-    
+
         // Check if a new cover art file was provided
         if (req.files && req.files.cover_art && req.files.cover_art[0]) {
           const coverArtFile = req.files.cover_art[0];
           const coverArtBuffer = coverArtFile.buffer;
           const coverArtName = `${uuidv4()}-${coverArtFile.originalname}`;
-    
+
           // Ensure the Azure container for song pictures exists
           await songPictureContainerClient.createIfNotExists({ access: "container" });
           const coverArtBlockBlobClient = songPictureContainerClient.getBlockBlobClient(coverArtName);
-    
+
           console.log("Uploading updated cover art to Azure Blob Storage...");
           await coverArtBlockBlobClient.uploadData(coverArtBuffer, {
             blobHTTPHeaders: { blobContentType: coverArtFile.mimetype },
           });
           const newCoverArtUrl = coverArtBlockBlobClient.url;
-    
+
           updates.push("cover_art_url = ?");
           params.push(newCoverArtUrl);
         } else if (cover_art_url) {
@@ -914,24 +914,24 @@ if (req.method === "POST" && req.url.startsWith("/increment-view/")) {
           updates.push("cover_art_url = ?");
           params.push(cover_art_url);
         }
-    
+
         if (updates.length === 0) {
           res.writeHead(400, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "No fields to update" }));
         }
-    
+
         sql += updates.join(", ") + " WHERE song_id = ?";
         params.push(songId);
-    
+
         const connection = await mysql.createConnection(dbConfig);
         const [result] = await connection.execute(sql, params);
         await connection.end();
-    
+
         if (result.affectedRows === 0) {
           res.writeHead(404, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "Song not found" }));
         }
-    
+
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ message: "Song updated successfully" }));
       } catch (err) {
@@ -942,8 +942,8 @@ if (req.method === "POST" && req.url.startsWith("/increment-view/")) {
     });
     return;
   }
-  
-  
+
+
 
   // Create a new playlist
   if (req.method === "POST" && req.url === "/api/createPlaylist") {
@@ -1432,24 +1432,24 @@ LIMIT 20
 
   if (req.method === "GET" && req.url.startsWith("/api/user-by-id/")) {
     const userId = req.url.split("/api/user-by-id/")[1];
-  
+
     try {
       const connection = await mysql.createConnection(dbConfig);
-  
+
       // Get user data
       const [rows] = await connection.execute(
         "SELECT * FROM users WHERE user_id = ?",
         [userId]
       );
-  
+
       if (rows.length === 0) {
         await connection.end();
         res.writeHead(404, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ error: "Artist not found" }));
       }
-  
+
       const user = rows[0];
-  
+
       // Get monthly listeners
       const [monthlyListenersRows] = await connection.execute(`
         SELECT COUNT(*) AS monthly_listeners
@@ -1459,23 +1459,23 @@ LIMIT 20
         )
         AND timestamp >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
       `, [userId]);
-  
+
       user.monthly_listeners = monthlyListenersRows[0].monthly_listeners || 0;
-  
+
       await connection.end();
-  
+
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ user }));
-  
+
     } catch (err) {
       console.error("❌ Error fetching user by ID:", err);
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Database error" }));
     }
-  
+
     return;
   }
-  
+
 
   if (req.method === "GET" && req.url.startsWith("/api/artist-songs/")) {
     const artistId = req.url.split("/api/artist-songs/")[1];
@@ -1741,13 +1741,13 @@ if (req.method === "POST" && req.url === "/api/createAlbum") {
         res.writeHead(400, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ error: "Missing album title or musician_id" }));
       }
-      
+
       // Set the release_date to now
       const release_date = new Date().toISOString().slice(0, 19).replace("T", " ");
-      
+
       // Set a fallback album art URL (if no file was uploaded)
       let albumArtUrl = req.body.album_art_url || "https://via.placeholder.com/300";
-      
+
       // If a file was uploaded, use songPictureContainerClient to upload it
       if (req.file) {
         await songPictureContainerClient.createIfNotExists({ access: "container" });
@@ -1758,7 +1758,7 @@ if (req.method === "POST" && req.url === "/api/createAlbum") {
         });
         albumArtUrl = blockBlobClient.url;
       }
-      
+
       // Insert the album into the database
       const connection = await mysql.createConnection(dbConfig);
       const [result] = await connection.execute(
@@ -1767,8 +1767,8 @@ if (req.method === "POST" && req.url === "/api/createAlbum") {
       );
       await connection.end();
       res.writeHead(201, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ 
-        message: "Album created successfully", 
+      return res.end(JSON.stringify({
+        message: "Album created successfully",
         album_id: result.insertId,
         album_art_url: albumArtUrl // ✅ Include the final image URL
       }));
@@ -1942,7 +1942,7 @@ if (req.method === "GET" && req.url.startsWith("/api/album/")) {
 }
 
 
-//update album pic or title from the albumview page 
+//update album pic or title from the albumview page
 //(only if that user owns that album)
 if (req.method === "PATCH" && req.url === "/editalbumtitleorpic") {
   upload.single("cover_art")(req, res, async (err) => {
@@ -2053,7 +2053,7 @@ if (req.method === 'DELETE' && req.url.startsWith('/api/album/')) {
 
 
 
-//following feature 
+//following feature
 
 // 1. Follow an artist
 if (req.method === "POST" && req.url === "/api/follow") {
@@ -2170,7 +2170,7 @@ if (req.method === "GET" && req.url.startsWith("/api/following/")) {
   return;
 }
 
-//get user details by ID list 
+//get user details by ID list
 //for the profile page,, shows details for all the users that the current user is following
 if (req.method === "POST" && req.url === "/api/following-details") {
   let body = "";
@@ -2204,14 +2204,14 @@ if (req.method === "POST" && req.url === "/api/following-details") {
 
 
 
-//following feature 
+//following feature
 
 
 
 
-//gets the top songs by genre 
+//gets the top songs by genre
 //used to get the top 5 songs in the explore page
-//route has 20 songs per genre, explore page only takes the top 5 
+//route has 20 songs per genre, explore page only takes the top 5
 if (req.url === "/top-songs-by-genre" && req.method === "GET") {
   try {
     const connection = await mysql.createConnection(dbConfig);
@@ -2247,13 +2247,13 @@ if (req.url === "/top-songs-by-genre" && req.method === "GET") {
 }
 
 
-//get the most liked songs (top 50) 
+//get the most liked songs (top 50)
 if (req.url === "/api/top-liked-songs" && req.method === "GET") {
   try {
     const connection = await mysql.createConnection(dbConfig);
 
     const [rows] = await connection.execute(`
-      SELECT 
+      SELECT
         s.song_id, s.title, s.musician_id, s.upload_date, s.genre,
         s.duration, s.file_url, s.cover_art_url, s.description,
         s.views, u.name AS musician_name,
