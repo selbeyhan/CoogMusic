@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-
+import { useToast } from '../contexts/ToastContext';
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useUser, useClerk } from '@clerk/clerk-react';
@@ -7,14 +7,22 @@ import axios from 'axios';
 import './Profile.css';
 import { useAudio } from '../contexts/AudioContext';
 import { FaPencilAlt } from 'react-icons/fa'; // import at the top
+import ConfirmModal from './ConfirmModal';
+
 
 const Profile = () => {
   const { userId } = useParams();
   const { user: currentUser } = useUser();
   const { signOut } = useClerk(); // ✅ Use useClerk to get signOut
-  const { setCurrentSong } = useAudio(); 
+  const { setCurrentSong } = useAudio();
   const audioFileRef = useRef(null);
   const coverArtRef = useRef(null);
+  const { showSuccess, showError, showInfo } = useToast();
+  const [showDeleteAccountConfirmModal, setShowDeleteAccountConfirmModal] = useState(false);
+  const [showDeleteSongConfirmModal, setShowDeleteSongConfirmModal] = useState(false);
+  const [showDeletePlaylistConfirmModal, setShowDeletePlaylistConfirmModal] = useState(false);
+  const [playlistToDelete, setPlaylistToDelete] = useState(null);
+  const [songToDelete, setSongToDelete] = useState(null);
 
   const [editingPlaylistId, setEditingPlaylistId] = useState(null);
   const [editedPlaylistName, setEditedPlaylistName] = useState('');
@@ -22,15 +30,13 @@ const Profile = () => {
   const [followingCount, setFollowingCount] = useState(0);
   const [followingUsers, setFollowingUsers] = useState([]);
 
-
-
   const [editingSongId, setEditingSongId] = useState(null);
   const [editedSongData, setEditedSongData] = useState({
     title: '',
     genre: '',
     description: ''
   });
-  
+
   // Profile state
   const [userProfile, setUserProfile] = useState(null);
   const [userSongs, setUserSongs] = useState([]);
@@ -44,16 +50,11 @@ const Profile = () => {
   const [showUpdateProfilePicModal, setShowUpdateProfilePicModal] = useState(false);
   const [newProfilePicFile, setNewProfilePicFile] = useState(null);
   const [showDeleteSongModal, setShowDeleteSongModal] = useState(false);
-  const [songToDelete, setSongToDelete] = useState(null);
   const [likedSongs, setLikedSongs] = useState([]); // Added from second file
   const [albumCoverFile, setAlbumCoverFile] = useState(null);
 
   const [albumCreated, setAlbumCreated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-
-
-  
 
   // Upload form state
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -61,7 +62,7 @@ const Profile = () => {
     title: '',
     genre: '',
     description: '',
-    cover_art_url: 'https://via.placeholder.com/300' 
+    cover_art_url: 'https://via.placeholder.com/300'
   });
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadCoverArtFile, setUploadCoverArtFile] = useState(null);
@@ -72,128 +73,126 @@ const Profile = () => {
   const [albums, setAlbums] = useState([]);
   const [showCreateAlbumInput, setShowCreateAlbumInput] = useState(false);
   const [newAlbumData, setNewAlbumData] = useState({
-  title: '',
-  genre: '',
-  description: '',
-  album_art_url: 'https://via.placeholder.com/300'
-});
+    title: '',
+    genre: '',
+    description: '',
+    album_art_url: 'https://via.placeholder.com/300'
+  });
 
-const [showAlbumSongModal, setShowAlbumSongModal] = useState(false);
-const [albumSongs, setAlbumSongs] = useState([]);
-const [newAlbumSongData, setNewAlbumSongData] = useState({
-  title: '',
-  genre: '',
-  description: '',
-  file: null,         
-  coverArt: null      
-});
-const fetchSongs = async () => {
-  try {
-    const response = await axios.get(`/api/profile/${userId}`);
-    if (Array.isArray(response.data) && response.data.length > 0) {
-      setUserSongs(response.data[0].songs);
-    }
-  } catch (error) {
-    console.error("Error fetching songs:", error);
-  }
-};
+  const [showAlbumSongModal, setShowAlbumSongModal] = useState(false);
+  const [albumSongs, setAlbumSongs] = useState([]);
+  const [newAlbumSongData, setNewAlbumSongData] = useState({
+    title: '',
+    genre: '',
+    description: '',
+    file: null,
+    coverArt: null
+  });
 
-useEffect(() => {
-  if (currentUser) {
-    setIsOwner(currentUser.id === userId);
-  }
-
-  const fetchUserProfile = async () => {
+  const fetchSongs = async () => {
     try {
-      console.log("🔍 Current User ID:", currentUser?.id);
-      console.log("🔍 Profile User ID:", userId);
-
-      const response = await axios.get(`/user/${userId}`);
-      const userData = response.data.user;
-      console.log("🔍 MySQL user profile:", userData);
-
-      setUserProfile({
-        id: userData.user_id,
-        name: userData.name,
-        email: userData.email,
-        bio: userData.bio || "No bio yet.",
-        profilePicture: userData.profile_picture_url || currentUser?.profileImageUrl,
-        accountType: userData.account_type || "Musician",
-        registrationDate: userData.registration_date || "2023-01-15",
-        monthlyListeners: userData.monthly_listeners || 0,
-        uhAffiliation: userData.uh_affiliation || "None",
-        verification_status: userData.verification_status || false
-      });
-      console.log("MySQL user_id (logged in):", userData.user_id);
-
-      console.log(`🔍 Fetching songs for user: ${userId}`);
-      const songsResponse = await axios.get(`/api/profile/${userId}`);
-      console.log("🔍 Songs fetched:", songsResponse.data);
-
-      if (Array.isArray(songsResponse.data) && songsResponse.data.length > 0) {
-        const songs = songsResponse.data[0].songs;
-        setUserSongs(songs);
-      } else {
-        console.error("❌ Songs data is not in the expected format:", songsResponse.data);
+      const response = await axios.get(`/api/profile/${userId}`);
+      if (Array.isArray(response.data) && response.data.length > 0) {
+        setUserSongs(response.data[0].songs);
       }
+    } catch (error) {
+      console.error("Error fetching songs:", error);
+    }
+  };
 
+  useEffect(() => {
+    if (currentUser) {
+      setIsOwner(currentUser.id === userId);
+    }
 
+    const fetchUserProfile = async () => {
+      try {
+        console.log("🔍 Current User ID:", currentUser?.id);
+        console.log("🔍 Profile User ID:", userId);
 
-      // Fetch followers and following counts
-      const followersRes = await axios.get(`/api/followers/${userData.user_id}`);
-      setFollowerCount(followersRes.data.followers?.length || 0);
+        const response = await axios.get(`/user/${userId}`);
+        const userData = response.data.user;
+        console.log("🔍 MySQL user profile:", userData);
 
-      // ✅ Use MySQL user_id instead of Clerk userId
-      const followingRes = await axios.get(`/api/following/${userData.user_id}`);
-      setFollowingCount(followingRes.data.following?.length || 0);
+        setUserProfile({
+          id: userData.user_id,
+          name: userData.name,
+          email: userData.email,
+          bio: userData.bio || "No bio yet.",
+          profilePicture: userData.profile_picture_url || currentUser?.profileImageUrl,
+          accountType: userData.account_type || "Musician",
+          registrationDate: userData.registration_date || "2023-01-15",
+          monthlyListeners: userData.monthly_listeners || 0,
+          uhAffiliation: userData.uh_affiliation || "None",
+          verification_status: userData.verification_status || false
+        });
+        console.log("MySQL user_id (logged in):", userData.user_id);
 
-      // ✅ Fetch full user info of followed users
-      const followedIds = followingRes.data.following.map(f => f.followed_id);
-      if (followedIds.length > 0) {
-        const detailsRes = await axios.post(`/api/following-details`, { ids: followedIds });
-        setFollowingUsers(detailsRes.data.users || []);
+        console.log(`🔍 Fetching songs for user: ${userId}`);
+        const songsResponse = await axios.get(`/api/profile/${userId}`);
+        console.log("🔍 Songs fetched:", songsResponse.data);
+
+        if (Array.isArray(songsResponse.data) && songsResponse.data.length > 0) {
+          const songs = songsResponse.data[0].songs;
+          setUserSongs(songs);
+        } else {
+          console.error("❌ Songs data is not in the expected format:", songsResponse.data);
+        }
+
+        // Fetch followers and following counts
+        const followersRes = await axios.get(`/api/followers/${userData.user_id}`);
+        setFollowerCount(followersRes.data.followers?.length || 0);
+
+        // ✅ Use MySQL user_id instead of Clerk userId
+        const followingRes = await axios.get(`/api/following/${userData.user_id}`);
+        setFollowingCount(followingRes.data.following?.length || 0);
+
+        // ✅ Fetch full user info of followed users
+        const followedIds = followingRes.data.following.map(f => f.followed_id);
+        if (followedIds.length > 0) {
+          const detailsRes = await axios.post(`/api/following-details`, { ids: followedIds });
+          setFollowingUsers(detailsRes.data.users || []);
+        }
+
+        // ALBUM FEATURE: Fetch user's albums
+        const albumsResponse = await axios.get(`/api/getuseralbums/${userId}`);
+        setAlbums(albumsResponse.data.albums || []);
+      } catch (error) {
+        console.error("Error fetching profile data:", error);
       }
+    };
+
+    const fetchUserPlaylists = async () => {
+      try {
+        const response = await axios.get(`/api/getuserplaylists/${userId}`);
+        console.log("📀 Playlists fetched:", response.data.playlists);
+        setPlaylists(response.data.playlists || []);
+      } catch (error) {
+        console.error("❌ Error fetching playlists:", error);
+      }
+    };
+
+    const fetchLikedSongs = async () => {
+      try {
+        console.log(`➡️ Fetching user likes from Clerk user_id: ${userId}`);
+        const response = await axios.get(`/api/profile-likes/${userId}`);
+        setLikedSongs(response.data.likedSongs || []);
+      } catch (error) {
+        console.error("❌ Error fetching liked songs:", error);
+      }
+    };
+
+    const fetchAll = async () => {
+      await fetchUserProfile();
+      await fetchUserPlaylists();
+      await fetchLikedSongs();
+      setIsLoading(false);
+    };
+
+    fetchAll();
+  }, [userId, currentUser]);
 
 
-      // ALBUM FEATURE: Fetch user's albums
-      const albumsResponse = await axios.get(`/api/getuseralbums/${userId}`);
-      setAlbums(albumsResponse.data.albums || []);
-    } catch (error) {
-      console.error("Error fetching profile data:", error);
-    }
-  };
-
-  const fetchUserPlaylists = async () => {
-    try {
-      const response = await axios.get(`/api/getuserplaylists/${userId}`);
-      console.log("📀 Playlists fetched:", response.data.playlists);
-      setPlaylists(response.data.playlists || []);
-    } catch (error) {
-      console.error("❌ Error fetching playlists:", error);
-    }
-  };
-
-  const fetchLikedSongs = async () => {
-    try {
-      console.log(`➡️ Fetching user likes from Clerk user_id: ${userId}`);
-      const response = await axios.get(`/api/profile-likes/${userId}`);
-      setLikedSongs(response.data.likedSongs || []);
-    } catch (error) {
-      console.error("❌ Error fetching liked songs:", error);
-    }
-  };
-
-  const fetchAll = async () => {
-    await fetchUserProfile();
-    await fetchUserPlaylists();
-    await fetchLikedSongs();
-    setIsLoading(false);
-  };
-
-  fetchAll();
-}, [userId, currentUser]);
-
-  
   const handleSaveBio = async () => {
     try {
       await axios.patch(`/update-bio/${userId}`, { bio: userProfile.newBio });
@@ -202,31 +201,31 @@ useEffect(() => {
         bio: prev.newBio,
         editingBio: false
       }));
-      alert("Bio updated successfully!");
+      showSuccess("Bio updated successfully!");
     } catch (err) {
       console.error("Error updating bio:", err);
-      alert("Failed to update bio.");
+      showError("Failed to update bio.");
     }
   };
 
   const handleCreatePlaylist = async () => {
     if (!newPlaylistName.trim()) {
-      alert("Playlist name cannot be empty.");
+      showError("Playlist name cannot be empty.");
       return;
     }
-  
+
     try {
       const payload = {
         name: newPlaylistName,
         user_id: userProfile.id
       };
-  
+
       console.log("🛠 Creating playlist with payload:", payload); // Log user_id and name
-  
+
       const response = await axios.post('/api/createPlaylist', payload); // send to backend
-  
+
       console.log("✅ Playlist created with response:", response.data); // Log server response
-  
+
       // Update playlist state
       setPlaylists(prev => [
         ...prev,
@@ -237,43 +236,43 @@ useEffect(() => {
           is_public: 0
         }
       ]);
-  
+
       setNewPlaylistName('');
       setShowCreatePlaylistInput(false);
-      alert("Playlist created!");
+      showSuccess("Playlist created successfully!");
     } catch (error) {
-      console.error("❌ Error creating playlist:", error);
-      alert("Failed to create playlist.");
+      console.error("Error creating playlist:", error);
+      showError("Failed to create playlist. Please try again.");
     }
   };
 
   // Handle playlist name updates
   const handleUpdatePlaylist = async (playlistId) => {
     if (!editedPlaylistName.trim()) {
-      alert("Playlist name cannot be empty.");
+      showError("Playlist name cannot be empty");
       return;
     }
-  
+
     try {
       await axios.patch(`/api/playlist/update/${playlistId}`, { name: editedPlaylistName });
-      
+
       // Update local state
-      setPlaylists(prevPlaylists => 
-        prevPlaylists.map(pl => 
-          pl.playlist_id === playlistId 
-            ? { ...pl, name: editedPlaylistName } 
+      setPlaylists(prevPlaylists =>
+        prevPlaylists.map(pl =>
+          pl.playlist_id === playlistId
+            ? { ...pl, name: editedPlaylistName }
             : pl
         )
       );
-      
+
       // Reset edit mode
       setEditingPlaylistId(null);
       setEditedPlaylistName('');
-      
-      alert("Playlist updated successfully!");
+
+      showSuccess("Playlist updated successfully!");
     } catch (error) {
       console.error('Error updating playlist:', error);
-      alert('Failed to update playlist. Please try again.');
+      showError('Failed to update playlist. Please try again.');
     }
   };
 
@@ -284,17 +283,17 @@ useEffect(() => {
       if (editedSongData.title) formData.append("title", editedSongData.title);
       if (editedSongData.genre) formData.append("genre", editedSongData.genre);
       if (editedSongData.description) formData.append("description", editedSongData.description);
-      
+
       // Append new cover art file if one was provided
       if (editedSongCoverArtFile) {
         formData.append("cover_art", editedSongCoverArtFile);
       }
-      
+
       // Send PATCH request to update the song; ensure the endpoint matches your server route
       const response = await axios.patch(`/api/song/update/${songId}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      
+
       // Update local state: merge updated fields and, if returned, update the cover_art_url
       setUserSongs((prevSongs) =>
         prevSongs.map((song) =>
@@ -303,20 +302,18 @@ useEffect(() => {
             : song
         )
       );
-      
+
       // Reset edit mode and clear form states
       setEditingSongId(null);
       setEditedSongData({ title: '', genre: '', description: '' });
       setEditedSongCoverArtFile(null);
-      
-      alert("Song updated successfully!");
+
+      showSuccess("Song updated successfully!");
     } catch (error) {
       console.error("Error updating song:", error);
-      alert("Failed to update song. Please try again.");
+      showError("Failed to update song. Please try again.");
     }
   };
-  
-  
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -334,167 +331,149 @@ useEffect(() => {
     setUploadFile(e.target.files[0]);
   };
 
+  // ALBUM FEATURE: Handler for creating an album
+  const handleUploadAlbumSongs = async (albumId) => {
+    const formData = new FormData();
 
+    formData.append("album_id", albumId);
+    formData.append("musician_id", userProfile.id);
 
-    // ALBUM FEATURE: Handler for creating an album
+    albumSongs.forEach((song) => {
+      formData.append("titles", song.title);
+      formData.append("genres", song.genre || '');
+      formData.append("descriptions", song.description || '');
+      // if you collect files later, use:
+      formData.append("files", song.file);
+      formData.append("cover_arts", song.coverArt);
+    });
 
-    const handleUploadAlbumSongs = async (albumId) => {
-      const formData = new FormData();
-    
-      formData.append("album_id", albumId);
-      formData.append("musician_id", userProfile.id);
-    
-      albumSongs.forEach((song) => {
-        formData.append("titles", song.title);
-        formData.append("genres", song.genre || '');
-        formData.append("descriptions", song.description || '');
-        // if you collect files later, use:
-        formData.append("files", song.file);
-        formData.append("cover_arts", song.coverArt);
+    try {
+      const response = await axios.post("/api/upload-album-songs", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
       });
-    
-      try {
-        const response = await axios.post("/api/upload-album-songs", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
-        });
-    
-        console.log("✅ Songs uploaded:", response.data);
-        alert("Songs added to album!");
-        setAlbumSongs([]); // clear albumSongs after success
-      } catch (err) {
-        console.error("❌ Failed to upload album songs:", err);
-        alert("Upload failed.");
-      }
-    };
-    
-    const handleCreateAlbum = async () => {
-      if (!newAlbumData.title.trim()) {
-        alert("Album title cannot be empty.");
-        return;
-      }
-    
-      if (albumCreated || isSubmitting) return; // ✅ Prevent double submission
-      setIsSubmitting(true);
-    
-      try {
-        const formData = new FormData();
-        formData.append("title", newAlbumData.title);
-        formData.append("description", newAlbumData.description);
-        formData.append("musician_id", userProfile.id);
-    
-        if (albumCoverFile) {
-          formData.append("cover_art", albumCoverFile);
-        }
-    
-        formData.append("album_art_url", newAlbumData.album_art_url);
-    
-        const response = await axios.post("/api/createAlbum", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-    
-        console.log("✅ Album created with response:", response.data);
-        const newAlbumId = response.data.album_id;
-    
-        await handleUploadAlbumSongs(newAlbumId); // ✅ Upload songs after album creation
-    
-        setAlbums((prev) => [
-          ...prev,
-          {
-            album_id: newAlbumId,
-            title: newAlbumData.title,
-            album_art_url: response.data.album_art_url, // ✅ Use returned image URL
-            description: newAlbumData.description,
-            release_date: new Date().toISOString(),
-            views: 0
-          }
-        ]);
-        
-    
-        setNewAlbumData({
-          title: '',
-          description: '',
-          album_art_url: 'https://via.placeholder.com/300'
-        });
-        setAlbumCoverFile(null);
-        setShowCreateAlbumInput(false);
-        setAlbumCreated(true); // ✅ Set flag after success
-        alert("Album created!");
-      } catch (error) {
-        console.error("❌ Error creating album:", error);
-        alert("Failed to create album.");
-      } finally {
-        setIsSubmitting(false); // ✅ Always reset
-      }
-    };
-    
-    
-    
-    
-  
-    // ALBUM FEATURE: Handler for album form field changes
-    const handleAlbumDataChange = (e) => {
-      const { name, value } = e.target;
-      setNewAlbumData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    };
-  
 
-    const handleNewAlbumSongChange = (e) => {
-      const { name, value } = e.target;
-      setNewAlbumSongData((prev) => ({ ...prev, [name]: value }));
-    };
-    
-    const handleAddSongToAlbum = () => {
-      if (!newAlbumSongData.title.trim()) {
-        alert("Song title required");
-        return;
+      console.log("✅ Songs uploaded:", response.data);
+      showSuccess("Songs added to album!");
+      setAlbumSongs([]); // clear albumSongs after success
+    } catch (err) {
+      console.error("❌ Failed to upload album songs:", err);
+      showError("Upload failed.");
+    }
+  };
+
+  const handleCreateAlbum = async () => {
+    if (!newAlbumData.title.trim()) {
+      showError("Album title cannot be empty.");
+      return;
+    }
+
+    if (albumCreated || isSubmitting) return; // ✅ Prevent double submission
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("title", newAlbumData.title);
+      formData.append("description", newAlbumData.description);
+      formData.append("musician_id", userProfile.id);
+
+      if (albumCoverFile) {
+        formData.append("cover_art", albumCoverFile);
       }
-      if (!newAlbumSongData.genre) { // <-- Manual check for genre
-        alert("Song genre is required");
-        return;
-      }
-      if (!newAlbumSongData.file) {
-        alert("Please select an audio file for the song.");
-        return;
-      }
-    
-      setAlbumSongs((prev) => [...prev, newAlbumSongData]);
-    
-      // Reset song input data
-      setNewAlbumSongData({ title: '', genre: '', description: '', file: null, coverArt: null });
-    
-      // Clear file inputs manually
-      if (audioFileRef.current) audioFileRef.current.value = null;
-      if (coverArtRef.current) coverArtRef.current.value = null;
-    };
-    
-    
-    
-    const handleCancelAlbumCreation = () => {
-      setShowCreateAlbumInput(false);
+
+      formData.append("album_art_url", newAlbumData.album_art_url);
+
+      const response = await axios.post("/api/createAlbum", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      console.log("✅ Album created with response:", response.data);
+      const newAlbumId = response.data.album_id;
+
+      await handleUploadAlbumSongs(newAlbumId); // ✅ Upload songs after album creation
+
+      setAlbums((prev) => [
+        ...prev,
+        {
+          album_id: newAlbumId,
+          title: newAlbumData.title,
+          album_art_url: response.data.album_art_url, // ✅ Use returned image URL
+          description: newAlbumData.description,
+          release_date: new Date().toISOString(),
+          views: 0
+        }
+      ]);
+
       setNewAlbumData({
         title: '',
         description: '',
         album_art_url: 'https://via.placeholder.com/300'
       });
       setAlbumCoverFile(null);
-      setAlbumSongs([]);
-      setShowAlbumSongModal(false);
-    
-      // Reset song input refs
-      if (audioFileRef.current) audioFileRef.current.value = null;
-      if (coverArtRef.current) coverArtRef.current.value = null;
-    };
-    
-    
+      setShowCreateAlbumInput(false);
+      setAlbumCreated(true); // ✅ Set flag after success
+      showSuccess("Album created successfully!");
+    } catch (error) {
+      console.error("❌ Error creating album:", error);
+      showError("Failed to create album.");
+    } finally {
+      setIsSubmitting(false); // ✅ Always reset
+    }
+  };
 
+  // ALBUM FEATURE: Handler for album form field changes
+  const handleAlbumDataChange = (e) => {
+    const { name, value } = e.target;
+    setNewAlbumData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
+  const handleNewAlbumSongChange = (e) => {
+    const { name, value } = e.target;
+    setNewAlbumSongData((prev) => ({ ...prev, [name]: value }));
+  };
 
+  const handleAddSongToAlbum = () => {
+    if (!newAlbumSongData.title.trim()) {
+      showError("Song title required");
+      return;
+    }
+    if (!newAlbumSongData.genre) { // <-- Manual check for genre
+      showError("Song genre is required");
+      return;
+    }
+    if (!newAlbumSongData.file) {
+      showError("Please select an audio file for the song.");
+      return;
+    }
 
+    setAlbumSongs((prev) => [...prev, newAlbumSongData]);
+    showSuccess(`"${newAlbumSongData.title}" added to album`);
 
+    // Reset song input data
+    setNewAlbumSongData({ title: '', genre: '', description: '', file: null, coverArt: null });
 
+    // Clear file inputs manually
+    if (audioFileRef.current) audioFileRef.current.value = null;
+    if (coverArtRef.current) coverArtRef.current.value = null;
+  };
+
+  const handleCancelAlbumCreation = () => {
+    setShowCreateAlbumInput(false);
+    setNewAlbumData({
+      title: '',
+      description: '',
+      album_art_url: 'https://via.placeholder.com/300'
+    });
+    setAlbumCoverFile(null);
+    setAlbumSongs([]);
+    setShowAlbumSongModal(false);
+
+    // Reset song input refs
+    if (audioFileRef.current) audioFileRef.current.value = null;
+    if (coverArtRef.current) coverArtRef.current.value = null;
+  };
 
   //album stuff
 
@@ -502,7 +481,7 @@ useEffect(() => {
     e.preventDefault();
 
     if (!uploadFile) {
-      alert('Please select a file to upload');
+      showError('Please select a file to upload');
       return;
     }
 
@@ -525,7 +504,7 @@ useEffect(() => {
       // Refresh songs list or add the new song to the existing list
       // In a real app, you'd fetch the updated list or add the new song with its returned data
 
-      alert('Song uploaded successfully!');
+      showSuccess('Song uploaded successfully!');
       setShowUploadForm(false);
       setUploadFormData({
         title: '',
@@ -538,7 +517,7 @@ useEffect(() => {
       setIsLoading(false);
     } catch (error) {
       console.error('Error uploading song:', error);
-      alert('Failed to upload song. Please try again.');
+      showError('Failed to upload song. Please try again.');
       setIsLoading(false);
     }
   };
@@ -598,7 +577,7 @@ useEffect(() => {
                   className="confirm-btn"
                   onClick={async () => {
                     if (!newProfilePicFile) {
-                      alert("Please select an image first.");
+                      showError("Please select an image first.");
                       return;
                     }
 
@@ -611,14 +590,14 @@ useEffect(() => {
                       const response = await axios.post("/upload-profile-picture", formData);
                       console.log("✅ Server response:", response.data);
 
-                      alert("Profile picture updated!");
+                      showSuccess("Profile picture updated successfully!");
                       setUserProfile((prev) => ({
                         ...prev,
                         profilePicture: response.data.url
                       }));
                     } catch (err) {
                       console.error("❌ Error uploading profile picture:", err);
-                      alert("Failed to upload profile picture.");
+                      showError("Failed to upload profile picture.");
                     } finally {
                       setShowUpdateProfilePicModal(false);
                       setNewProfilePicFile(null);
@@ -667,44 +646,10 @@ useEffect(() => {
             <>
               <button
                 className="delete-account-btn"
-                onClick={() => setShowDeleteConfirm(true)}
-                style={{ marginTop: '10px', backgroundColor: '#ff4d4f', color: '#fff' }}
+                onClick={() => setShowDeleteAccountConfirmModal(true)}
               >
                 Delete Account
               </button>
-
-              {showDeleteConfirm && (
-                <div className="modal-overlay">
-                  <div className="modal-content">
-                    <h3>Are you sure you want to delete your account?</h3>
-                    <p>This action cannot be undone.</p>
-                    <div className="modal-buttons">
-                      <button
-                        onClick={() => setShowDeleteConfirm(false)}
-                        className="cancel-btn"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={async () => {
-                          try {
-                            await axios.delete(`/user/${currentUser.id}`);
-                            await signOut(); // Force logout after deletion using useClerk
-                            alert("Account deleted successfully.");
-                            window.location.href = "/"; // Redirect to homepage
-                          } catch (err) {
-                            console.error("Error deleting account:", err);
-                            alert("Failed to delete account.");
-                          }
-                        }}
-                        className="confirm-btn"
-                      >
-                        Confirm Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>
@@ -725,7 +670,7 @@ useEffect(() => {
                 required
               />
             </div>
-            <div className="form-group"> 
+            <div className="form-group">
               <label htmlFor="genre">Genre</label>
               <select
                 id="genre"
@@ -899,7 +844,7 @@ useEffect(() => {
                           }}>Cancel</button>
                         </div>
                       </div>
-                      
+
                       ) : (
                         <>
                           <div className="song-cover">
@@ -949,7 +894,7 @@ useEffect(() => {
                                   className="delete-btn"
                                   onClick={() => {
                                     setSongToDelete(song);
-                                    setShowDeleteSongModal(true);
+                                    setShowDeleteSongConfirmModal(true);
                                   }}
                                 >
                                   Delete
@@ -1028,8 +973,8 @@ useEffect(() => {
                         </div>
                       ) : (
                         <>
-                          <Link 
-                            to={`/playlist/${playlist.playlist_id}`} 
+                          <Link
+                            to={`/playlist/${playlist.playlist_id}`}
                             className="playlist-card"
                           >
                             <h3>{playlist.name}</h3>
@@ -1047,18 +992,10 @@ useEffect(() => {
                               >
                                 Edit
                               </button>
-                              <button 
-                                onClick={async () => {
-                                  if (window.confirm(`Are you sure you want to delete playlist "${playlist.name}"?`)) {
-                                    try {
-                                      await axios.delete(`/api/playlist/${playlist.playlist_id}`);
-                                      setPlaylists(playlists.filter(pl => pl.playlist_id !== playlist.playlist_id));
-                                      alert('Playlist deleted successfully!');
-                                    } catch (error) {
-                                      console.error('Error deleting playlist:', error);
-                                      alert('Failed to delete playlist. Please try again.');
-                                    }
-                                  }
+                              <button
+                                onClick={() => {
+                                  setPlaylistToDelete(playlist);
+                                  setShowDeletePlaylistConfirmModal(true);
                                 }}
                                 className="delete-playlist-btn"
                                 title="Delete Playlist"
@@ -1243,9 +1180,9 @@ useEffect(() => {
     ) : (
       <div className="albums-list">
         {albums.map((album) => (
-          <Link 
-            to={`/album/${album.album_id}`} 
-            key={album.album_id} 
+          <Link
+            to={`/album/${album.album_id}`}
+            key={album.album_id}
             className="album-card"
           >
             <div className="album-cover">
@@ -1358,7 +1295,7 @@ useEffect(() => {
             </div>
           )}
 
-          
+
           {activeTab === 'likes' && (
             <div className="likes-tab">
               <h2>Liked Songs</h2>
@@ -1393,49 +1330,70 @@ useEffect(() => {
               )}
             </div>
           )}
-
-          {showDeleteSongModal && (
-            <div className="modal-overlay">
-              <div className="modal-content">
-                <h3>Are you sure you want to delete "{songToDelete.title}"?</h3>
-                <p>This will also remove it from all playlists and comments.</p>
-                <div className="modal-buttons">
-                  <button
-                    className="cancel-btn"
-                    onClick={() => {
-                      setShowDeleteSongModal(false);
-                      setSongToDelete(null);
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="confirm-btn"
-                    onClick={async () => {
-                      try {
-                        console.log("🗑 Attempting to delete song with ID:", songToDelete.song_id); // Debug log
-                        await axios.delete(`/api/song/${songToDelete.song_id}`);
-                        console.log("✅ Song deleted successfully:", songToDelete.song_id); // Debug log
-
-                        setUserSongs(prev => prev.filter(s => s.song_id !== songToDelete.song_id));
-                        alert("Song deleted successfully!");
-                      } catch (error) {
-                        console.error("❌ Error deleting song:", error);
-                        alert("Failed to delete song.");
-                      } finally {
-                        setShowDeleteSongModal(false);
-                        setSongToDelete(null);
-                      }
-                    }}
-                  >
-                    Confirm Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* All confirmation modals */}
+      <ConfirmModal
+        isOpen={showDeleteAccountConfirmModal}
+        message="Are you sure you want to delete your account? This action cannot be undone."
+        onConfirm={async () => {
+          try {
+            await axios.delete(`/user/${currentUser.id}`);
+            await signOut();
+            showSuccess("Account deleted successfully.");
+            window.location.href = "/";
+          } catch (err) {
+            console.error("Error deleting account:", err);
+            showError("Failed to delete account.");
+          }
+        }}
+        onCancel={() => setShowDeleteAccountConfirmModal(false)}
+      />
+
+      <ConfirmModal
+        isOpen={showDeleteSongConfirmModal}
+        message={songToDelete ? `Are you sure you want to delete "${songToDelete.title}"? This will also remove it from all playlists and comments.` : ""}
+        onConfirm={async () => {
+          try {
+            await axios.delete(`/api/song/${songToDelete.song_id}`);
+            setUserSongs(prev => prev.filter(s => s.song_id !== songToDelete.song_id));
+            showSuccess("Song deleted successfully!");
+          } catch (error) {
+            console.error("Error deleting song:", error);
+            showError("Failed to delete song.");
+          } finally {
+            setShowDeleteSongConfirmModal(false);
+            setSongToDelete(null);
+          }
+        }}
+        onCancel={() => {
+          setShowDeleteSongConfirmModal(false);
+          setSongToDelete(null);
+        }}
+      />
+
+      <ConfirmModal
+        isOpen={showDeletePlaylistConfirmModal}
+        message={playlistToDelete ? `Are you sure you want to delete playlist "${playlistToDelete.name}"?` : ""}
+        onConfirm={async () => {
+          try {
+            await axios.delete(`/api/playlist/${playlistToDelete.playlist_id}`);
+            setPlaylists(prev => prev.filter(pl => pl.playlist_id !== playlistToDelete.playlist_id));
+            showSuccess("Playlist deleted successfully!");
+          } catch (error) {
+            console.error("Error deleting playlist:", error);
+            showError("Failed to delete playlist. Please try again.");
+          } finally {
+            setShowDeletePlaylistConfirmModal(false);
+            setPlaylistToDelete(null);
+          }
+        }}
+        onCancel={() => {
+          setShowDeletePlaylistConfirmModal(false);
+          setPlaylistToDelete(null);
+        }}
+      />
     </div>
   );
 };
