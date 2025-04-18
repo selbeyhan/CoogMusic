@@ -24,8 +24,8 @@ import { useAudio } from '../contexts/AudioContext';
 
 
 export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
- const audioRef = useRef(new Audio());
- const [playing, setPlaying] = useState(false);
+const audioRef = useRef(new Audio());
+const [playing, setPlaying] = useState(false);
  const [progress, setProgress] = useState(0);
  const [currentTime, setCurrentTime] = useState(0);
  const [duration, setDuration] = useState(0);
@@ -36,7 +36,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
  const { user } = useUser();
  const location = useLocation();
  const audioContext = useAudio();
- const { showSuccess, showError } = useToast();
+ const { showSuccess, showError, showInfo } = useToast(); // Add this line to fix the issue
   // Playlist states
  const [playlists, setPlaylists] = useState([]);
  const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
@@ -422,23 +422,49 @@ const handleAddToPlaylist = () => {
 
 const addSongToPlaylist = async () => {
   try {
+    if (!currentSong || !currentSong.song_id) {
+      showError("No song is currently playing");
+      return;
+    }
+    
     if (selectedPlaylistId === "create_new") {
       if (!newPlaylistName.trim()) {
         showError("Please enter a playlist name");
         return;
       }
-
-      // Create playlist code...
-
-      showSuccess("Song added to new playlist!");
+      
+      console.log("Creating new playlist:", newPlaylistName);
+      const createResponse = await axios.post('/api/createPlaylist', {
+        name: newPlaylistName,
+        user_id: user.id
+      });
+      
+      console.log("New playlist created:", createResponse.data);
+      
+      const addToPlaylistResponse = await axios.post('/api/addToPlaylist', {
+        playlist_id: createResponse.data.playlist_id,
+        song_id: currentSong.song_id
+      });
+      
+      const playlistsResponse = await axios.get(`/api/getuserplaylists/${user.id}`);
+      setPlaylists(playlistsResponse.data.playlists || []);
+      showSuccess("Song added to your new playlist!");
+      
     } else if (selectedPlaylistId) {
-      // Add to existing playlist code...
+      console.log(`Adding song ${currentSong.song_id} to playlist ${selectedPlaylistId}`);
+      const response = await axios.post('/api/addToPlaylist', {
+        playlist_id: selectedPlaylistId,
+        song_id: currentSong.song_id
+      });
+      
+      console.log("Response from adding to playlist:", response.data);
       showSuccess("Song added to playlist!");
+      
     } else {
       showError("Please select a playlist");
       return;
     }
-
+    
     setSelectedPlaylistId("");
     setNewPlaylistName("");
     setShowPlaylistDropdown(false);
