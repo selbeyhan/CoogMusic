@@ -114,7 +114,7 @@ const [playing, setPlaying] = useState(false);
      showError("Error in handleNextSong:");
      onNext();
    }
- }, [contextSongs, currentIndex, shuffle, audioContext, currentSong, onNext, incrementViewCount]);
+ }, [contextSongs, currentIndex, shuffle, audioContext, currentSong, onNext, incrementViewCount, showError]);
 
 
  const fetchUserPlaylists = useCallback(async () => {
