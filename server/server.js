@@ -2280,6 +2280,69 @@ if (req.url === "/api/top-liked-songs" && req.method === "GET") {
 
 
 
+/*        report 1      */
+
+// helper for report number 1
+async function getGenreReport(startDate, endDate) {
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+
+    // a) count by genre
+    const [countRows] = await connection.execute(
+      `SELECT genre, COUNT(*) AS count
+       FROM songs
+       WHERE upload_date BETWEEN ? AND ?
+       GROUP BY genre`,
+      [startDate + ' 00:00:00', endDate + ' 23:59:59']
+    );
+    const genreCounts = {};
+    countRows.forEach(r => { genreCounts[r.genre] = r.count; });
+
+    // b) song details
+    const [songRows] = await connection.execute(
+      `SELECT s.song_id,
+              s.title,
+              u.name    AS artist_name,
+              s.genre,
+              s.upload_date
+       FROM songs s
+       JOIN users u ON s.musician_id = u.user_id
+       WHERE s.upload_date BETWEEN ? AND ?`,
+      [startDate + ' 00:00:00', endDate + ' 23:59:59']
+    );
+
+    return { genreCounts, songs: songRows };
+  } finally {
+    if (connection) await connection.end();
+  }
+}
+
+//route for report 1
+if (req.method === "GET" && req.url.startsWith("/admin/reports/genre")) {
+  const urlObj = new URL(req.url, `http://${req.headers.host}`);
+  const start = urlObj.searchParams.get("start") || "1970-01-01";
+  const end   = urlObj.searchParams.get("end")   || new Date().toISOString().slice(0,10);
+
+  try {
+    const report = await getGenreReport(start, end);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(report));
+  } catch (err) {
+    console.error("❌ Error generating genre report:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: err.message }));
+  }
+  return;
+}
+
+
+/*      report 1       */
+
+
+
+
+
   // Serve React Frontend (Static Files)
   const buildPath = path.join(__dirname, "build");
 
