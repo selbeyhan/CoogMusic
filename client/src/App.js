@@ -2,12 +2,14 @@ import './clerk.css';
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { SignedIn, SignedOut, useUser } from '@clerk/clerk-react';
+
 import Header from './components/Header';
 import Home from './components/Home';
 import Profile from './components/Profile';
 import About from './components/About';
 import LoginPage from './components/LoginPage';
 import AdminPortal from './components/AdminPortal';
+import DataReports from './components/DataReports';     // ← NEW
 import SignupPage from './components/SignupPage';
 import VerifyEmailRedirect from './components/VerifyEmailRedirect';
 import PlaylistView from './components/PlaylistView';
@@ -20,76 +22,42 @@ import { AudioProvider, useAudio } from './contexts/AudioContext';
 import { ToastProvider } from './contexts/ToastContext';
 import './App.css';
 
-// Audio player wrapper component
 function AudioPlayerWrapper() {
   const { currentSong, queue, setCurrentSong, setQueue, history, addToHistory } = useAudio();
 
   function handlePlayNext(nextSong) {
-    // If a specific song is provided (from album/playlist context)
     if (nextSong && typeof nextSong === 'object') {
-      // Add current song to history if it exists
-      if (currentSong) {
-        addToHistory(currentSong);
-      }
-
-      // Play the provided song
+      if (currentSong) addToHistory(currentSong);
       setCurrentSong(nextSong);
       return;
     }
-
-    // Otherwise use the queue
-    if (queue && queue.length > 0) {
-      const nextQueueSong = queue[0];
-      const remainingQueue = queue.slice(1);
-
-      // Add current song to history if it exists
-      if (currentSong) {
-        addToHistory(currentSong);
-      }
-
-      // Update state
+    if (queue?.length > 0) {
+      const [nextQueueSong, ...rest] = queue;
+      if (currentSong) addToHistory(currentSong);
       setCurrentSong(nextQueueSong);
-      setQueue(remainingQueue);
+      setQueue(rest);
     }
   }
 
   function handlePlayPrev(prevSong) {
-    // If a specific song is provided (from album/playlist context)
     if (prevSong && typeof prevSong === 'object') {
-      // Add current song to the beginning of the queue if it exists
-      if (currentSong) {
-        setQueue([currentSong, ...queue]);
-      }
-
-      // Play the provided song
+      if (currentSong) setQueue([currentSong, ...queue]);
       setCurrentSong(prevSong);
       return;
     }
-
-    // Otherwise use the history
-    if (history && history.length > 0) {
-      const previousSong = history[history.length - 1];
-
-      // Add current song to the beginning of the queue if it exists
-      if (currentSong) {
-        setQueue([currentSong, ...queue]);
-      }
-
-      // Set the previous song as current
-      setCurrentSong(previousSong);
+    if (history?.length > 0) {
+      const previous = history[history.length - 1];
+      if (currentSong) setQueue([currentSong, ...queue]);
+      setCurrentSong(previous);
     }
   }
-
-  // Assign functions directly
-  const playNext = handlePlayNext;
-  const playPrev = handlePlayPrev;
 
   return (
     <AudioPlayerUI
       currentSong={currentSong}
       queue={queue}
-      onNext={playNext}
-      onPrev={playPrev}
+      onNext={handlePlayNext}
+      onPrev={handlePlayPrev}
     />
   );
 }
@@ -106,38 +74,38 @@ function App() {
       <ToastProvider>
         <Router>
           <Header user={user} />
-
-          {/* Persistent bottom audio player across all routes */}
           <AudioPlayerWrapper />
 
           <div className="app-container">
             <Routes>
               <Route path="/" element={<Home />} />
+
               <Route
                 path="/profile/:userId"
-                element={
-                  <SignedIn>
-                    <Profile />
-                  </SignedIn>
-                }
+                element={<SignedIn><Profile /></SignedIn>}
               />
+
               <Route path="/artist/:artistId" element={<ArtistProfile />} />
               <Route path="/playlist/:playlistId" element={<PlaylistView />} />
               <Route path="/about" element={<About />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
+              <Route
+                path="/signup/verify-email-address"
+                element={<VerifyEmailRedirect />}
+              />
+
+              {/* Admin pages */}
               <Route path="/adminportal" element={<AdminPortal />} />
+              <Route path="/admin/reports" element={<DataReports />} />  {/* ← NEW */}
+
               <Route path="/search" element={<Search />} />
               <Route path="/album/:albumId" element={<AlbumView />} />
               <Route path="/explore" element={<Explore />} />
-              <Route path="/signup/verify-email-address" element={<VerifyEmailRedirect />} />
+
               <Route
                 path="*"
-                element={
-                  <SignedOut>
-                    <LoginPage />
-                  </SignedOut>
-                }
+                element={<SignedOut><LoginPage /></SignedOut>}
               />
             </Routes>
           </div>
