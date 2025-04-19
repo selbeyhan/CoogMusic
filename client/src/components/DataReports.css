@@ -1,0 +1,26 @@
+.admin-portal .button-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1rem;
+  }
+  
+  .admin-portal button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  /* match your existing “Show Unverified” styling */
+  .admin-portal button.primary,
+  .admin-portal button:nth-child(1) {
+    background-color: #f14e4e;
+    color: #fff;
+  }
+  
+  /* secondary buttons (search toggles, delete, etc.) */
+  .admin-portal button:not(.primary) {
+    background-color: #e0e0e0;
+    color: #333;
+  }
+  
