@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 
-
+import { useToast } from '../contexts/ToastContext';
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useUser } from "@clerk/clerk-react";
 import { Link, useLocation } from 'react-router-dom';
@@ -24,8 +24,8 @@ import { useAudio } from '../contexts/AudioContext';
 
 
 export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
- const audioRef = useRef(new Audio());
- const [playing, setPlaying] = useState(false);
+const audioRef = useRef(new Audio());
+const [playing, setPlaying] = useState(false);
  const [progress, setProgress] = useState(0);
  const [currentTime, setCurrentTime] = useState(0);
  const [duration, setDuration] = useState(0);
@@ -36,6 +36,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
  const { user } = useUser();
  const location = useLocation();
  const audioContext = useAudio();
+ const { showSuccess, showError, showInfo } = useToast(); // Add this line to fix the issue
   // Playlist states
  const [playlists, setPlaylists] = useState([]);
  const [showPlaylistDropdown, setShowPlaylistDropdown] = useState(false);
@@ -72,9 +73,9 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
        } else {
          nextIndex = (currentIndex + 1) % contextSongs.length;
        }
-      
+
        const nextSong = contextSongs[nextIndex];
-      
+
        if (nextSong && nextSong.song_id) {
          if (typeof audioContext.setCurrentSong === 'function') {
            if (typeof audioContext.addToHistory === 'function' && currentSong) {
@@ -88,11 +89,12 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
            incrementViewCount(nextSong.song_id);
          } catch (viewError) {
            console.error("Failed to increment view count:", viewError);
+           showError("An error occurred while playing the next song");
          }
          return;
        }
      }
-    
+
      // If we're not in a context or couldn't find next song, use the queue
      if (audioContext.queue && audioContext.queue.length > 0 &&
          typeof audioContext.setCurrentSong === 'function' &&
@@ -109,6 +111,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
      }
    } catch (error) {
      console.error("Error in handleNextSong:", error);
+     showError("Error in handleNextSong:");
      onNext();
    }
  }, [contextSongs, currentIndex, shuffle, audioContext, currentSong, onNext, incrementViewCount]);
@@ -347,7 +350,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
 
 
      const prevSong = contextSongs[prevIndex];
-    
+
      if (prevSong && prevSong.song_id) {
        onPrev(prevSong);
        incrementViewCount(prevSong.song_id);
@@ -362,93 +365,114 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
 
 
  const toggleLike = async () => {
-   if (!currentSong || !user?.id) return;
-    try {
-     const res = await fetch("/api/toggle-like", {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify({
-         clerk_user_id: user.id,
-         song_id: currentSong.song_id
-       })
-     });
-      if (!res.ok) {
-       let data = {};
-       try {
-         data = await res.json();
-       } catch (parseError) {
-         // If JSON parsing fails, log the error and get the raw response text
-         console.error("Error parsing JSON:", parseError);
-         const text = await res.text();
-         console.log("Raw response text:", text);
-       }
-      
-       const msg = data.error?.toLowerCase() || "";
-      
-       // Log the server error message for debugging
-       console.log("Server error message:", msg);
-      
-       if (msg.includes("your own song")) {
-         alert("You cannot like your own song.");
-       } else {
-         alert("You are not verified to like songs.");
-       }
-       return;
-     }
+  if (!currentSong || !user?.id) return;
+  try {
+    const res = await fetch("/api/toggle-like", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clerk_user_id: user.id,
+        song_id: currentSong.song_id
+      })
+    });
+
+    if (!res.ok) {
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (parseError) {
+        console.error("Error parsing JSON:", parseError);
+        const text = await res.text();
+        console.log("Raw response text:", text);
+      }
+
+      const msg = data.error?.toLowerCase() || "";
+      console.log("Server error message:", msg);
+
+      if (msg.includes("your own song")) {
+        showError("You cannot like your own song.");
+      } else {
+        showError("You are not verified to like songs.");
+      }
+      return;
+    }
+
+    // Toggle like state and show appropriate notification
+    setLiked(prev => {
+      const newState = !prev;
+      showSuccess(newState ? "Added to your likes!" : "Removed from your likes");
+      return newState;
+    });
+  } catch (err) {
+    console.error("Error toggling like:", err);
+    showError("You cannot like your own song.");
+  }
+};
+
+
+const handleAddToPlaylist = () => {
+  if (!user) {
+    showError("Please sign in to add songs to playlists");
+    return;
+  }
+  fetchUserPlaylists();
+  setShowPlaylistDropdown(true);
+};
+
+
+const addSongToPlaylist = async () => {
+  try {
+    if (!currentSong || !currentSong.song_id) {
+      showError("No song is currently playing");
+      return;
+    }
     
-     setLiked(prev => !prev);
-   } catch (err) {
-     console.error("Error toggling like:", err);
-     alert("You cannot like your own song.");
-   }
- };
-
-
- const handleAddToPlaylist = () => {
-   if (!user) {
-     alert("Please sign in to add songs to playlists");
-     return;
-   }
-   fetchUserPlaylists();
-   setShowPlaylistDropdown(true);
- };
-
-
- const addSongToPlaylist = async () => {
-   try {
-     if (selectedPlaylistId === "create_new") {
-       if (!newPlaylistName.trim()) {
-         alert("Please enter a playlist name");
-         return;
-       }
-       const createResponse = await axios.post('/api/createPlaylist', {
-         name: newPlaylistName,
-         user_id: user.id
-       });
-       const addToPlaylistResponse = await axios.post('/api/addToPlaylist', {
-         playlist_id: createResponse.data.playlist_id,
-         song_id: currentSong.song_id
-       });
-       const playlistsResponse = await axios.get(`/api/getuserplaylists/${user.id}`);
-       setPlaylists(playlistsResponse.data.playlists || []);
-     } else if (selectedPlaylistId) {
-       const response = await axios.post('/api/addToPlaylist', {
-         playlist_id: selectedPlaylistId,
-         song_id: currentSong.song_id
-       });
-     } else {
-       alert("Please select a playlist");
-       return;
-     }
-     setSelectedPlaylistId("");
-     setNewPlaylistName("");
-     setShowPlaylistDropdown(false);
-     alert("Song added to playlist successfully!");
-   } catch (error) {
-     console.error("Error adding song to playlist:", error.response ? error.response.data : error);
-     alert("Failed to add song to playlist. Please try again.");
-   }
- };
+    if (selectedPlaylistId === "create_new") {
+      if (!newPlaylistName.trim()) {
+        showError("Please enter a playlist name");
+        return;
+      }
+      
+      console.log("Creating new playlist:", newPlaylistName);
+      const createResponse = await axios.post('/api/createPlaylist', {
+        name: newPlaylistName,
+        user_id: user.id
+      });
+      
+      console.log("New playlist created:", createResponse.data);
+      
+      const addToPlaylistResponse = await axios.post('/api/addToPlaylist', {
+        playlist_id: createResponse.data.playlist_id,
+        song_id: currentSong.song_id
+      });
+      
+      const playlistsResponse = await axios.get(`/api/getuserplaylists/${user.id}`);
+      setPlaylists(playlistsResponse.data.playlists || []);
+      showSuccess("Song added to your new playlist!");
+      
+    } else if (selectedPlaylistId) {
+      console.log(`Adding song ${currentSong.song_id} to playlist ${selectedPlaylistId}`);
+      const response = await axios.post('/api/addToPlaylist', {
+        playlist_id: selectedPlaylistId,
+        song_id: currentSong.song_id
+      });
+      
+      console.log("Response from adding to playlist:", response.data);
+      showSuccess("Song added to playlist!");
+      
+    } else {
+      showError("Please select a playlist");
+      return;
+    }
+    
+    setSelectedPlaylistId("");
+    setNewPlaylistName("");
+    setShowPlaylistDropdown(false);
+  } catch (error) {
+    console.error("Error adding song to playlist:", error.response ? error.response.data : error);
+    showError("Failed to add song to playlist. Please try again.");
+  }
+};
 
 
  const formatTime = (time) => {
@@ -649,7 +673,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
          >
            {getVolumeIcon()}
          </button>
-        
+
          <div style={{
            position: 'relative',
            width: '100px',
@@ -666,7 +690,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
              backgroundColor: '#535353',
              borderRadius: '3px'
            }}></div>
-          
+
            {/* Green fill */}
            <div style={{
              position: 'absolute',
@@ -676,7 +700,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
              borderRadius: '3px',
              zIndex: 1
            }}></div>
-          
+
            {/* Range input */}
            <input
              type="range"
@@ -701,7 +725,7 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
                cursor: 'pointer'
              }}
            />
-          
+
            {/* Visible slider thumb */}
            <div style={{
              position: 'absolute',
@@ -792,4 +816,3 @@ export default function AudioPlayerUI({ currentSong, queue, onNext, onPrev }) {
    </div>
  );
 }
-

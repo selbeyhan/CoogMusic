@@ -5,6 +5,7 @@ import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAudio } from '../contexts/AudioContext';
 import { useUser } from '@clerk/clerk-react';
+import { useToast } from '../contexts/ToastContext';
 import './AlbumView.css';
 
 const AlbumView = () => {
@@ -18,6 +19,7 @@ const AlbumView = () => {
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const coverInputRef = useRef(null);
+  const { showSuccess, showError, showInfo } = useToast();
   const { setCurrentSong } = useAudio();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -80,7 +82,7 @@ const AlbumView = () => {
   const handleDeleteAlbum = async () => {
     try {
       await axios.delete(`/api/album/${albumId}`);
-      alert("Album deleted successfully.");
+      showSuccess("Album deleted successfully.");
       if (user?.id) {
         window.location.href = `/profile/${user.id}`;
       } else {
@@ -88,7 +90,7 @@ const AlbumView = () => {
       }
     } catch (err) {
       console.error("Error deleting album:", err);
-      alert("Failed to delete album.");
+      showError("Failed to delete album.");
     }
   };
 
@@ -133,12 +135,12 @@ const AlbumView = () => {
     setIsAddingSong(true);
 
     if (!newSongData.title.trim()) {
-      alert("Song title is required.");
+      showError("Song title is required.");
       setIsAddingSong(false);
       return;
     }
     if (!newSongData.file) {
-      alert("Please select an audio file for the song.");
+      showInfo("Please select an audio file for the song.");
       setIsAddingSong(false);
       return;
     }
@@ -162,12 +164,12 @@ const AlbumView = () => {
       // Re-fetch album data to update the songs list since backend returns only song_ids
       const updatedAlbum = await axios.get(`/api/album/${albumId}`);
       setSongs(updatedAlbum.data.songs || []);
-      alert("Song added to album!");
+      showSuccess("Song added to album!");
       // Reset the new song data and close the modal
       handleCancelAddSong();
     } catch (err) {
       console.error("Error uploading song:", err);
-      alert("Upload failed.");
+      showError("Upload failed.");
     } finally {
       setIsAddingSong(false);
     }

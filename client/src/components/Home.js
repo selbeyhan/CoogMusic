@@ -6,6 +6,7 @@ import { useUser } from '@clerk/clerk-react';
 import AudioPlayerUI from './AudioPlayerUI';
 import { Link } from 'react-router-dom';
 import './Home.css'; // Updated styles
+import { useToast } from '../contexts/ToastContext';
 
 function Home() {
   // State variables
@@ -16,6 +17,7 @@ function Home() {
   const { currentSong, setCurrentSong } = useAudio();
   const { user: currentUser } = useUser();
   const [topLikedSongs, setTopLikedSongs] = useState([]);
+  const { showSuccess, showError, showInfo } = useToast();
 
   // Playlist dropdown states
   const [playlists, setPlaylists] = useState([]);
@@ -99,7 +101,7 @@ function Home() {
     console.log("handleAddToPlaylist called with song ID:", songId);
 
     if (!currentUser) {
-      alert("Please sign in to add songs to playlists");
+      showError("Please sign in to add songs to playlists");
       return;
     }
 
@@ -126,7 +128,7 @@ function Home() {
     try {
       if (selectedPlaylistId === "create_new") {
         if (!newPlaylistName.trim()) {
-          alert("Please enter a playlist name");
+          showError("Please enter a playlist name");
           return;
         }
         console.log("Creating a new playlist named:", newPlaylistName);
@@ -151,7 +153,7 @@ function Home() {
         });
         console.log("Song added to playlist response:", response.data);
       } else {
-        alert("Please select a playlist");
+        showInfo("Please select a playlist");
         return;
       }
       // Reset state and close dropdown
@@ -159,10 +161,10 @@ function Home() {
       setNewPlaylistName("");
       setSelectedSongId(null);
       setShowPlaylistDropdown(false);
-      alert("Song added to playlist successfully!");
+      showSuccess("Song added to playlist successfully!");
     } catch (error) {
       console.error("Error adding song to playlist:", error.response ? error.response.data : error);
-      alert("Failed to add song to playlist. Please try again.");
+      showError("Failed to add song to playlist. Please try again.");
     }
   };
 
@@ -265,7 +267,7 @@ function Home() {
                       e.stopPropagation();
                       console.log("Add to playlist button clicked for:", song.title);
                       if (!currentUser) {
-                        alert("Please sign in to add songs to playlists");
+                        showInfo("Please sign in to add songs to playlists");
                         return;
                       }
                       setSelectedSongId(song.song_id);
