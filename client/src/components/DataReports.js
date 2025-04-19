@@ -1,26 +1,30 @@
 // src/components/DataReports.js
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import the portal stylesheet
 import './AdminPortal.css';
-// import Chart.js and Pie component
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
+const genreColors = {
+  'Hip-Hop': '#FF6384',
+  Pop:        '#36A2EB',
+  Rock:       '#FFCE56',
+  Electronic: '#4BC0C0',
+  Rap:        '#9966FF',
+  Other:      '#FF9F40'
+};
+
 export default function DataReports() {
-  // report data state
-  const [genreCounts, setGenreCounts] = useState({});
-  const [songs, setSongs] = useState([]);
-  // filter state
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [currentReport, setCurrentReport] = useState(null);
+  const [genreCounts, setGenreCounts]     = useState({});
+  const [songs, setSongs]                 = useState([]);
+  const [startDate, setStartDate]         = useState('');
+  const [endDate, setEndDate]             = useState('');
+  const [loading, setLoading]             = useState(false);
+  const navigate                          = useNavigate();
 
-  const navigate = useNavigate();
-
-  // fetch report from backend route /admin/reports/genre
   const fetchReport = async () => {
     setLoading(true);
     try {
@@ -28,103 +32,117 @@ export default function DataReports() {
         `/admin/reports/genre?start=${startDate}&end=${endDate}`
       );
       const data = await res.json();
-      // expect { genreCounts: {...}, songs: [...] }
       setGenreCounts(data.genreCounts);
       setSongs(data.songs);
     } catch (err) {
-      console.error('❌ Error loading report:', err);
+      console.error('Error loading report:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  // initial load
+  // when switching to genre report, clear old data
   useEffect(() => {
-    fetchReport();
-  }, []);
+    if (currentReport === 'genre') {
+      setGenreCounts({});
+      setSongs([]);
+    }
+  }, [currentReport]);
 
-  // prepare data for Pie chart
-  const chartData = {
-    labels: Object.keys(genreCounts),
-    datasets: [
-      {
-        data: Object.values(genreCounts),
-      },
-    ],
-  };
+  const labels = Object.keys(genreCounts);
+  const values = Object.values(genreCounts);
+  const backgroundColor = labels.map(l => genreColors[l] || '#ccc');
+  const chartData = { labels, datasets: [{ data: values, backgroundColor }] };
 
   return (
-    // use the same admin-portal container
     <div className="admin-portal">
       <h1>Admin Portal: Data Reports</h1>
-
-      {/* use the same button-row and primary button styling */}
       <div className="button-row">
         <button className="primary" onClick={() => navigate('/adminportal')}>
-          ← Back to Users
+          Back to Users
         </button>
       </div>
 
-      {/* report box */}
       <div className="report-box">
-        <h2>Genre of Songs Report</h2>
-
-        {/* filters for date range */}
-        <div className="filters">
-          <label>
-            Start Date:
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </label>
-          <label>
-            End Date:
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </label>
-          <button className="primary" onClick={fetchReport}>
-            Fetch Report
+        <div className="report-buttons">
+          <button
+            className={currentReport === 'genre' ? 'primary' : ''}
+            onClick={() => setCurrentReport('genre')}
+          >
+            Genre of Songs
+          </button>
+          <button
+            className={currentReport === 'report2' ? 'primary' : ''}
+            onClick={() => setCurrentReport('report2')}
+          >
+            Report 2
+          </button>
+          <button
+            className={currentReport === 'report3' ? 'primary' : ''}
+            onClick={() => setCurrentReport('report3')}
+          >
+            Report 3
           </button>
         </div>
 
-        {loading ? (
-          <p>Loading reports…</p>
-        ) : (
+        {currentReport === 'genre' && (
           <>
-            {/* Pie chart */}
-            <div className="chart">
-              <Pie data={chartData} />
+            <h2>Genre of Songs Report</h2>
+            <div className="filters">
+              <label>
+                Start Date:
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                />
+              </label>
+              <label>
+                End Date:
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                />
+              </label>
+              <button className="primary" onClick={fetchReport}>
+                Fetch Report
+              </button>
             </div>
 
-            {/* table of song details */}
-            <div className="table">
-              <h3>Song Details</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Artist</th>
-                    <th>Genre</th>
-                    <th>Upload Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {songs.map((song) => (
-                    <tr key={song.song_id}>
-                      <td>{song.title}</td>
-                      <td>{song.artist_name}</td>
-                      <td>{song.genre}</td>
-                      <td>{new Date(song.upload_date).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {loading ? (
+              <p>Loading reports…</p>
+            ) : (
+              <>
+                <div className="chart">
+                  <Pie data={chartData} />
+                </div>
+                <div className="table">
+                  <h3>Song Details</h3>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Artist</th>
+                        <th>Genre</th>
+                        <th>Upload Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {songs.map(song => (
+                        <tr key={song.song_id}>
+                          <td>{song.title}</td>
+                          <td>{song.artist_name}</td>
+                          <td>{song.genre}</td>
+                          <td>{new Date(song.upload_date)
+                            .toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
