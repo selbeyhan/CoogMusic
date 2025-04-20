@@ -39,7 +39,7 @@ export default function DataReports() {
   const [userSortBy, setUserSortBy]       = useState('views');
   const [userSortOrder, setUserSortOrder] = useState('desc');
 
-  // Toggle a genre checkbox
+  // toggle a genre checkbox
   function toggleGenre(g) {
     setSelectedGenres(prev =>
       prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]
@@ -199,7 +199,8 @@ export default function DataReports() {
               ? <p>Loading reports…</p>
               : songs.length === 0
                 ? <p>No songs fit this criteria.</p>
-                : <>
+                : (
+                  <>
                     <div className="chart"><Pie data={chartData}/></div>
                     <div className="table">
                       <h3>Song Details</h3>
@@ -227,6 +228,7 @@ export default function DataReports() {
                       </table>
                     </div>
                   </>
+                )
             }
           </>
         )}

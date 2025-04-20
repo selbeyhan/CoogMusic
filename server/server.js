@@ -2378,7 +2378,7 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/genre")) {
 
 /* report 2*/
 
-// helper for report number 2 (simplified)
+// helper for report number 2
 async function getUsersReport(minViews, maxViews, limit, sortBy, sortOrder) {
   let connection;
   try {
@@ -2419,9 +2419,7 @@ async function getUsersReport(minViews, maxViews, limit, sortBy, sortOrder) {
 
     // debug log
     if (rows.length > 0) {
-      console.log(
-        `🚀 Top user is "${rows[0].name}" with ${rows[0].total_views} views`
-      );
+      console.log(`🚀 Top user is "${rows[0].name}" with ${rows[0].total_views} views`);
     } else {
       console.log("🚀 No users returned by report");
     }
@@ -2443,9 +2441,9 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/users")) {
 
   try {
     const users = await getUsersReport(minViews, maxViews, limit, sortBy, sortOrder);
-    // we return the array directly — front end should receive an array of objects
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify(users));
+    // wrap in an object for consistency with other report endpoints
+    res.end(JSON.stringify({ users }));
   } catch (err) {
     console.error("❌ Error generating users report:", err);
     res.writeHead(500, { "Content-Type": "application/json" });
