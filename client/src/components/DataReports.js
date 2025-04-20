@@ -17,25 +17,49 @@ const genreColors = {
 };
 
 export default function DataReports() {
-  const [currentReport, setCurrentReport]      = useState(null);
-  const [genreCounts, setGenreCounts]          = useState({});
-  const [songs, setSongs]                      = useState([]);
-  const [startDate, setStartDate]              = useState('');
-  const [endDate, setEndDate]                  = useState('');
-  const [selectedGenres, setSelectedGenres]    = useState([]);
-  const [minViews, setMinViews]                = useState('');
-  const [maxViews, setMaxViews]                = useState('');
-  const [loading, setLoading]                  = useState(false);
-  const navigate                               = useNavigate();
+  const navigate = useNavigate();
+  const [currentReport, setCurrentReport] = useState(null);
 
-  function toggleGenre(genre) {
+  // report 1 state (unchanged)
+  const [genreCounts, setGenreCounts]       = useState({});
+  const [songs, setSongs]                   = useState([]);
+  const [startDate, setStartDate]           = useState('');
+  const [endDate, setEndDate]               = useState('');
+  const [selectedGenres, setSelectedGenres] = useState([]);
+  const [minViews, setMinViews]             = useState('');
+  const [maxViews, setMaxViews]             = useState('');
+  const [loading, setLoading]               = useState(false);
+
+  // report 2 state
+  const [usersData, setUsersData]         = useState([]);
+  const [usersLoading, setUsersLoading]   = useState(false);
+  const [minUserViews, setMinUserViews]   = useState('');
+  const [maxUserViews, setMaxUserViews]   = useState('');
+  const [userLimit, setUserLimit]         = useState('');
+  const [userSortBy, setUserSortBy]       = useState('views');
+  const [userSortOrder, setUserSortOrder] = useState('desc');
+
+  // Toggle a genre checkbox
+  function toggleGenre(g) {
     setSelectedGenres(prev =>
-      prev.includes(genre)
-        ? prev.filter(g => g !== genre)
-        : [...prev, genre]
+      prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]
     );
   }
 
+  // normalize raw users from backend into our shape
+  function normalizeUsers(raw = []) {
+    return raw.map(u => ({
+      user_id:    u.user_id,
+      name:       u.name,
+      totalViews: u.total_views  ?? 0,
+      totalLikes: u.total_likes  ?? 0,
+      topGenres:  u.top_genres
+                     ? u.top_genres.split(',')
+                     : []
+    }));
+  }
+
+  // fetch report 1 (genre)
   const fetchReport = async () => {
     setLoading(true);
     try {
@@ -48,39 +72,58 @@ export default function DataReports() {
 
       const res  = await fetch(`/admin/reports/genre?${params}`);
       const data = await res.json();
-      setGenreCounts(data.genreCounts);
-      setSongs(data.songs);
-    } catch (err) {
-      console.error('Error loading report:', err);
+      setGenreCounts(data.genreCounts || {});
+      setSongs(data.songs || []);
+    } catch {
+      setGenreCounts({});
+      setSongs([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGenreClick = () => {
-    setCurrentReport('genre');
-    fetchReport();
+  // fetch report 2 (users)
+  const fetchUsersReport = async () => {
+    setUsersLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('sortBy',    userSortBy);
+      params.append('sortOrder', userSortOrder);
+      if (minUserViews) params.append('minViews', minUserViews);
+      if (maxUserViews) params.append('maxViews', maxUserViews);
+      if (userLimit)    params.append('limit',    userLimit);
+
+      const res  = await fetch(`/admin/reports/users?${params}`);
+      const json = await res.json();
+      setUsersData(normalizeUsers(json.users || []));
+    } catch {
+      setUsersData([]);
+    } finally {
+      setUsersLoading(false);
+    }
   };
 
-  const clearFilters = async () => {
+  // clear filters for report 1
+  const clearGenreFilters = () => {
     setStartDate('');
     setEndDate('');
     setSelectedGenres([]);
     setMinViews('');
     setMaxViews('');
-    setLoading(true);
-    try {
-      const res  = await fetch('/admin/reports/genre');
-      const data = await res.json();
-      setGenreCounts(data.genreCounts);
-      setSongs(data.songs);
-    } catch (err) {
-      console.error('Error clearing filters:', err);
-    } finally {
-      setLoading(false);
-    }
+    fetchReport();
   };
 
+  // clear filters for report 2
+  const clearUsersFilters = () => {
+    setMinUserViews('');
+    setMaxUserViews('');
+    setUserLimit('');
+    setUserSortBy('views');
+    setUserSortOrder('desc');
+    fetchUsersReport();
+  };
+
+  // prepare chart data for report 1
   const labels          = Object.keys(genreCounts);
   const values          = Object.values(genreCounts);
   const backgroundColor = labels.map(l => genreColors[l] || '#ccc');
@@ -91,52 +134,43 @@ export default function DataReports() {
       <h1>Admin Portal: Data Reports</h1>
       <div className="button-row">
         <button className="primary" onClick={() => navigate('/adminportal')}>
-          Back to Users
+          ← Back to Users
         </button>
       </div>
+
       <div className="report-box">
         <div className="report-buttons">
           <button
             className={currentReport === 'genre' ? 'primary' : ''}
-            onClick={handleGenreClick}
+            onClick={() => { setCurrentReport('genre'); fetchReport(); }}
           >
             Genre of Songs
           </button>
           <button
-            className={currentReport === 'report2' ? 'primary' : ''}
-            onClick={() => setCurrentReport('report2')}
+            className={currentReport === 'users' ? 'primary' : ''}
+            onClick={() => { setCurrentReport('users'); fetchUsersReport(); }}
           >
-            Report 2
+            Users Report
           </button>
           <button
             className={currentReport === 'report3' ? 'primary' : ''}
             onClick={() => setCurrentReport('report3')}
           >
-            Report 3
+            Report 3
           </button>
         </div>
 
+        {/* report 1 */}
         {currentReport === 'genre' && (
           <>
             <h2>Genre of Songs Report</h2>
             <div className="filters">
-              <label>
-                Start Date:
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={e => setStartDate(e.target.value)}
-                />
+              <label>Start Date:
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}/>
               </label>
-              <label>
-                End Date:
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={e => setEndDate(e.target.value)}
-                />
+              <label>End Date:
+                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}/>
               </label>
-
               <fieldset className="genre-checkboxes">
                 <legend>Genres:</legend>
                 {Object.keys(genreColors).map(g => (
@@ -145,77 +179,140 @@ export default function DataReports() {
                       type="checkbox"
                       checked={selectedGenres.includes(g)}
                       onChange={() => toggleGenre(g)}
-                    />{' '}
-                    {g}
+                    /> {g}
                   </label>
                 ))}
               </fieldset>
+              <label>Min Views:
+                <input type="number" value={minViews}
+                       onChange={e => setMinViews(e.target.value)} placeholder="0"/>
+              </label>
+              <label>Max Views:
+                <input type="number" value={maxViews}
+                       onChange={e => setMaxViews(e.target.value)} placeholder="∞"/>
+              </label>
+              <button className="primary" onClick={fetchReport}>Fetch Report</button>
+              <button className="secondary" onClick={clearGenreFilters}>Clear Filters</button>
+            </div>
 
-              <label>
-                Min Views:
+            {loading
+              ? <p>Loading reports…</p>
+              : songs.length === 0
+                ? <p>No songs fit this criteria.</p>
+                : <>
+                    <div className="chart"><Pie data={chartData}/></div>
+                    <div className="table">
+                      <h3>Song Details</h3>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Title</th>
+                            <th>Artist</th>
+                            <th>Genre</th>
+                            <th>Views</th>
+                            <th>Upload Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {songs.map(song => (
+                            <tr key={song.song_id}>
+                              <td>{song.title}</td>
+                              <td>{song.artist_name}</td>
+                              <td>{song.genre}</td>
+                              <td>{song.views}</td>
+                              <td>{new Date(song.upload_date).toLocaleDateString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+            }
+          </>
+        )}
+
+        {/* report 2 */}
+        {currentReport === 'users' && (
+          <>
+            <h2>Users Report</h2>
+            <div className="filters">
+              <label>Sort by:
+                <select value={userSortBy} onChange={e => setUserSortBy(e.target.value)}>
+                  <option value="views">Total Views</option>
+                  <option value="likes">Total Likes</option>
+                </select>
+              </label>
+              <label>Order:
+                <select value={userSortOrder} onChange={e => setUserSortOrder(e.target.value)}>
+                  <option value="desc">Most to Least</option>
+                  <option value="asc">Least to Most</option>
+                </select>
+              </label>
+              <label>Min Views:
                 <input
                   type="number"
-                  value={minViews}
-                  onChange={e => setMinViews(e.target.value)}
+                  value={minUserViews}
+                  onChange={e => setMinUserViews(e.target.value)}
                   placeholder="0"
                 />
               </label>
-              <label>
-                Max Views:
+              <label>Max Views:
                 <input
                   type="number"
-                  value={maxViews}
-                  onChange={e => setMaxViews(e.target.value)}
+                  value={maxUserViews}
+                  onChange={e => setMaxUserViews(e.target.value)}
                   placeholder="∞"
                 />
               </label>
-
-              <button className="primary" onClick={fetchReport}>
-                Fetch Report
-              </button>
-              <button className="secondary" onClick={clearFilters}>
-                Clear Filters
-              </button>
+              <label>Limit:
+                <input
+                  type="number"
+                  value={userLimit}
+                  onChange={e => setUserLimit(e.target.value)}
+                  placeholder="10"
+                />
+              </label>
+              <button className="primary" onClick={fetchUsersReport}>Fetch Report</button>
+              <button className="secondary" onClick={clearUsersFilters}>Clear Filters</button>
             </div>
 
-            {loading ? (
-              <p>Loading reports…</p>
-            ) : songs.length === 0 ? (
-              <p>No songs fit this criteria.</p>
-            ) : (
-              <>
-                <div className="chart">
-                  <Pie data={chartData} />
-                </div>
-                <div className="table">
-                  <h3>Song Details</h3>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Title</th>
-                        <th>Artist</th>
-                        <th>Genre</th>
-                        <th>Views</th>
-                        <th>Upload Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {songs.map(song => (
-                        <tr key={song.song_id}>
-                          <td>{song.title}</td>
-                          <td>{song.artist_name}</td>
-                          <td>{song.genre}</td>
-                          <td>{song.views}</td>
-                          <td>{new Date(song.upload_date).toLocaleDateString()}</td>
+            {usersLoading
+              ? <p>Loading users…</p>
+              : usersData.length === 0
+                ? <p>No users fit this criteria.</p>
+                : (
+                  <div className="table">
+                    <h3>User Details</h3>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>{userSortBy === 'likes' ? 'Total Likes' : 'Total Views'}</th>
+                          <th>Top 3 Genres</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
+                      </thead>
+                      <tbody>
+                        {usersData.map(u => (
+                          <tr key={u.user_id}>
+                            <td>{u.name}</td>
+                            <td>{userSortBy === 'likes' ? u.totalLikes : u.totalViews}</td>
+                            <td>
+                              {u.topGenres.length > 0
+                                ? u.topGenres.join(', ')
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+            }
           </>
         )}
+
+        {/* report 3 */}
+        {currentReport === 'report3' && <p>Report 3 coming soon…</p>}
       </div>
     </div>
   );
