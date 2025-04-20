@@ -460,6 +460,7 @@ export default function DataReports() {
           </>
         )}
 
+
         {/* report 3 */}
         {currentReport === 'report3' && (
           <>
@@ -522,7 +523,12 @@ export default function DataReports() {
                       />
                     </div>
                     <div className="table">
-                      <h3>daily engagement details</h3>
+                      <h3>
+                        Daily Engagement
+                        {engagementStart && engagementEnd
+                          ? ` from ${engagementStart} to ${engagementEnd}`
+                          : ''}
+                      </h3>
                       <table>
                         <thead>
                           <tr>
@@ -553,6 +559,7 @@ export default function DataReports() {
             }
           </>
         )}
+
 
 
       </div>
