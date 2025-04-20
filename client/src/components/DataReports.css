@@ -1,26 +1,286 @@
-.admin-portal .button-row {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 1rem;
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); 
+  gap: 1rem;
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.stat-box {
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  width: 100%;
+  min-width: 150px;
+}
+
+.stat-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0.5rem 0 0 0;
+  color: #333;
+}
+
+.user-stats-summary {
+  margin-top: 2rem;
+  border-top: 1px solid #eee;
+  padding-top: 1rem;
+}
+
+.user-stats-summary h4 {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  color: #444;
+}
+
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 5px;
+}
+
+.filters label {
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+}
+
+.filters input, 
+.filters select {
+  margin-top: 5px;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.genre-selection {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.genre-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.genre-checkbox {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid #eee;
+  cursor: pointer;
+}
+
+.genre-checkbox input {
+  margin-right: 5px;
+  margin-top: 0;
+}
+
+.filters button {
+  margin-top: 10px;
+  padding: 8px 16px;
+}
+
+@media (min-width: 768px) {
+  .filters {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
   }
   
-  .admin-portal button {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+  .genre-selection {
+    width: 100%;
+    order: -1; 
+  }
+}
+
+.chart {
+  max-width: 800px;
+  margin: 0 auto 2rem auto;
+  padding: 1rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.chart h3 {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+
+.table th {
+  background-color: #f0f0f0;
+  padding: 12px 15px;
+  text-align: center;
+  font-weight: bold;
+  color: #333;
+  border-bottom: 2px solid #ddd;
+}
+
+.table td {
+  padding: 10px 15px;
+  border-bottom: 1px solid #eee;
+  text-align: center;
+}
+
+.table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.table tr:hover {
+  background-color: #f0f0f0;
+}
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr; 
+  }
+}
+
+@media (max-width: 600px) {
+  .table {
+    overflow-x: auto;
+    display: block;
+  }
+}
+
+/* Add this to the bottom of your existing CSS file */
+
+.visualizations-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.chart-container {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  padding: 1.5rem;
+  width: 100%;
+}
+
+.chart-container h3 {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #444;
+  font-size: 1.2rem;
+}
+
+.users-distribution-legend {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* Style the tabs for switching between table and visualizations */
+.view-tabs {
+  display: flex;
+  margin-bottom: 1rem;
+}
+
+.view-tab {
+  padding: 0.5rem 1rem;
+  background: #f5f5f5;
+  cursor: pointer;
+  border: 1px solid #ddd;
+}
+
+.view-tab:first-child {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.view-tab:last-child {
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.view-tab.active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+/* Responsive adjustments for the visualizations */
+@media (min-width: 900px) {
+  .visualizations-container {
+    flex-direction: row;
+    flex-wrap: wrap;
   }
   
-  /* match your existing “Show Unverified” styling */
-  .admin-portal button.primary,
-  .admin-portal button:nth-child(1) {
-    background-color: #f14e4e;
-    color: #fff;
+  .chart-container {
+    width: calc(50% - 1rem);
   }
-  
-  /* secondary buttons (search toggles, delete, etc.) */
-  .admin-portal button:not(.primary) {
-    background-color: #e0e0e0;
-    color: #333;
-  }
-  
+}
+
+/* Add these styles to the bottom of your existing CSS file */
+
+.chart-container.full-width {
+  width: 100% !important;
+  margin-top: 1.5rem;
+}
+
+.visualizations-container .users-table {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 0;
+}
+
+.visualizations-container .users-table table {
+  margin-top: 0;
+}
