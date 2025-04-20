@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom';
 import './AdminPortal.css';
 import './DataReports.css';
@@ -346,10 +346,6 @@ export default function DataReports() {
 
   // fetch report 3 (engagement)
   const fetchEngagementReport = async () => {
-    // remember this as the applied range
-    setAppliedEngagementStart(engagementStart);
-    setAppliedEngagementEnd(engagementEnd);
-  
     setEngagementLoading(true);
     try {
       const params = new URLSearchParams();
@@ -358,7 +354,18 @@ export default function DataReports() {
   
       const res  = await fetch(`/admin/reports/engagement?${params}`);
       const json = await res.json();
-      setEngagementData(normalizeEngagement(json.data || []));
+  
+      // normalize and sort by date
+      const normalized = normalizeEngagement(json.data || [])
+        .sort((a, b) => new Date(a.day) - new Date(b.day));
+      setEngagementData(normalized);
+  
+      // choose the “applied” range:
+      // if the user typed one, use that -- else  fall back to full data bounds
+      const first = normalized[0]?.day;
+      const last  = normalized[normalized.length - 1]?.day;
+      setAppliedEngagementStart( engagementStart || first );
+      setAppliedEngagementEnd(   engagementEnd   || last  );
     } catch {
       setEngagementData([]);
     } finally {
@@ -367,28 +374,20 @@ export default function DataReports() {
   };
   
 
+
   // clear filters for report 3
   const clearEngagementFilters = async () => {
-    // reset input fields
+    // wipe the inputs
     setEngagementStart('');
     setEngagementEnd('');
-    // reset the “applied” header dates
+    // also clear the applied dates so fetchEngagementReport will re‑stamp
     setAppliedEngagementStart('');
     setAppliedEngagementEnd('');
 
-    // re‐fetch unfiltered data
-    setEngagementLoading(true);
-    try {
-      const res = await fetch('/admin/reports/engagement');
-      const json = await res.json();
-      // normalize and set
-      setEngagementData(normalizeEngagement(json.data || []));
-    } catch {
-      setEngagementData([]);
-    } finally {
-      setEngagementLoading(false);
-    }
+    // then just re‑use your fetch logic
+    fetchEngagementReport();
   };
+
 
 
   // prepare chart data for report 3
@@ -402,7 +401,39 @@ export default function DataReports() {
     }]
   };
 
-
+  const weeklyAverages = useMemo(() => {
+    if (engagementData.length === 0) return null;
+  
+    // stamp these in as soon as you have data
+    const start = new Date(appliedEngagementStart);
+    const end   = new Date(appliedEngagementEnd);
+  
+    const msPerDay  = 1000 * 60 * 60 * 24;
+    const totalDays = Math.round((end - start) / msPerDay) + 1;
+    const weeks     = Math.max(1, totalDays / 7);
+  
+    // force numeric addition
+    const sums = engagementData.reduce((acc, d) => ({
+      views:     acc.views     + Number(d.views),
+      uploads:   acc.uploads   + Number(d.uploads),
+      playlists: acc.playlists + Number(d.playlists),
+      albums:    acc.albums    + Number(d.albums),
+      score:     acc.score     + Number(d.engagement_score),
+    }), { views: 0, uploads: 0, playlists: 0, albums: 0, score: 0 });
+  
+    console.log({ totalDays, weeks, sums });  // <— inspect these in your browser console
+  
+    const avg = v => parseFloat((v / weeks).toFixed(1));
+  
+    return {
+      avgViews:     avg(sums.views),
+      avgUploads:   avg(sums.uploads),
+      avgPlaylists: avg(sums.playlists),
+      avgAlbums:    avg(sums.albums),
+      avgScore:     avg(sums.score),
+    };
+  }, [engagementData, appliedEngagementStart, appliedEngagementEnd]);
+  
   /* report 3 */ 
 
 
@@ -943,102 +974,132 @@ export default function DataReports() {
 
         {/* report 3 */}
         {currentReport === 'report3' && (
-            <>
-              <h2>
-                Engagement Report
-                {appliedEngagementStart && appliedEngagementEnd
-                  ? ` for ${appliedEngagementStart} to ${appliedEngagementEnd}`
-                  : ""}
-              </h2>
+          <>
+            <h2>
+              Engagement Report
+              {appliedEngagementStart && appliedEngagementEnd
+                ? ` for ${appliedEngagementStart} to ${appliedEngagementEnd}`
+                : ""}
+            </h2>
 
-              <div className="filters">
-                <label>
-                  start date:
-                  <input
-                    type="date"
-                    value={engagementStart}
-                    onChange={e => setEngagementStart(e.target.value)}
-                  />
-                </label>
-                <label>
-                  end date:
-                  <input
-                    type="date"
-                    value={engagementEnd}
-                    onChange={e => setEngagementEnd(e.target.value)}
-                  />
-                </label>
-                <button className="primary" onClick={fetchEngagementReport}>
-                  fetch engagement
-                </button>
-                <button className="secondary" onClick={clearEngagementFilters}>
-                  clear filters
-                </button>
-              </div>
+            <div className="filters">
+              <label>
+                start date:
+                <input
+                  type="date"
+                  value={engagementStart}
+                  onChange={e => setEngagementStart(e.target.value)}
+                />
+              </label>
+              <label>
+                end date:
+                <input
+                  type="date"
+                  value={engagementEnd}
+                  onChange={e => setEngagementEnd(e.target.value)}
+                />
+              </label>
+              <button className="primary" onClick={fetchEngagementReport}>
+                fetch engagement
+              </button>
+              <button className="secondary" onClick={clearEngagementFilters}>
+                clear filters
+              </button>
+            </div>
 
-              {engagementLoading
-                ? <p>loading engagement data…</p>
-                : engagementData.length === 0
-                  ? <p>no data for this range.</p>
-                  : (
-                    <>
-                      <div className="chart">
-                        <Line
-                          data={lineData}
-                          options={{
-                            plugins: {
-                              title: {
-                                display: true,
-                                text: appliedEngagementStart && appliedEngagementEnd
-                                  ? `Engagement from ${appliedEngagementStart} to ${appliedEngagementEnd}`
-                                  : 'Engagement over time'
-                              },
-                              tooltip: { mode: 'index', intersect: false }
-                            },
-                            scales: {
-                              x: { title: { display: true, text: 'date' } },
-                              y: { title: { display: true, text: 'score' } }
-                            }
-                          }}
-                        />
+            {engagementLoading ? (
+              <p>loading engagement data…</p>
+            ) : engagementData.length === 0 ? (
+              <p>no data for this range.</p>
+            ) : (
+              <>
+                <div className="chart">
+                  <Line
+                    data={lineData}
+                    options={{
+                      plugins: {
+                        title: {
+                          display: true,
+                          text: appliedEngagementStart && appliedEngagementEnd
+                            ? `Engagement from ${appliedEngagementStart} to ${appliedEngagementEnd}`
+                            : 'Engagement over time'
+                        },
+                        tooltip: { mode: 'index', intersect: false }
+                      },
+                      scales: {
+                        x: { title: { display: true, text: 'date' } },
+                        y: { title: { display: true, text: 'score' } }
+                      }
+                    }}
+                  />
+                </div>
+
+                <div className="table">
+                  <h3>
+                    Daily Engagement
+                    {appliedEngagementStart && appliedEngagementEnd
+                      ? ` from ${appliedEngagementStart} to ${appliedEngagementEnd}`
+                      : ''}
+                  </h3>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Song Views</th>
+                        <th>Song Uploads</th>
+                        <th>Playlist Uploads</th>
+                        <th>Album Creations</th>
+                        <th>Total Engagement Score</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {engagementData.map(d => (
+                        <tr key={d.day}>
+                          <td>{d.day}</td>
+                          <td>{d.views}</td>
+                          <td>{d.uploads}</td>
+                          <td>{d.playlists}</td>
+                          <td>{d.albums}</td>
+                          <td>{d.engagement_score}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                </div>
+
+                {/* now render the memo’d stats unconditionally once we have data */}
+                {weeklyAverages && (
+                  <div className="user-stats-summary">
+                    <h4>Weekly Averages</h4>
+                    <div className="stats-grid">
+                      <div className="stat-box">
+                        <p className="stat-label">Avg Song Views</p>
+                        <p className="stat-value">{weeklyAverages.avgViews}</p>
                       </div>
-                      <div className="table">
-                        <h3>
-                          Daily Engagement
-                          {appliedEngagementStart && appliedEngagementEnd
-                            ? ` from ${appliedEngagementStart} to ${appliedEngagementEnd}`
-                            : ''}
-                        </h3>
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Date</th>
-                              <th>Song Views</th>
-                              <th>Song Uploads</th>
-                              <th>Playlist Uploads</th>
-                              <th>Album Creations</th>
-                              <th>Total Engagement Score</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {engagementData.map(d => (
-                              <tr key={d.day}>
-                                <td>{d.day}</td>
-                                <td>{d.views}</td>
-                                <td>{d.uploads}</td>
-                                <td>{d.playlists}</td>
-                                <td>{d.albums}</td>
-                                <td>{d.engagement_score}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      <div className="stat-box">
+                        <p className="stat-label">Avg Song Uploads</p>
+                        <p className="stat-value">{weeklyAverages.avgUploads}</p>
                       </div>
-                    </>
-                  )
-              }
-            </>
-          )}
+                      <div className="stat-box">
+                        <p className="stat-label">Avg Playlist Uploads</p>
+                        <p className="stat-value">{weeklyAverages.avgPlaylists}</p>
+                      </div>
+                      <div className="stat-box">
+                        <p className="stat-label">Avg Album Creations</p>
+                        <p className="stat-value">{weeklyAverages.avgAlbums}</p>
+                      </div>
+                      <div className="stat-box">
+                        <p className="stat-label">Avg Total Score</p>
+                        <p className="stat-value">{weeklyAverages.avgScore}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
 
       </div>
     </div>
