@@ -5,10 +5,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AdminPortal.css';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-import { Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title } from 'chart.js';
+import { Pie, Line } from 'react-chartjs-2';
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title
+);
 
 const genreColors = {
   'Hip-Hop': '#FF6384',
@@ -43,6 +52,13 @@ export default function DataReports() {
   const [userLimit, setUserLimit]         = useState('');
   const [userSortBy, setUserSortBy]       = useState('views');
   const [userSortOrder, setUserSortOrder] = useState('desc');
+
+
+  //report  state
+  const [engagementData, setEngagementData]       = useState([]);
+  const [engagementLoading, setEngagementLoading] = useState(false);
+  const [engagementStart, setEngagementStart]     = useState('');
+  const [engagementEnd, setEngagementEnd]         = useState('');
 
   // toggle a genre checkbox
   function toggleGenre(g) {
@@ -147,6 +163,58 @@ export default function DataReports() {
   const backgroundColor = labels.map(l => genreColors[l] || '#ccc');
   const chartData       = { labels, datasets: [{ data: values, backgroundColor }] };
 
+
+
+
+
+  // normalize raw engagement rows into our shape
+  function normalizeEngagement(raw = []) {
+    return raw.map(r => ({
+      day:              r.day,
+      views:            r.views,
+      uploads:          r.uploads,
+      playlists:        r.playlists,
+      albums:           r.albums,
+      engagement_score: r.engagement_score
+    }));
+  }
+
+  // fetch report 3 (engagement)
+  const fetchEngagementReport = async () => {
+    setEngagementLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (engagementStart) params.append('start', engagementStart);
+      if (engagementEnd)   params.append('end',   engagementEnd);
+
+      const res  = await fetch(`/admin/reports/engagement?${params}`);
+      const json = await res.json();
+      setEngagementData(normalizeEngagement(json.data || []));
+    } catch {
+      setEngagementData([]);
+    } finally {
+      setEngagementLoading(false);
+    }
+  };
+
+  // clear filters for report 3
+  const clearEngagementFilters = () => {
+    setEngagementStart('');
+    setEngagementEnd('');
+    fetchEngagementReport();
+  };
+
+  // prepare chart data for report 3
+  const lineData = {
+    labels: engagementData.map(d => d.day),
+    datasets: [{
+      label: 'engagement score',
+      data: engagementData.map(d => d.engagement_score),
+      fill: false,
+      tension: 0.1
+    }]
+  };
+
   return (
     <div className="admin-portal">
       <h1>Admin Portal: Data Reports</h1>
@@ -171,11 +239,12 @@ export default function DataReports() {
             Users Report
           </button>
           <button
-            className={currentReport === 'report3' ? 'primary' : ''}
-            onClick={() => setCurrentReport('report3')}
-          >
-            Report 3
-          </button>
+          className={currentReport === 'report3' ? 'primary' : ''}
+          onClick={() => { setCurrentReport('report3'); fetchEngagementReport(); }}
+        >
+          Engagement Report
+        </button>
+
         </div>
 
         {/* report 1 */}
@@ -392,7 +461,88 @@ export default function DataReports() {
         )}
 
         {/* report 3 */}
-        {currentReport === 'report3' && <p>report 3 coming soon…</p>}
+        {currentReport === 'report3' && (
+        <>
+          <h2>engagement report</h2>
+          <div className="filters">
+            <label>
+              start date:
+              <input
+                type="date"
+                value={engagementStart}
+                onChange={e => setEngagementStart(e.target.value)}
+              />
+            </label>
+            <label>
+              end date:
+              <input
+                type="date"
+                value={engagementEnd}
+                onChange={e => setEngagementEnd(e.target.value)}
+              />
+            </label>
+            <button className="primary" onClick={fetchEngagementReport}>
+              fetch engagement
+            </button>
+            <button className="secondary" onClick={clearEngagementFilters}>
+              clear filters
+            </button>
+          </div>
+
+          {engagementLoading
+            ? <p>loading engagement data…</p>
+            : engagementData.length === 0
+              ? <p>no data for this range.</p>
+              : (
+                <>
+                  <div className="chart">
+                    <Line
+                      data={lineData}
+                      options={{
+                        plugins: {
+                          title: { display: true, text: 'engagement over time' },
+                          tooltip: { mode: 'index', intersect: false }
+                        },
+                        scales: {
+                          x: { title: { display: true, text: 'date' } },
+                          y: { title: { display: true, text: 'score' } }
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="table">
+                    <h3>daily engagement details</h3>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>date</th>
+                          <th>views</th>
+                          <th>uploads</th>
+                          <th>playlists</th>
+                          <th>albums</th>
+                          <th>score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {engagementData.map(d => (
+                          <tr key={d.day}>
+                            <td>{d.day}</td>
+                            <td>{d.views}</td>
+                            <td>{d.uploads}</td>
+                            <td>{d.playlists}</td>
+                            <td>{d.albums}</td>
+                            <td>{d.engagement_score}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )
+          }
+        </>
+      )}
+
       </div>
     </div>
   );
