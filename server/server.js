@@ -2283,18 +2283,43 @@ if (req.url === "/api/top-liked-songs" && req.method === "GET") {
 /*        report 1      */
 
 // helper for report number 1
-async function getGenreReport(startDate, endDate) {
+// helper for report number 1
+async function getGenreReport(startDate, endDate, genre, minViews, maxViews) {
   let connection;
   try {
     connection = await mysql.createConnection(dbConfig);
 
+    // build dynamic WHERE clauses
+    const clauses = [
+      's.upload_date BETWEEN ? AND ?'
+    ];
+    const params = [
+      startDate + ' 00:00:00',
+      endDate   + ' 23:59:59'
+    ];
+
+    if (genre) {
+      clauses.push('s.genre = ?');
+      params.push(genre);
+    }
+    if (minViews) {
+      clauses.push('s.views >= ?');
+      params.push(minViews);
+    }
+    if (maxViews) {
+      clauses.push('s.views <= ?');
+      params.push(maxViews);
+    }
+
+    const where = 'WHERE ' + clauses.join(' AND ');
+
     // a) count by genre
     const [countRows] = await connection.execute(
-      `SELECT genre, COUNT(*) AS count
-       FROM songs
-       WHERE upload_date BETWEEN ? AND ?
-       GROUP BY genre`,
-      [startDate + ' 00:00:00', endDate + ' 23:59:59']
+      `SELECT s.genre, COUNT(*) AS count
+       FROM songs s
+       ${where}
+       GROUP BY s.genre`,
+      params
     );
     const genreCounts = {};
     countRows.forEach(r => { genreCounts[r.genre] = r.count; });
@@ -2305,11 +2330,13 @@ async function getGenreReport(startDate, endDate) {
               s.title,
               u.name    AS artist_name,
               s.genre,
+              s.views,
               s.upload_date
        FROM songs s
        JOIN users u ON s.musician_id = u.user_id
-       WHERE s.upload_date BETWEEN ? AND ?`,
-      [startDate + ' 00:00:00', endDate + ' 23:59:59']
+       ${where}
+       ORDER BY s.upload_date`,
+      params
     );
 
     return { genreCounts, songs: songRows };
@@ -2318,14 +2345,17 @@ async function getGenreReport(startDate, endDate) {
   }
 }
 
-//route for report 1
+// route for report 1
 if (req.method === "GET" && req.url.startsWith("/admin/reports/genre")) {
-  const urlObj = new URL(req.url, `http://${req.headers.host}`);
-  const start = urlObj.searchParams.get("start") || "1970-01-01";
-  const end   = urlObj.searchParams.get("end")   || new Date().toISOString().slice(0,10);
+  const urlObj    = new URL(req.url, `http://${req.headers.host}`);
+  const start     = urlObj.searchParams.get("start")   || "1970-01-01";
+  const end       = urlObj.searchParams.get("end")     || new Date().toISOString().slice(0,10);
+  const genre     = urlObj.searchParams.get("genre")   || '';
+  const minViews  = urlObj.searchParams.get("minViews")|| '';
+  const maxViews  = urlObj.searchParams.get("maxViews")|| '';
 
   try {
-    const report = await getGenreReport(start, end);
+    const report = await getGenreReport(start, end, genre, minViews, maxViews);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(report));
   } catch (err) {
@@ -2335,6 +2365,7 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/genre")) {
   }
   return;
 }
+
 
 
 /*      report 1       */

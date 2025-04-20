@@ -1,5 +1,5 @@
 // src/components/DataReports.js
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AdminPortal.css';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
@@ -22,16 +22,24 @@ export default function DataReports() {
   const [songs, setSongs]                 = useState([]);
   const [startDate, setStartDate]         = useState('');
   const [endDate, setEndDate]             = useState('');
+  const [selectedGenre, setSelectedGenre] = useState('');
+  const [minViews, setMinViews]           = useState('');
+  const [maxViews, setMaxViews]           = useState('');
   const [loading, setLoading]             = useState(false);
   const navigate                          = useNavigate();
 
-  // fetch data for genre report
+  // fetch report with all filters
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const res = await fetch(
-        `/admin/reports/genre?start=${startDate}&end=${endDate}`
-      );
+      const params = new URLSearchParams();
+      if (startDate)       params.append('start', startDate);
+      if (endDate)         params.append('end', endDate);
+      if (selectedGenre)   params.append('genre', selectedGenre);
+      if (minViews)        params.append('minViews', minViews);
+      if (maxViews)        params.append('maxViews', maxViews);
+
+      const res = await fetch(`/admin/reports/genre?${params.toString()}`);
       const data = await res.json();
       setGenreCounts(data.genreCounts);
       setSongs(data.songs);
@@ -42,12 +50,13 @@ export default function DataReports() {
     }
   };
 
-  // handle click on Genre button
+  // show genre report and fetch immediately
   const handleGenreClick = () => {
     setCurrentReport('genre');
     fetchReport();
   };
 
+  // data for Pie chart
   const labels          = Object.keys(genreCounts);
   const values          = Object.values(genreCounts);
   const backgroundColor = labels.map(l => genreColors[l] || '#ccc');
@@ -104,6 +113,36 @@ export default function DataReports() {
                   onChange={e => setEndDate(e.target.value)}
                 />
               </label>
+              <label>
+                Genre:
+                <select
+                  value={selectedGenre}
+                  onChange={e => setSelectedGenre(e.target.value)}
+                >
+                  <option value="">All</option>
+                  {Object.keys(genreColors).map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Min Views:
+                <input
+                  type="number"
+                  value={minViews}
+                  onChange={e => setMinViews(e.target.value)}
+                  placeholder="0"
+                />
+              </label>
+              <label>
+                Max Views:
+                <input
+                  type="number"
+                  value={maxViews}
+                  onChange={e => setMaxViews(e.target.value)}
+                  placeholder="∞"
+                />
+              </label>
               <button className="primary" onClick={fetchReport}>
                 Fetch Report
               </button>
@@ -124,6 +163,7 @@ export default function DataReports() {
                         <th>Title</th>
                         <th>Artist</th>
                         <th>Genre</th>
+                        <th>Views</th>
                         <th>Upload Date</th>
                       </tr>
                     </thead>
@@ -133,6 +173,7 @@ export default function DataReports() {
                           <td>{song.title}</td>
                           <td>{song.artist_name}</td>
                           <td>{song.genre}</td>
+                          <td>{song.views}</td>
                           <td>{new Date(song.upload_date).toLocaleDateString()}</td>
                         </tr>
                       ))}
