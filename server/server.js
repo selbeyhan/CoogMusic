@@ -2382,16 +2382,18 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/genre")) {
 
 
 // helper for report number 2
-async function getUsersReport(minViews, maxViews, limit, sortBy, sortOrder) {
+async function getUsersReport(minViews, maxViews, minLikes, maxLikes, limit, sortBy, sortOrder) {
   let connection;
   try {
     connection = await mysql.createConnection(dbConfig);
 
-    // build optional having‑filters on aggregated total_views
+    // build optional having‑filters on aggregated totals
     const havings = [];
     const params  = [];
-    if (minViews) { havings.push("total_views >= ?"); params.push(minViews); }
-    if (maxViews) { havings.push("total_views <= ?"); params.push(maxViews); }
+    if (minViews)  { havings.push("total_views  >= ?"); params.push(minViews); }
+    if (maxViews)  { havings.push("total_views  <= ?"); params.push(maxViews); }
+    if (minLikes)  { havings.push("total_likes >= ?"); params.push(minLikes); }
+    if (maxLikes)  { havings.push("total_likes <= ?"); params.push(maxLikes); }
     const havingClause = havings.length
       ? "HAVING " + havings.join(" AND ")
       : "";
@@ -2410,8 +2412,8 @@ async function getUsersReport(minViews, maxViews, limit, sortBy, sortOrder) {
       SELECT
         u.user_id,
         u.name,
-        COALESCE(SUM(s.views),   0) AS total_views,
-        COALESCE(COUNT(l.like_id),0) AS total_likes,
+        COALESCE(SUM(s.views),    0) AS total_views,
+        COALESCE(COUNT(l.like_id), 0) AS total_likes,
         '' AS top_genres
       FROM users u
       LEFT JOIN songs s ON s.musician_id = u.user_id
@@ -2424,9 +2426,10 @@ async function getUsersReport(minViews, maxViews, limit, sortBy, sortOrder) {
 
     const [rows] = await connection.execute(sql, params);
 
-    // debug log
+    // debug logs
     if (rows.length > 0) {
       console.log(`🚀 Top user is "${rows[0].name}" with ${rows[0].total_views} views`);
+      console.log(`🚀 Top user is "${rows[0].name}" with ${rows[0].total_likes} likes`);
     } else {
       console.log("🚀 No users returned by report");
     }
@@ -2442,12 +2445,22 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/users")) {
   const urlObj    = new URL(req.url, `http://${req.headers.host}`);
   const minViews  = urlObj.searchParams.get("minViews")  || "";
   const maxViews  = urlObj.searchParams.get("maxViews")  || "";
+  const minLikes  = urlObj.searchParams.get("minLikes")  || "";
+  const maxLikes  = urlObj.searchParams.get("maxLikes")  || "";
   const limit     = urlObj.searchParams.get("limit")     || "";
   const sortBy    = urlObj.searchParams.get("sortBy")    || "views";
   const sortOrder = urlObj.searchParams.get("sortOrder") || "DESC";
 
   try {
-    const users = await getUsersReport(minViews, maxViews, limit, sortBy, sortOrder);
+    const users = await getUsersReport(
+      minViews,
+      maxViews,
+      minLikes,
+      maxLikes,
+      limit,
+      sortBy,
+      sortOrder
+    );
     res.writeHead(200, { "Content-Type": "application/json" });
     // wrap in an object for consistency
     res.end(JSON.stringify({ users }));
@@ -2458,8 +2471,6 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/users")) {
   }
   return;
 }
-
-
 
 
 /* report 2*/
