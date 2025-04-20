@@ -1,3 +1,6 @@
+/* eslint-disable no-unused-vars */
+
+
 // src/components/DataReports.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
