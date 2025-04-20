@@ -42,6 +42,9 @@ export default function DataReports() {
   const [loading, setLoading]               = useState(false);
   const [songRepSortBy, setSongRepSortBy] = useState('views');
   const [songRepSortOrder, setSongRepSortOrder] = useState('desc');
+  const [minUserViews, setMinUserViews] = useState('');
+  const [maxUserViews, setMaxUserViews] = useState('');
+
 
 
   // report 2 state
@@ -81,8 +84,11 @@ export default function DataReports() {
     return raw.map(u => ({
       user_id: u.user_id,
       name: u.name,
-      totalLikes: u.total_likes ?? 0,
-      registrationDate: u.registration_date ? new Date(u.registration_date) : null,
+      totalViews: u.total_views  ?? 0,
+      totalLikes: u.total_likes  ?? 0,
+      registrationDate: u.registration_date
+        ? new Date(u.registration_date)
+        : null,
       accountType: u.account_type || 'Unknown',
     }));
   }
@@ -218,6 +224,10 @@ export default function DataReports() {
       // Add date range parameters
       if (userStartDate) params.append('startDate', userStartDate);
       if (userEndDate) params.append('endDate', userEndDate);
+
+      if (minUserViews) params.append('minViews', minUserViews);
+      if (maxUserViews) params.append('maxViews', maxUserViews);
+
 
       const res = await fetch(`/admin/reports/users?${params}`);
       const json = await res.json();
@@ -568,62 +578,62 @@ export default function DataReports() {
         {currentReport === 'users' && (
           <>
             <h2>Users Report</h2>
+
             <div className="filters">
-              <label>sort by:
-                <select value={userSortBy} onChange={e => setUserSortBy(e.target.value)}>
-                  <option value="likes">total likes</option>
-                  <option value="date">signup date</option>
-                </select>
-              </label>
-              <label>order:
-                <select value={userSortOrder} onChange={e => setUserSortOrder(e.target.value)}>
-                  <option value="desc">most to least</option>
-                  <option value="asc">least to most</option>
-                </select>
-              </label>
+            <label>sort by:
+              <select value={userSortBy} onChange={e => setUserSortBy(e.target.value)}>
+                <option value="views">total views</option>
+                <option value="likes">total likes</option>
+              </select>
+            </label>
+            <label>order:
+              <select value={userSortOrder} onChange={e => setUserSortOrder(e.target.value)}>
+                <option value="desc">most to least</option>
+                <option value="asc">least to most</option>
+              </select>
+            </label>
+            {/* Always allow filtering by both views AND likes if you want, but sort only uses userSortBy */}
+            <label>min views:
+              <input
+                type="number"
+                value={minUserViews}
+                onChange={e => setMinUserViews(e.target.value)}
+                placeholder="0"
+              />
+            </label>
+            <label>max views:
+              <input
+                type="number"
+                value={maxUserViews}
+                onChange={e => setMaxUserViews(e.target.value)}
+                placeholder="∞"
+              />
+            </label>
+            <label>min likes:
+              <input
+                type="number"
+                value={minUserLikes}
+                onChange={e => setMinUserLikes(e.target.value)}
+                placeholder="0"
+              />
+            </label>
+            <label>max likes:
+              <input
+                type="number"
+                value={maxUserLikes}
+                onChange={e => setMaxUserLikes(e.target.value)}
+                placeholder="∞"
+              />
+            </label>
+            <label>limit:
+              <input
+                type="number"
+                value={userLimit}
+                onChange={e => setUserLimit(e.target.value)}
+                placeholder="10"
+              />
+            </label>
 
-              {/* Date range filters */}
-              <label>signup from:
-                <input
-                  type="date"
-                  value={userStartDate}
-                  onChange={e => setUserStartDate(e.target.value)}
-                />
-              </label>
-              <label>signup to:
-                <input
-                  type="date"
-                  value={userEndDate}
-                  onChange={e => setUserEndDate(e.target.value)}
-                />
-              </label>
-
-              {/* Likes filters */}
-              <label>min likes:
-                <input
-                  type="number"
-                  value={minUserLikes}
-                  onChange={e => setMinUserLikes(e.target.value)}
-                  placeholder="0"
-                />
-              </label>
-              <label>max likes:
-                <input
-                  type="number"
-                  value={maxUserLikes}
-                  onChange={e => setMaxUserLikes(e.target.value)}
-                  placeholder="∞"
-                />
-              </label>
-
-              <label>limit:
-                <input
-                  type="number"
-                  value={userLimit}
-                  onChange={e => setUserLimit(e.target.value)}
-                  placeholder="10"
-                />
-              </label>
 
               <label>view as:
                 <select value={userVisualType} onChange={e => setUserVisualType(e.target.value)}>
@@ -822,30 +832,35 @@ export default function DataReports() {
 
                     {userVisualType === 'table' && (
                       <div className="table users-table">
-                        <h3>user details</h3>
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>rank</th>
-                              <th>name</th>
-                              <th>signup date</th>
-                              <th>account type</th>
-                              <th>total likes</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {usersData.map((u, idx) => (
+                      <h3>user details</h3>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>rank</th>
+                            <th>name</th>
+                            <th>total views</th>
+                            <th>total likes</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {usersData
+                            .sort((a, b) => {
+                              const field = userSortBy === 'views' ? 'totalViews' : 'totalLikes';
+                              return userSortOrder === 'asc'
+                                ? a[field] - b[field]
+                                : b[field] - a[field];
+                            })
+                            .map((u, idx) => (
                               <tr key={u.user_id}>
                                 <td>{idx + 1}</td>
                                 <td>{u.name}</td>
-                                <td>{u.registrationDate ? u.registrationDate.toLocaleDateString() : 'Unknown'}</td>
-                                <td>{u.accountType}</td>
+                                <td>{u.totalViews}</td>
                                 <td>{u.totalLikes}</td>
                               </tr>
                             ))}
-                          </tbody>
-                        </table>
-                      </div>
+                        </tbody>
+                      </table>
+                    </div>        
                     )}
 
                     {/* Summary statistics */}
