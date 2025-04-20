@@ -2284,12 +2284,11 @@ if (req.url === "/api/top-liked-songs" && req.method === "GET") {
 
 // helper for report number 1
 // helper for report number 1
-async function getGenreReport(startDate, endDate, genre, minViews, maxViews) {
+async function getGenreReport(startDate, endDate, genres = [], minViews, maxViews) {
   let connection;
   try {
     connection = await mysql.createConnection(dbConfig);
 
-    // build dynamic WHERE clauses
     const clauses = [
       's.upload_date BETWEEN ? AND ?'
     ];
@@ -2298,16 +2297,18 @@ async function getGenreReport(startDate, endDate, genre, minViews, maxViews) {
       endDate   + ' 23:59:59'
     ];
 
-    if (genre) {
-      clauses.push('s.genre = ?');
-      params.push(genre);
+    // multiple‐genre filter
+    if (genres.length > 0) {
+      const placeholders = genres.map(() => '?').join(',');
+      clauses.push(`s.genre IN (${placeholders})`);
+      params.push(...genres);
     }
     if (minViews) {
-      clauses.push('s.views >= ?');
+      clauses.push(`s.views >= ?`);
       params.push(minViews);
     }
     if (maxViews) {
-      clauses.push('s.views <= ?');
+      clauses.push(`s.views <= ?`);
       params.push(maxViews);
     }
 
@@ -2322,13 +2323,13 @@ async function getGenreReport(startDate, endDate, genre, minViews, maxViews) {
       params
     );
     const genreCounts = {};
-    countRows.forEach(r => { genreCounts[r.genre] = r.count; });
+    countRows.forEach(r => { genreCounts[r.genre] = r.count });
 
     // b) song details
     const [songRows] = await connection.execute(
       `SELECT s.song_id,
               s.title,
-              u.name    AS artist_name,
+              u.name AS artist_name,
               s.genre,
               s.views,
               s.upload_date
@@ -2347,15 +2348,15 @@ async function getGenreReport(startDate, endDate, genre, minViews, maxViews) {
 
 // route for report 1
 if (req.method === "GET" && req.url.startsWith("/admin/reports/genre")) {
-  const urlObj    = new URL(req.url, `http://${req.headers.host}`);
-  const start     = urlObj.searchParams.get("start")   || "1970-01-01";
-  const end       = urlObj.searchParams.get("end")     || new Date().toISOString().slice(0,10);
-  const genre     = urlObj.searchParams.get("genre")   || '';
-  const minViews  = urlObj.searchParams.get("minViews")|| '';
-  const maxViews  = urlObj.searchParams.get("maxViews")|| '';
+  const urlObj   = new URL(req.url, `http://${req.headers.host}`);
+  const start    = urlObj.searchParams.get("start")   || "1970-01-01";
+  const end      = urlObj.searchParams.get("end")     || new Date().toISOString().slice(0,10);
+  const genres   = urlObj.searchParams.getAll("genre");
+  const minViews = urlObj.searchParams.get("minViews") || '';
+  const maxViews = urlObj.searchParams.get("maxViews") || '';
 
   try {
-    const report = await getGenreReport(start, end, genre, minViews, maxViews);
+    const report = await getGenreReport(start, end, genres, minViews, maxViews);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(report));
   } catch (err) {

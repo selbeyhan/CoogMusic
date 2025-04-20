@@ -17,29 +17,36 @@ const genreColors = {
 };
 
 export default function DataReports() {
-  const [currentReport, setCurrentReport] = useState(null);
-  const [genreCounts, setGenreCounts]     = useState({});
-  const [songs, setSongs]                 = useState([]);
-  const [startDate, setStartDate]         = useState('');
-  const [endDate, setEndDate]             = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('');
-  const [minViews, setMinViews]           = useState('');
-  const [maxViews, setMaxViews]           = useState('');
-  const [loading, setLoading]             = useState(false);
-  const navigate                          = useNavigate();
+  const [currentReport, setCurrentReport]      = useState(null);
+  const [genreCounts, setGenreCounts]          = useState({});
+  const [songs, setSongs]                      = useState([]);
+  const [startDate, setStartDate]              = useState('');
+  const [endDate, setEndDate]                  = useState('');
+  const [selectedGenres, setSelectedGenres]    = useState([]);
+  const [minViews, setMinViews]                = useState('');
+  const [maxViews, setMaxViews]                = useState('');
+  const [loading, setLoading]                  = useState(false);
+  const navigate                               = useNavigate();
 
-  // fetch report with all filters
+  function toggleGenre(genre) {
+    setSelectedGenres(prev =>
+      prev.includes(genre)
+        ? prev.filter(g => g !== genre)
+        : [...prev, genre]
+    );
+  }
+
   const fetchReport = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (startDate)       params.append('start', startDate);
-      if (endDate)         params.append('end', endDate);
-      if (selectedGenre)   params.append('genre', selectedGenre);
-      if (minViews)        params.append('minViews', minViews);
-      if (maxViews)        params.append('maxViews', maxViews);
+      if (startDate)         params.append('start', startDate);
+      if (endDate)           params.append('end', endDate);
+      selectedGenres.forEach(g => params.append('genre', g));
+      if (minViews)          params.append('minViews', minViews);
+      if (maxViews)          params.append('maxViews', maxViews);
 
-      const res = await fetch(`/admin/reports/genre?${params.toString()}`);
+      const res  = await fetch(`/admin/reports/genre?${params}`);
       const data = await res.json();
       setGenreCounts(data.genreCounts);
       setSongs(data.songs);
@@ -50,13 +57,20 @@ export default function DataReports() {
     }
   };
 
-  // show genre report and fetch immediately
   const handleGenreClick = () => {
     setCurrentReport('genre');
     fetchReport();
   };
 
-  // data for Pie chart
+  const clearFilters = () => {
+    setStartDate('');
+    setEndDate('');
+    setSelectedGenres([]);
+    setMinViews('');
+    setMaxViews('');
+    fetchReport();
+  };
+
   const labels          = Object.keys(genreCounts);
   const values          = Object.values(genreCounts);
   const backgroundColor = labels.map(l => genreColors[l] || '#ccc');
@@ -113,18 +127,22 @@ export default function DataReports() {
                   onChange={e => setEndDate(e.target.value)}
                 />
               </label>
-              <label>
-                Genre:
-                <select
-                  value={selectedGenre}
-                  onChange={e => setSelectedGenre(e.target.value)}
-                >
-                  <option value="">All</option>
-                  {Object.keys(genreColors).map(g => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-              </label>
+
+              <fieldset className="genre-checkboxes">
+                <legend>Genres:</legend>
+                {Object.keys(genreColors).map(g => (
+                  <label key={g}>
+                    <input
+                      type="checkbox"
+                      value={g}
+                      checked={selectedGenres.includes(g)}
+                      onChange={() => toggleGenre(g)}
+                    />{' '}
+                    {g}
+                  </label>
+                ))}
+              </fieldset>
+
               <label>
                 Min Views:
                 <input
@@ -143,8 +161,12 @@ export default function DataReports() {
                   placeholder="∞"
                 />
               </label>
+
               <button className="primary" onClick={fetchReport}>
                 Fetch Report
+              </button>
+              <button className="secondary" onClick={clearFilters}>
+                Clear Filters
               </button>
             </div>
 
