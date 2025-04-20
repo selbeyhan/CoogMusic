@@ -1,3 +1,6 @@
+/* eslint-disable no-unused-vars */
+
+
 // src/components/DataReports.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -178,7 +181,102 @@ export default function DataReports() {
         {/* report 1 */}
         {currentReport === 'genre' && (
           <>
-            {/* ... unchanged report 1 markup ... */}
+            <h2>Genre of Songs Report</h2>
+            <div className="filters">
+              <label>
+                Start Date:
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                />
+              </label>
+              <label>
+                End Date:
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                />
+              </label>
+
+              <fieldset className="genre-checkboxes">
+                <legend>Genres:</legend>
+                {Object.keys(genreColors).map(g => (
+                  <label key={g}>
+                    <input
+                      type="checkbox"
+                      checked={selectedGenres.includes(g)}
+                      onChange={() => toggleGenre(g)}
+                    />{' '}
+                    {g}
+                  </label>
+                ))}
+              </fieldset>
+
+              <label>
+                Min Views:
+                <input
+                  type="number"
+                  value={minViews}
+                  onChange={e => setMinViews(e.target.value)}
+                  placeholder="0"
+                />
+              </label>
+              <label>
+                Max Views:
+                <input
+                  type="number"
+                  value={maxViews}
+                  onChange={e => setMaxViews(e.target.value)}
+                  placeholder="∞"
+                />
+              </label>
+
+              <button className="primary" onClick={fetchReport}>
+                Fetch Report
+              </button>
+              <button className="secondary" onClick={clearGenreFilters}>
+                Clear Filters
+              </button>
+            </div>
+
+            {loading ? (
+              <p>Loading reports…</p>
+            ) : songs.length === 0 ? (
+              <p>No songs fit this criteria.</p>
+            ) : (
+              <>
+                <div className="chart">
+                  <Pie data={chartData} />
+                </div>
+                <div className="table">
+                  <h3>Song Details</h3>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Artist</th>
+                        <th>Genre</th>
+                        <th>Views</th>
+                        <th>Upload Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {songs.map(song => (
+                        <tr key={song.song_id}>
+                          <td>{song.title}</td>
+                          <td>{song.artist_name}</td>
+                          <td>{song.genre}</td>
+                          <td>{song.views}</td>
+                          <td>{new Date(song.upload_date).toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </>
         )}
 
