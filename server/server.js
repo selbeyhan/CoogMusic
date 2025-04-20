@@ -2378,41 +2378,48 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/genre")) {
 
 /* report 2*/
 
+
+
+
 // helper for report number 2
 async function getUsersReport(minViews, maxViews, limit, sortBy, sortOrder) {
   let connection;
   try {
     connection = await mysql.createConnection(dbConfig);
 
-    // build optional filters on pre‑aggregated totals
-    const filters = [];
+    // build optional having‑filters on aggregated total_views
+    const havings = [];
     const params  = [];
-    if (minViews) { filters.push("agg.total_views >= ?"); params.push(minViews); }
-    if (maxViews) { filters.push("agg.total_views <= ?"); params.push(maxViews); }
-    const whereClause = filters.length
-      ? "WHERE " + filters.join(" AND ")
+    if (minViews) { havings.push("total_views >= ?"); params.push(minViews); }
+    if (maxViews) { havings.push("total_views <= ?"); params.push(maxViews); }
+    const havingClause = havings.length
+      ? "HAVING " + havings.join(" AND ")
       : "";
 
     // pick sort field & direction
     const sortField = sortBy === "likes" ? "total_likes" : "total_views";
     const order     = sortOrder.toUpperCase() === "ASC" ? "ASC" : "DESC";
 
-    // simple aggregation of views & likes per user
-    // top_genres is always an empty string for now
+    // apply limit if present
+    const limitClause = limit
+      ? "LIMIT " + parseInt(limit, 10)
+      : "";
+
+    // aggregate views & likes per user
     const sql = `
       SELECT
         u.user_id,
         u.name,
-        COALESCE(SUM(s.views),  0) AS total_views,
-        COALESCE(COUNT(l.like_id), 0) AS total_likes,
+        COALESCE(SUM(s.views),   0) AS total_views,
+        COALESCE(COUNT(l.like_id),0) AS total_likes,
         '' AS top_genres
       FROM users u
       LEFT JOIN songs s ON s.musician_id = u.user_id
       LEFT JOIN likes l ON l.song_id     = s.song_id
       GROUP BY u.user_id
-      ${whereClause}
+      ${havingClause}
       ORDER BY ${sortField} ${order}
-      ${ limit ? "LIMIT " + parseInt(limit,10) : "" }
+      ${limitClause}
     `;
 
     const [rows] = await connection.execute(sql, params);
@@ -2442,7 +2449,7 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/users")) {
   try {
     const users = await getUsersReport(minViews, maxViews, limit, sortBy, sortOrder);
     res.writeHead(200, { "Content-Type": "application/json" });
-    // wrap in an object for consistency with other report endpoints
+    // wrap in an object for consistency
     res.end(JSON.stringify({ users }));
   } catch (err) {
     console.error("❌ Error generating users report:", err);
