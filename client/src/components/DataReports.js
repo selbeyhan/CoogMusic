@@ -113,14 +113,21 @@ export default function DataReports() {
     fetchReport();
   };
 
-  // clear filters for report 2
+  // clear filters for report 2 — **fetch unfiltered on first click**
   const clearUsersFilters = () => {
     setMinUserViews('');
     setMaxUserViews('');
     setUserLimit('');
     setUserSortBy('views');
     setUserSortOrder('desc');
-    fetchUsersReport();
+
+    // direct fetch with no params so state resets are in effect immediately
+    setUsersLoading(true);
+    fetch('/admin/reports/users')
+      .then(res => res.json())
+      .then(json => setUsersData(normalizeUsers(json.users || [])))
+      .catch(() => setUsersData([]))
+      .finally(() => setUsersLoading(false));
   };
 
   // prepare chart data for report 1
