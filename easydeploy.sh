@@ -26,6 +26,10 @@ npm install @clerk/clerk-react
 echo "Ensuring react-icons is installed..."
 npm install react-icons
 
+# Add these two lines to install Chart.js wrapper
+echo "Ensuring chart libraries are installed..."
+npm install react-chartjs-2 chart.js
+
 # Debug: Check if the .env file exists
 if [ ! -f .env ]; then
     echo "⚠️ ERROR: .env file not found in client folder!"

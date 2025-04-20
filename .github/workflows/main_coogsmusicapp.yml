@@ -31,8 +31,11 @@ jobs:
         run: |
           cd client
           npm install
-          npm install @clerk/clerk-react react-icons  # Ensures Clerk & react-icons are installed          cat .env  # Debugging step to verify the .env file is detected
+          # ensure Clerk, icons, and chart libs are installed
+          npm install @clerk/clerk-react react-icons react-chartjs-2 chart.js
+          cat .env   # Debug step
           npm run build
+
 
       - name: Move client build to server
         run: mv client/build server/build
