@@ -1,14 +1,22 @@
 /* eslint-disable no-unused-vars */
-
-
-// src/components/DataReports.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AdminPortal.css';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-import { Pie } from 'react-chartjs-2';
+import './DataReports.css';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, BarElement } from 'chart.js';
+import { Pie, Line, Bar } from 'react-chartjs-2';
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(
+  ArcElement, 
+  Tooltip, 
+  Legend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  BarElement
+);
 
 const genreColors = {
   'Hip-Hop': '#FF6384',
@@ -23,7 +31,7 @@ export default function DataReports() {
   const navigate = useNavigate();
   const [currentReport, setCurrentReport] = useState(null);
 
-  // report 1 state (unchanged)
+  // report 1 state (genre)
   const [genreCounts, setGenreCounts]       = useState({});
   const [songs, setSongs]                   = useState([]);
   const [startDate, setStartDate]           = useState('');
@@ -36,13 +44,15 @@ export default function DataReports() {
   // report 2 state
   const [usersData, setUsersData]         = useState([]);
   const [usersLoading, setUsersLoading]   = useState(false);
-  const [minUserViews, setMinUserViews]   = useState('');
-  const [maxUserViews, setMaxUserViews]   = useState('');
   const [minUserLikes, setMinUserLikes]   = useState('');
   const [maxUserLikes, setMaxUserLikes]   = useState('');
   const [userLimit, setUserLimit]         = useState('');
-  const [userSortBy, setUserSortBy]       = useState('views');
+  const [userSortBy, setUserSortBy]       = useState('likes');
   const [userSortOrder, setUserSortOrder] = useState('desc');
+  const [userStartDate, setUserStartDate] = useState(''); 
+  const [userEndDate, setUserEndDate]     = useState('');
+  const [userVisualType, setUserVisualType] = useState('table');
+  const [userTimeGrouping, setUserTimeGrouping] = useState('month');
 
   // toggle a genre checkbox
   function toggleGenre(g) {
@@ -54,11 +64,103 @@ export default function DataReports() {
   // normalize raw users from backend into our shape
   function normalizeUsers(raw = []) {
     return raw.map(u => ({
-      user_id:    u.user_id,
-      name:       u.name,
-      totalViews: u.total_views  ?? 0,
-      totalLikes: u.total_likes  ?? 0,
+      user_id: u.user_id,
+      name: u.name,
+      totalLikes: u.total_likes ?? 0,
+      registrationDate: u.registration_date ? new Date(u.registration_date) : null,
+      accountType: u.account_type || 'Unknown',
     }));
+  }
+
+  // Group users by registration date for the line chart
+  function prepareRegistrationTimelineData(users) {
+    // Filter users with valid registration dates
+    const usersWithDates = users.filter(u => u.registrationDate);
+    
+    // Sort users by registration date
+    const sortedUsers = [...usersWithDates].sort((a, b) => 
+      a.registrationDate.getTime() - b.registrationDate.getTime()
+    );
+    
+    // Group by month or appropriate time period
+    const groupedData = {};
+    
+    sortedUsers.forEach(user => {
+      let dateKey;
+      
+      if (userTimeGrouping === 'day') {
+        dateKey = user.registrationDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      } else if (userTimeGrouping === 'month') {
+        const month = user.registrationDate.getMonth() + 1;
+        const year = user.registrationDate.getFullYear();
+        dateKey = `${year}-${month.toString().padStart(2, '0')}`;
+      } else {
+        dateKey = user.registrationDate.getFullYear().toString();
+      }
+      
+      if (!groupedData[dateKey]) {
+        groupedData[dateKey] = {
+          musicians: 0,
+          listeners: 0,
+          totalLikes: 0
+        };
+      }
+      
+      if (user.accountType === 'Musician') {
+        groupedData[dateKey].musicians++;
+      } else {
+        groupedData[dateKey].listeners++;
+      }
+      
+      groupedData[dateKey].totalLikes += user.totalLikes;
+    });
+    
+    // Convert to arrays for charting
+    const dates = Object.keys(groupedData).sort();
+    const musicianCounts = dates.map(date => groupedData[date].musicians);
+    const listenerCounts = dates.map(date => groupedData[date].listeners);
+    const likeCounts = dates.map(date => groupedData[date].totalLikes);
+    
+    // Format date labels for display
+    const formattedDates = dates.map(date => {
+      if (userTimeGrouping === 'day') {
+        return new Date(date).toLocaleDateString();
+      } else if (userTimeGrouping === 'month') {
+        const [year, month] = date.split('-');
+        return `${month}/${year}`;
+      } else {
+        return date; // Year is already formatted properly
+      }
+    });
+    
+    return {
+      labels: formattedDates,
+      musicians: musicianCounts,
+      listeners: listenerCounts,
+      totalLikes: likeCounts,
+      cumulativeTotal: musicianCounts.reduce((acc, count, i) => {
+        const prevTotal = i > 0 ? acc[i - 1] : 0;
+        return [...acc, prevTotal + count + listenerCounts[i]];
+      }, [])
+    };
+  }
+
+  // Prepare top users data for visualization
+  function prepareTopUsersData(users) {
+    // Sort users by likes
+    const topUsers = [...users]
+      .sort((a, b) => b.totalLikes - a.totalLikes)
+      .slice(0, Math.min(10, users.length));
+    
+    return {
+      labels: topUsers.map(user => user.name),
+      likes: topUsers.map(user => user.totalLikes),
+      accountTypes: topUsers.map(user => user.accountType),
+      registrationDates: topUsers.map(user => 
+        user.registrationDate ? user.registrationDate.toLocaleDateString() : 'Unknown'
+      ),
+      ids: topUsers.map(user => user.user_id)
+    };
   }
 
   // fetch report 1 (genre)
@@ -89,21 +191,20 @@ export default function DataReports() {
     setUsersLoading(true);
     try {
       const params = new URLSearchParams();
-      params.append('sortBy',    userSortBy);
+      params.append('sortBy', userSortBy);
       params.append('sortOrder', userSortOrder);
 
-      // only append the relevant min/max pair
-      if (userSortBy === 'views') {
-        if (minUserViews) params.append('minViews', minUserViews);
-        if (maxUserViews) params.append('maxViews', maxUserViews);
-      } else {
-        if (minUserLikes) params.append('minLikes', minUserLikes);
-        if (maxUserLikes) params.append('maxLikes', maxUserLikes);
-      }
+      // only append the relevant min/max pair for likes
+      if (minUserLikes) params.append('minLikes', minUserLikes);
+      if (maxUserLikes) params.append('maxLikes', maxUserLikes);
 
       if (userLimit) params.append('limit', userLimit);
 
-      const res  = await fetch(`/admin/reports/users?${params}`);
+      // Add date range parameters
+      if (userStartDate) params.append('startDate', userStartDate);
+      if (userEndDate) params.append('endDate', userEndDate);
+
+      const res = await fetch(`/admin/reports/users?${params}`);
       const json = await res.json();
       setUsersData(normalizeUsers(json.users || []));
     } catch {
@@ -125,13 +226,13 @@ export default function DataReports() {
 
   // clear filters for report 2
   const clearUsersFilters = () => {
-    setMinUserViews('');
-    setMaxUserViews('');
     setMinUserLikes('');
     setMaxUserLikes('');
     setUserLimit('');
-    setUserSortBy('views');
+    setUserSortBy('likes');
     setUserSortOrder('desc');
+    setUserStartDate(''); 
+    setUserEndDate(''); 
 
     setUsersLoading(true);
     fetch('/admin/reports/users')
@@ -142,10 +243,66 @@ export default function DataReports() {
   };
 
   // prepare chart data for report 1
-  const labels          = Object.keys(genreCounts);
-  const values          = Object.values(genreCounts);
+  const labels = Object.keys(genreCounts);
+  const values = Object.values(genreCounts);
   const backgroundColor = labels.map(l => genreColors[l] || '#ccc');
-  const chartData       = { labels, datasets: [{ data: values, backgroundColor }] };
+  const chartData = { labels, datasets: [{ data: values, backgroundColor }] };
+
+  // Prepare chart data for user registrations over time
+  const timelineData = prepareRegistrationTimelineData(usersData);
+  const registrationChartData = {
+    labels: timelineData.labels,
+    datasets: [
+      {
+        label: 'Musicians',
+        data: timelineData.musicians,
+        borderColor: '#FF6384',
+        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+        fill: true
+      },
+      {
+        label: 'Listeners',
+        data: timelineData.listeners,
+        borderColor: '#36A2EB',
+        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+        fill: true
+      }
+    ]
+  };
+
+  // Prepare chart data for top users by likes
+  const topUsersData = prepareTopUsersData(usersData);
+  const topUsersChartData = {
+    labels: topUsersData.labels,
+    datasets: [
+      {
+        label: 'Likes',
+        data: topUsersData.likes,
+        backgroundColor: topUsersData.accountTypes.map(type => 
+          type === 'Musician' ? '#FF6384' : '#36A2EB'
+        ),
+        borderColor: topUsersData.accountTypes.map(type => 
+          type === 'Musician' ? '#FF3366' : '#2299DD'
+        ),
+        borderWidth: 1
+      }
+    ]
+  };
+
+  // Prepare account type distribution chart data
+  const accountTypeData = {
+    labels: ['Musicians', 'Listeners'],
+    datasets: [
+      {
+        data: [
+          usersData.filter(u => u.accountType === 'Musician').length,
+          usersData.filter(u => u.accountType !== 'Musician').length
+        ],
+        backgroundColor: ['#FF6384', '#36A2EB'],
+        borderColor: ['#FF3366', '#2299DD']
+      }
+    ]
+  };
 
   return (
     <div className="admin-portal">
@@ -174,48 +331,45 @@ export default function DataReports() {
             className={currentReport === 'report3' ? 'primary' : ''}
             onClick={() => setCurrentReport('report3')}
           >
-            Report 3
+            Report 3
           </button>
         </div>
 
-        {/* report 1 */}
+        {/* report 1 - genre report */}
         {currentReport === 'genre' && (
           <>
-            <h2>Genre of Songs Report</h2>
+            <h2>Songs by Genre</h2>
             <div className="filters">
-              <label>
-                Start Date:
+              <label>from:
                 <input
                   type="date"
                   value={startDate}
                   onChange={e => setStartDate(e.target.value)}
                 />
               </label>
-              <label>
-                End Date:
+              <label>to:
                 <input
                   type="date"
                   value={endDate}
                   onChange={e => setEndDate(e.target.value)}
                 />
               </label>
-
-              <fieldset className="genre-checkboxes">
-                <legend>Genres:</legend>
-                {Object.keys(genreColors).map(g => (
-                  <label key={g}>
-                    <input
-                      type="checkbox"
-                      checked={selectedGenres.includes(g)}
-                      onChange={() => toggleGenre(g)}
-                    />{' '}
-                    {g}
-                  </label>
-                ))}
-              </fieldset>
-
-              <label>
-                Min Views:
+              <div className="genre-selection">
+                <label>genres:</label>
+                <div className="genre-checkboxes">
+                  {Object.keys(genreColors).map(g => (
+                    <label key={g} className="genre-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={selectedGenres.includes(g)}
+                        onChange={() => toggleGenre(g)}
+                      />
+                      <span>{g}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <label>min views:
                 <input
                   type="number"
                   value={minViews}
@@ -223,8 +377,7 @@ export default function DataReports() {
                   placeholder="0"
                 />
               </label>
-              <label>
-                Max Views:
+              <label>max views:
                 <input
                   type="number"
                   value={maxViews}
@@ -232,63 +385,63 @@ export default function DataReports() {
                   placeholder="∞"
                 />
               </label>
-
               <button className="primary" onClick={fetchReport}>
-                Fetch Report
+                fetch report
               </button>
               <button className="secondary" onClick={clearGenreFilters}>
-                Clear Filters
+                clear filters
               </button>
             </div>
 
-            {loading ? (
-              <p>Loading reports…</p>
-            ) : songs.length === 0 ? (
-              <p>No songs fit this criteria.</p>
-            ) : (
-              <>
-                <div className="chart">
-                  <Pie data={chartData} />
-                </div>
-                <div className="table">
-                  <h3>Song Details</h3>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Title</th>
-                        <th>Artist</th>
-                        <th>Genre</th>
-                        <th>Views</th>
-                        <th>Upload Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {songs.map(song => (
-                        <tr key={song.song_id}>
-                          <td>{song.title}</td>
-                          <td>{song.artist_name}</td>
-                          <td>{song.genre}</td>
-                          <td>{song.views}</td>
-                          <td>{new Date(song.upload_date).toLocaleDateString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
+            {loading
+              ? <p>loading…</p>
+              : Object.keys(genreCounts).length === 0
+                ? <p>no songs fit this criteria</p>
+                : (
+                  <>
+                    <div className="chart">
+                      <Pie data={chartData} />
+                    </div>
+                    <div className="table genre-table">
+                      <h3>song details</h3>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>title</th>
+                            <th>artist</th>
+                            <th>genre</th>
+                            <th>views</th>
+                            <th>upload date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {songs.map(s => (
+                            <tr key={s.song_id}>
+                              <td>{s.title}</td>
+                              <td>{s.artist_name}</td>
+                              <td>{s.genre}</td>
+                              <td>{s.views}</td>
+                              <td>{new Date(s.upload_date).toLocaleDateString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )
+            }
           </>
         )}
 
-        {/* report 2 */}
+        {/* report 2 - users report */}
         {currentReport === 'users' && (
           <>
             <h2>Users Report</h2>
             <div className="filters">
               <label>sort by:
                 <select value={userSortBy} onChange={e => setUserSortBy(e.target.value)}>
-                  <option value="views">total views</option>
                   <option value="likes">total likes</option>
+                  <option value="date">signup date</option>
                 </select>
               </label>
               <label>order:
@@ -298,48 +451,39 @@ export default function DataReports() {
                 </select>
               </label>
 
-              {userSortBy === 'views'
-                ? (
-                  <>
-                    <label>min views:
-                      <input
-                        type="number"
-                        value={minUserViews}
-                        onChange={e => setMinUserViews(e.target.value)}
-                        placeholder="0"
-                      />
-                    </label>
-                    <label>max views:
-                      <input
-                        type="number"
-                        value={maxUserViews}
-                        onChange={e => setMaxUserViews(e.target.value)}
-                        placeholder="∞"
-                      />
-                    </label>
-                  </>
-                )
-                : (
-                  <>
-                    <label>min likes:
-                      <input
-                        type="number"
-                        value={minUserLikes}
-                        onChange={e => setMinUserLikes(e.target.value)}
-                        placeholder="0"
-                      />
-                    </label>
-                    <label>max likes:
-                      <input
-                        type="number"
-                        value={maxUserLikes}
-                        onChange={e => setMaxUserLikes(e.target.value)}
-                        placeholder="∞"
-                      />
-                    </label>
-                  </>
-                )
-              }
+              {/* Date range filters */}
+              <label>signup from:
+                <input
+                  type="date"
+                  value={userStartDate}
+                  onChange={e => setUserStartDate(e.target.value)}
+                />
+              </label>
+              <label>signup to:
+                <input
+                  type="date"
+                  value={userEndDate}
+                  onChange={e => setUserEndDate(e.target.value)}
+                />
+              </label>
+
+              {/* Likes filters */}
+              <label>min likes:
+                <input
+                  type="number"
+                  value={minUserLikes}
+                  onChange={e => setMinUserLikes(e.target.value)}
+                  placeholder="0"
+                />
+              </label>
+              <label>max likes:
+                <input
+                  type="number"
+                  value={maxUserLikes}
+                  onChange={e => setMaxUserLikes(e.target.value)}
+                  placeholder="∞"
+                />
+              </label>
 
               <label>limit:
                 <input
@@ -349,6 +493,23 @@ export default function DataReports() {
                   placeholder="10"
                 />
               </label>
+
+              <label>view as:
+                <select value={userVisualType} onChange={e => setUserVisualType(e.target.value)}>
+                  <option value="table">Table</option>
+                  <option value="visualizations">Visualizations</option>
+                </select>
+              </label>
+
+              {userVisualType === 'visualizations' && (
+                <label>group by:
+                  <select value={userTimeGrouping} onChange={e => setUserTimeGrouping(e.target.value)}>
+                    <option value="day">Day</option>
+                    <option value="month">Month</option>
+                    <option value="year">Year</option>
+                  </select>
+                </label>
+              )}
 
               <button className="primary" onClick={fetchUsersReport}>
                 fetch report
@@ -363,36 +524,278 @@ export default function DataReports() {
               : usersData.length === 0
                 ? <p>no users fit this criteria.</p>
                 : (
-                  <div className="table">
-                    <h3>user details</h3>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>rank</th>
-                          <th>name</th>
-                          <th>total views</th>
-                          <th>total likes</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {usersData.map((u, idx) => (
-                          <tr key={u.user_id}>
-                            <td>{idx + 1}</td>
-                            <td>{u.name}</td>
-                            <td>{u.totalViews}</td>
-                            <td>{u.totalLikes}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <>
+                    {userVisualType === 'visualizations' && (
+                      <div className="visualizations-container">
+                        {/* User Registration Timeline Chart */}
+                        <div className="chart-container">
+                          <h3>User Signups Over Time</h3>
+                          <div className="chart">
+                            <Line 
+                              data={registrationChartData}
+                              options={{
+                                responsive: true,
+                                plugins: {
+                                  legend: {
+                                    position: 'top',
+                                  },
+                                  title: {
+                                    display: false
+                                  },
+                                  tooltip: {
+                                    callbacks: {
+                                      title: function(tooltipItems) {
+                                        return `Date: ${tooltipItems[0].label}`;
+                                      }
+                                    }
+                                  }
+                                },
+                                scales: {
+                                  y: {
+                                    stacked: true,
+                                    title: {
+                                      display: true,
+                                      text: 'Number of Users'
+                                    }
+                                  },
+                                  x: {
+                                    title: {
+                                      display: true,
+                                      text: userTimeGrouping === 'day' ? 'Date' : 
+                                            userTimeGrouping === 'month' ? 'Month' : 'Year'
+                                    }
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Top Users Chart */}
+                        <div className="chart-container">
+                          <h3>Top Users by Likes</h3>
+                          <div className="chart">
+                            <Bar
+                              data={topUsersChartData}
+                              options={{
+                                indexAxis: 'y',
+                                responsive: true,
+                                plugins: {
+                                  legend: {
+                                    display: false
+                                  },
+                                  tooltip: {
+                                    callbacks: {
+                                      title: function(tooltipItems) {
+                                        return `User: ${tooltipItems[0].label}`;
+                                      },
+                                      label: function(tooltipItem) {
+                                        return `Likes: ${tooltipItem.raw}`;
+                                      },
+                                      footer: function(tooltipItems) {
+                                        const idx = tooltipItems[0].dataIndex;
+                                        return `Type: ${topUsersData.accountTypes[idx]}\nRegistered: ${topUsersData.registrationDates[idx]}`;
+                                      }
+                                    }
+                                  }
+                                },
+                                scales: {
+                                  x: {
+                                    title: {
+                                      display: true,
+                                      text: 'Total Likes'
+                                    }
+                                  },
+                                  y: {
+                                    title: {
+                                      display: true,
+                                      text: 'Username'
+                                    }
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Account Type Distribution */}
+                        <div className="chart-container">
+                          <h3>Account Type Distribution</h3>
+                          <div className="chart">
+                            <Pie 
+                              data={accountTypeData}
+                              options={{
+                                responsive: true,
+                                plugins: {
+                                  legend: {
+                                    position: 'top',
+                                  },
+                                  tooltip: {
+                                    callbacks: {
+                                      label: function(tooltipItem) {
+                                        const label = tooltipItem.label;
+                                        const value = tooltipItem.raw;
+                                        const total = accountTypeData.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        const percentage = Math.round((value / total) * 100);
+                                        return `${label}: ${value} (${percentage}%)`;
+                                      }
+                                    }
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* User Data Table */}
+                        <div className="chart-container full-width">
+                          <h3>Complete User Data</h3>
+                          <div className="table users-table">
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th>rank</th>
+                                  <th>name</th>
+                                  <th>signup date</th>
+                                  <th>account type</th>
+                                  <th>total likes</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {usersData.map((u, idx) => (
+                                  <tr key={u.user_id}>
+                                    <td>{idx + 1}</td>
+                                    <td>{u.name}</td>
+                                    <td>{u.registrationDate ? u.registrationDate.toLocaleDateString() : 'Unknown'}</td>
+                                    <td>{u.accountType}</td>
+                                    <td>{u.totalLikes}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        <div className="users-distribution-legend">
+                          <div className="legend-item">
+                            <span className="legend-color" style={{backgroundColor: '#FF6384'}}></span>
+                            <span>Musician</span>
+                          </div>
+                          <div className="legend-item">
+                            <span className="legend-color" style={{backgroundColor: '#36A2EB'}}></span>
+                            <span>Listener</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {userVisualType === 'table' && (
+                      <div className="table users-table">
+                        <h3>user details</h3>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>rank</th>
+                              <th>name</th>
+                              <th>signup date</th>
+                              <th>account type</th>
+                              <th>total likes</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {usersData.map((u, idx) => (
+                              <tr key={u.user_id}>
+                                <td>{idx + 1}</td>
+                                <td>{u.name}</td>
+                                <td>{u.registrationDate ? u.registrationDate.toLocaleDateString() : 'Unknown'}</td>
+                                <td>{u.accountType}</td>
+                                <td>{u.totalLikes}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Summary statistics */}
+                    <div className="user-stats-summary">
+                      <h4>Summary Statistics</h4>
+                      <div className="stats-grid">
+                        <div className="stat-box">
+                          <p className="stat-label">Total Users</p>
+                          <p className="stat-value">{usersData.length}</p>
+                        </div>
+                        <div className="stat-box">
+                          <p className="stat-label">Musicians</p>
+                          <p className="stat-value">
+                            {usersData.filter(u => u.accountType === 'Musician').length}
+                          </p>
+                        </div>
+                        <div className="stat-box">
+                          <p className="stat-label">Listeners</p>
+                          <p className="stat-value">
+                            {usersData.filter(u => u.accountType !== 'Musician').length}
+                          </p>
+                        </div>
+                        <div className="stat-box">
+                          <p className="stat-label">Total Likes</p>
+                          <p className="stat-value">
+                            {usersData.reduce((sum, u) => sum + (u.totalLikes || 0), 0).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="stat-box">
+                          <p className="stat-label">Most Recent User</p>
+                          <p className="stat-value">
+                            {usersData.length > 0 && usersData.some(u => u.registrationDate) ? 
+                              [...usersData]
+                                .filter(u => u.registrationDate)
+                                .sort((a, b) => b.registrationDate - a.registrationDate)[0]
+                                .registrationDate.toLocaleDateString() : 
+                              'N/A'}
+                          </p>
+                        </div>
+                        <div className="stat-box">
+                          <p className="stat-label">Oldest User</p>
+                          <p className="stat-value">
+                            {usersData.length > 0 && usersData.some(u => u.registrationDate) ? 
+                              [...usersData]
+                                .filter(u => u.registrationDate)
+                                .sort((a, b) => a.registrationDate - b.registrationDate)[0]
+                                .registrationDate.toLocaleDateString() : 
+                              'N/A'}
+                          </p>
+                        </div>
+                        <div className="stat-box">
+                          <p className="stat-label">Avg. Likes per Musician</p>
+                          <p className="stat-value">
+                            {usersData.some(u => u.accountType === 'Musician') ? 
+                              (usersData.filter(u => u.accountType === 'Musician')
+                                .reduce((sum, u) => sum + (u.totalLikes || 0), 0) / 
+                               Math.max(1, usersData.filter(u => u.accountType === 'Musician').length))
+                                .toLocaleString(undefined, {maximumFractionDigits: 1}) : 
+                              '0'}
+                          </p>
+                        </div>
+                        <div className="stat-box">
+                          <p className="stat-label">Most Liked User</p>
+                          <p className="stat-value">
+                            {usersData.length > 0 ? 
+                              [...usersData]
+                                .sort((a, b) => b.totalLikes - a.totalLikes)[0]
+                                .name : 
+                              'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 )
             }
           </>
         )}
 
         {/* report 3 */}
-        {currentReport === 'report3' && <p>report 3 coming soon…</p>}
+        {currentReport === 'report3' && <p>report 3 coming soon…</p>}
       </div>
     </div>
   );

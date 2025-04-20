@@ -2382,25 +2382,49 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/genre")) {
 
 
 // helper for report number 2
-async function getUsersReport(minViews, maxViews, minLikes, maxLikes, limit, sortBy, sortOrder) {
+async function getUsersReport(minViews, maxViews, minLikes, maxLikes, limit, sortBy, sortOrder, startDate, endDate) {
   let connection;
   try {
     connection = await mysql.createConnection(dbConfig);
 
-    // build optional having‑filters on aggregated totals
+    // build optional having-filters on aggregated totals
     const havings = [];
-    const params  = [];
-    if (minViews)  { havings.push("total_views  >= ?"); params.push(minViews); }
-    if (maxViews)  { havings.push("total_views  <= ?"); params.push(maxViews); }
-    if (minLikes)  { havings.push("total_likes >= ?"); params.push(minLikes); }
-    if (maxLikes)  { havings.push("total_likes <= ?"); params.push(maxLikes); }
+    const params = [];
+    if (minViews) { havings.push("total_views >= ?"); params.push(minViews); }
+    if (maxViews) { havings.push("total_views <= ?"); params.push(maxViews); }
+    if (minLikes) { havings.push("total_likes >= ?"); params.push(minLikes); }
+    if (maxLikes) { havings.push("total_likes <= ?"); params.push(maxLikes); }
+    
+    // Date filters (new)
+    const whereClauses = [];
+    if (startDate) {
+      whereClauses.push("u.registration_date >= ?");
+      params.push(startDate + " 00:00:00");
+    }
+    if (endDate) {
+      whereClauses.push("u.registration_date <= ?");
+      params.push(endDate + " 23:59:59");
+    }
+    
+    const whereClause = whereClauses.length
+      ? "WHERE " + whereClauses.join(" AND ")
+      : "";
+    
     const havingClause = havings.length
       ? "HAVING " + havings.join(" AND ")
       : "";
 
     // pick sort field & direction
-    const sortField = sortBy === "likes" ? "total_likes" : "total_views";
-    const order     = sortOrder.toUpperCase() === "ASC" ? "ASC" : "DESC";
+    let sortField;
+    if (sortBy === "likes") {
+      sortField = "total_likes";
+    } else if (sortBy === "date") {
+      sortField = "u.registration_date"; // New sort option
+    } else {
+      sortField = "total_views";
+    }
+    
+    const order = sortOrder.toUpperCase() === "ASC" ? "ASC" : "DESC";
 
     // apply limit if present
     const limitClause = limit
@@ -2412,13 +2436,15 @@ async function getUsersReport(minViews, maxViews, minLikes, maxLikes, limit, sor
       SELECT
         u.user_id,
         u.name,
-        COALESCE(SUM(s.views),    0) AS total_views,
-        COALESCE(COUNT(l.like_id), 0) AS total_likes,
-        '' AS top_genres
+        u.registration_date, 
+        u.account_type,
+        COALESCE(SUM(s.views), 0) AS total_views,
+        COALESCE(COUNT(l.like_id), 0) AS total_likes
       FROM users u
       LEFT JOIN songs s ON s.musician_id = u.user_id
-      LEFT JOIN likes l ON l.song_id     = s.song_id
-      GROUP BY u.user_id
+      LEFT JOIN likes l ON l.song_id = s.song_id
+      ${whereClause}
+      GROUP BY u.user_id, u.name, u.registration_date, u.account_type
       ${havingClause}
       ORDER BY ${sortField} ${order}
       ${limitClause}
@@ -2442,14 +2468,17 @@ async function getUsersReport(minViews, maxViews, minLikes, maxLikes, limit, sor
 
 // route for report 2
 if (req.method === "GET" && req.url.startsWith("/admin/reports/users")) {
-  const urlObj    = new URL(req.url, `http://${req.headers.host}`);
-  const minViews  = urlObj.searchParams.get("minViews")  || "";
-  const maxViews  = urlObj.searchParams.get("maxViews")  || "";
-  const minLikes  = urlObj.searchParams.get("minLikes")  || "";
-  const maxLikes  = urlObj.searchParams.get("maxLikes")  || "";
-  const limit     = urlObj.searchParams.get("limit")     || "";
-  const sortBy    = urlObj.searchParams.get("sortBy")    || "views";
+  const urlObj = new URL(req.url, `http://${req.headers.host}`);
+  const minViews = urlObj.searchParams.get("minViews") || "";
+  const maxViews = urlObj.searchParams.get("maxViews") || "";
+  const minLikes = urlObj.searchParams.get("minLikes") || "";
+  const maxLikes = urlObj.searchParams.get("maxLikes") || "";
+  const limit = urlObj.searchParams.get("limit") || "";
+  const sortBy = urlObj.searchParams.get("sortBy") || "views";
   const sortOrder = urlObj.searchParams.get("sortOrder") || "DESC";
+  // New parameters
+  const startDate = urlObj.searchParams.get("startDate") || "";
+  const endDate = urlObj.searchParams.get("endDate") || "";
 
   try {
     const users = await getUsersReport(
@@ -2459,8 +2488,11 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/users")) {
       maxLikes,
       limit,
       sortBy,
-      sortOrder
+      sortOrder,
+      startDate,
+      endDate
     );
+    
     res.writeHead(200, { "Content-Type": "application/json" });
     // wrap in an object for consistency
     res.end(JSON.stringify({ users }));
