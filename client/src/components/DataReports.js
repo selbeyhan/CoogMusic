@@ -59,6 +59,8 @@ export default function DataReports() {
   const [engagementLoading, setEngagementLoading] = useState(false);
   const [engagementStart, setEngagementStart]     = useState('');
   const [engagementEnd, setEngagementEnd]         = useState('');
+  const [appliedEngagementStart, setAppliedEngagementStart] = useState('');
+  const [appliedEngagementEnd, setAppliedEngagementEnd]     = useState('');
 
   // toggle a genre checkbox
   function toggleGenre(g) {
@@ -181,12 +183,16 @@ export default function DataReports() {
 
   // fetch report 3 (engagement)
   const fetchEngagementReport = async () => {
+    // remember this as the applied range
+    setAppliedEngagementStart(engagementStart);
+    setAppliedEngagementEnd(engagementEnd);
+  
     setEngagementLoading(true);
     try {
       const params = new URLSearchParams();
       if (engagementStart) params.append('start', engagementStart);
       if (engagementEnd)   params.append('end',   engagementEnd);
-
+  
       const res  = await fetch(`/admin/reports/engagement?${params}`);
       const json = await res.json();
       setEngagementData(normalizeEngagement(json.data || []));
@@ -196,6 +202,7 @@ export default function DataReports() {
       setEngagementLoading(false);
     }
   };
+  
 
   // clear filters for report 3
   const clearEngagementFilters = () => {
@@ -214,6 +221,8 @@ export default function DataReports() {
       tension: 0.1
     }]
   };
+
+
 
   return (
     <div className="admin-portal">
@@ -463,102 +472,103 @@ export default function DataReports() {
 
         {/* report 3 */}
         {currentReport === 'report3' && (
-          <>
-            <h2>
-              Engagement Report
-              {engagementStart && engagementEnd
-                ? ` for ${engagementStart} to ${engagementEnd}`
-                : ""}
-            </h2>
+            <>
+              <h2>
+                Engagement Report
+                {appliedEngagementStart && appliedEngagementEnd
+                  ? ` for ${appliedEngagementStart} to ${appliedEngagementEnd}`
+                  : ""}
+              </h2>
 
-            <div className="filters">
-              <label>
-                start date:
-                <input
-                  type="date"
-                  value={engagementStart}
-                  onChange={e => setEngagementStart(e.target.value)}
-                />
-              </label>
-              <label>
-                end date:
-                <input
-                  type="date"
-                  value={engagementEnd}
-                  onChange={e => setEngagementEnd(e.target.value)}
-                />
-              </label>
-              <button className="primary" onClick={fetchEngagementReport}>
-                fetch engagement
-              </button>
-              <button className="secondary" onClick={clearEngagementFilters}>
-                clear filters
-              </button>
-            </div>
+              <div className="filters">
+                <label>
+                  start date:
+                  <input
+                    type="date"
+                    value={engagementStart}
+                    onChange={e => setEngagementStart(e.target.value)}
+                  />
+                </label>
+                <label>
+                  end date:
+                  <input
+                    type="date"
+                    value={engagementEnd}
+                    onChange={e => setEngagementEnd(e.target.value)}
+                  />
+                </label>
+                <button className="primary" onClick={fetchEngagementReport}>
+                  fetch engagement
+                </button>
+                <button className="secondary" onClick={clearEngagementFilters}>
+                  clear filters
+                </button>
+              </div>
 
-            {engagementLoading
-              ? <p>loading engagement data…</p>
-              : engagementData.length === 0
-                ? <p>no data for this range.</p>
-                : (
-                  <>
-                    <div className="chart">
-                      <Line
-                        data={lineData}
-                        options={{
-                          plugins: {
-                            title: {
-                              display: true,
-                              text: engagementStart && engagementEnd
-                                ? `Engagement from ${engagementStart} to ${engagementEnd}`
-                                : 'Engagement over time'
+              {engagementLoading
+                ? <p>loading engagement data…</p>
+                : engagementData.length === 0
+                  ? <p>no data for this range.</p>
+                  : (
+                    <>
+                      <div className="chart">
+                        <Line
+                          data={lineData}
+                          options={{
+                            plugins: {
+                              title: {
+                                display: true,
+                                text: appliedEngagementStart && appliedEngagementEnd
+                                  ? `Engagement from ${appliedEngagementStart} to ${appliedEngagementEnd}`
+                                  : 'Engagement over time'
+                              },
+                              tooltip: { mode: 'index', intersect: false }
                             },
-                            tooltip: { mode: 'index', intersect: false }
-                          },
-                          scales: {
-                            x: { title: { display: true, text: 'date' } },
-                            y: { title: { display: true, text: 'score' } }
-                          }
-                        }}
-                      />
-                    </div>
-                    <div className="table">
-                      <h3>
-                        Daily Engagement
-                        {engagementStart && engagementEnd
-                          ? ` from ${engagementStart} to ${engagementEnd}`
-                          : ''}
-                      </h3>
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Song Views</th>
-                            <th>Song Uploads</th>
-                            <th>Playlist Uploads</th>
-                            <th>Album Creations</th>
-                            <th>Total Engagement Score</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {engagementData.map(d => (
-                            <tr key={d.day}>
-                              <td>{d.day}</td>
-                              <td>{d.views}</td>
-                              <td>{d.uploads}</td>
-                              <td>{d.playlists}</td>
-                              <td>{d.albums}</td>
-                              <td>{d.engagement_score}</td>
+                            scales: {
+                              x: { title: { display: true, text: 'date' } },
+                              y: { title: { display: true, text: 'score' } }
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="table">
+                        <h3>
+                          Daily Engagement
+                          {appliedEngagementStart && appliedEngagementEnd
+                            ? ` from ${appliedEngagementStart} to ${appliedEngagementEnd}`
+                            : ''}
+                        </h3>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th>Song Views</th>
+                              <th>Song Uploads</th>
+                              <th>Playlist Uploads</th>
+                              <th>Album Creations</th>
+                              <th>Total Engagement Score</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                )
-            }
-          </>
-        )}
+                          </thead>
+                          <tbody>
+                            {engagementData.map(d => (
+                              <tr key={d.day}>
+                                <td>{d.day}</td>
+                                <td>{d.views}</td>
+                                <td>{d.uploads}</td>
+                                <td>{d.playlists}</td>
+                                <td>{d.albums}</td>
+                                <td>{d.engagement_score}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )
+              }
+            </>
+          )}
+
 
 
 
