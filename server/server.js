@@ -2510,6 +2510,93 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/users")) {
 
 
 
+
+/* report 3*/
+
+// helper for report number 3
+async function getEngagementReport(startDate, endDate) {
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+
+    // build optional date filters
+    const clauses = [];
+    const params  = [];
+    if (startDate) { clauses.push("t.day >= ?"); params.push(startDate); }
+    if (endDate)   { clauses.push("t.day <= ?");   params.push(endDate);   }
+    const whereClause = clauses.length
+      ? "WHERE " + clauses.join(" AND ")
+      : "";
+
+    // each sub‑query produces daily counts for one metric, then we UNION them
+    const sql = `
+      SELECT
+        t.day,
+        SUM(t.views)    AS views,
+        SUM(t.uploads)  AS uploads,
+        SUM(t.playlists) AS playlists,
+        SUM(t.albums)   AS albums,
+        SUM(t.views + t.uploads + t.playlists + t.albums) AS engagement_score
+      FROM (
+        SELECT DATE(timestamp)           AS day, COUNT(*) AS views,    0 AS uploads, 0 AS playlists, 0 AS albums
+          FROM \`streaming history\`
+          GROUP BY day
+        UNION ALL
+        SELECT DATE(upload_date)        AS day, 0 AS views,           COUNT(*) AS uploads, 0 AS playlists, 0 AS albums
+          FROM songs
+          GROUP BY day
+        UNION ALL
+        SELECT DATE(creation_date)      AS day, 0 AS views,           0 AS uploads, COUNT(*) AS playlists, 0 AS albums
+          FROM playlists
+          GROUP BY day
+        UNION ALL
+        SELECT DATE(release_date)       AS day, 0 AS views,           0 AS uploads, 0 AS playlists, COUNT(*) AS albums
+          FROM albums
+          GROUP BY day
+      ) t
+      ${whereClause}
+      GROUP BY t.day
+      ORDER BY t.day;
+    `;
+
+    const [rows] = await connection.execute(sql, params);
+
+    // format dates as YYYY‑MM‑DD strings
+    return rows.map(r => ({
+      day:              r.day.toISOString().slice(0, 10),
+      views:            r.views,
+      uploads:          r.uploads,
+      playlists:        r.playlists,
+      albums:           r.albums,
+      engagement_score: r.engagement_score
+    }));
+  } finally {
+    if (connection) await connection.end();
+  }
+}
+
+// route for report 3
+if (req.method === "GET" && req.url.startsWith("/admin/reports/engagement")) {
+  const urlObj   = new URL(req.url, `http://${req.headers.host}`);
+  const start    = urlObj.searchParams.get("start") || "";
+  const end      = urlObj.searchParams.get("end")   || "";
+
+  try {
+    const data = await getEngagementReport(start, end);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ data }));
+  } catch (err) {
+    console.error("❌ Error generating engagement report:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: err.message }));
+  }
+  return;
+}
+
+/* report 3*/
+
+
+
   // Serve React Frontend (Static Files)
   const buildPath = path.join(__dirname, "build");
 
