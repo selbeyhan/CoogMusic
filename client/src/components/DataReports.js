@@ -53,8 +53,8 @@ export default function DataReports() {
     return raw.map(u => ({
       user_id:    u.user_id,
       name:       u.name,
-      totalViews: u.total_views ?? 0,
-      totalLikes: u.total_likes ?? 0,
+      totalViews: u.total_views  ?? 0,
+      totalLikes: u.total_likes  ?? 0,
     }));
   }
 
@@ -88,11 +88,17 @@ export default function DataReports() {
       const params = new URLSearchParams();
       params.append('sortBy',    userSortBy);
       params.append('sortOrder', userSortOrder);
-      if (minUserViews) params.append('minViews', minUserViews);
-      if (maxUserViews) params.append('maxViews', maxUserViews);
-      if (minUserLikes) params.append('minLikes', minUserLikes);
-      if (maxUserLikes) params.append('maxLikes', maxUserLikes);
-      if (userLimit)    params.append('limit',    userLimit);
+
+      // only append the relevant min/max pair
+      if (userSortBy === 'views') {
+        if (minUserViews) params.append('minViews', minUserViews);
+        if (maxUserViews) params.append('maxViews', maxUserViews);
+      } else {
+        if (minUserLikes) params.append('minLikes', minUserLikes);
+        if (maxUserLikes) params.append('maxLikes', maxUserLikes);
+      }
+
+      if (userLimit) params.append('limit', userLimit);
 
       const res  = await fetch(`/admin/reports/users?${params}`);
       const json = await res.json();
@@ -193,38 +199,50 @@ export default function DataReports() {
                   <option value="asc">least to most</option>
                 </select>
               </label>
-              <label>min views:
-                <input
-                  type="number"
-                  value={minUserViews}
-                  onChange={e => setMinUserViews(e.target.value)}
-                  placeholder="0"
-                />
-              </label>
-              <label>max views:
-                <input
-                  type="number"
-                  value={maxUserViews}
-                  onChange={e => setMaxUserViews(e.target.value)}
-                  placeholder="∞"
-                />
-              </label>
-              <label>min likes:
-                <input
-                  type="number"
-                  value={minUserLikes}
-                  onChange={e => setMinUserLikes(e.target.value)}
-                  placeholder="0"
-                />
-              </label>
-              <label>max likes:
-                <input
-                  type="number"
-                  value={maxUserLikes}
-                  onChange={e => setMaxUserLikes(e.target.value)}
-                  placeholder="∞"
-                />
-              </label>
+
+              {userSortBy === 'views'
+                ? (
+                  <>
+                    <label>min views:
+                      <input
+                        type="number"
+                        value={minUserViews}
+                        onChange={e => setMinUserViews(e.target.value)}
+                        placeholder="0"
+                      />
+                    </label>
+                    <label>max views:
+                      <input
+                        type="number"
+                        value={maxUserViews}
+                        onChange={e => setMaxUserViews(e.target.value)}
+                        placeholder="∞"
+                      />
+                    </label>
+                  </>
+                )
+                : (
+                  <>
+                    <label>min likes:
+                      <input
+                        type="number"
+                        value={minUserLikes}
+                        onChange={e => setMinUserLikes(e.target.value)}
+                        placeholder="0"
+                      />
+                    </label>
+                    <label>max likes:
+                      <input
+                        type="number"
+                        value={maxUserLikes}
+                        onChange={e => setMaxUserLikes(e.target.value)}
+                        placeholder="∞"
+                      />
+                    </label>
+                  </>
+                )
+              }
+
               <label>limit:
                 <input
                   type="number"
@@ -233,8 +251,13 @@ export default function DataReports() {
                   placeholder="10"
                 />
               </label>
-              <button className="primary" onClick={fetchUsersReport}>fetch report</button>
-              <button className="secondary" onClick={clearUsersFilters}>clear filters</button>
+
+              <button className="primary" onClick={fetchUsersReport}>
+                fetch report
+              </button>
+              <button className="secondary" onClick={clearUsersFilters}>
+                clear filters
+              </button>
             </div>
 
             {usersLoading
