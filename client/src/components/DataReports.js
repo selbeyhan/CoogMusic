@@ -25,6 +25,7 @@ export default function DataReports() {
   const [loading, setLoading]             = useState(false);
   const navigate                          = useNavigate();
 
+  // fetch data for genre report
   const fetchReport = async () => {
     setLoading(true);
     try {
@@ -41,18 +42,16 @@ export default function DataReports() {
     }
   };
 
-  // when switching to genre report, clear old data
-  useEffect(() => {
-    if (currentReport === 'genre') {
-      setGenreCounts({});
-      setSongs([]);
-    }
-  }, [currentReport]);
+  // handle click on Genre button
+  const handleGenreClick = () => {
+    setCurrentReport('genre');
+    fetchReport();
+  };
 
-  const labels = Object.keys(genreCounts);
-  const values = Object.values(genreCounts);
+  const labels          = Object.keys(genreCounts);
+  const values          = Object.values(genreCounts);
   const backgroundColor = labels.map(l => genreColors[l] || '#ccc');
-  const chartData = { labels, datasets: [{ data: values, backgroundColor }] };
+  const chartData       = { labels, datasets: [{ data: values, backgroundColor }] };
 
   return (
     <div className="admin-portal">
@@ -67,7 +66,7 @@ export default function DataReports() {
         <div className="report-buttons">
           <button
             className={currentReport === 'genre' ? 'primary' : ''}
-            onClick={() => setCurrentReport('genre')}
+            onClick={handleGenreClick}
           >
             Genre of Songs
           </button>
@@ -134,8 +133,7 @@ export default function DataReports() {
                           <td>{song.title}</td>
                           <td>{song.artist_name}</td>
                           <td>{song.genre}</td>
-                          <td>{new Date(song.upload_date)
-                            .toLocaleDateString()}</td>
+                          <td>{new Date(song.upload_date).toLocaleDateString()}</td>
                         </tr>
                       ))}
                     </tbody>
