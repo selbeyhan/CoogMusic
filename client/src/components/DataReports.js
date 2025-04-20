@@ -40,6 +40,9 @@ export default function DataReports() {
   const [minViews, setMinViews]             = useState('');
   const [maxViews, setMaxViews]             = useState('');
   const [loading, setLoading]               = useState(false);
+  const [songRepSortBy, setSongRepSortBy] = useState('views');
+  const [songRepSortOrder, setSongRepSortOrder] = useState('desc');
+
 
   // report 2 state
   const [usersData, setUsersData]         = useState([]);
@@ -53,6 +56,8 @@ export default function DataReports() {
   const [userEndDate, setUserEndDate]     = useState('');
   const [userVisualType, setUserVisualType] = useState('table');
   const [userTimeGrouping, setUserTimeGrouping] = useState('month');
+
+
 
   // toggle a genre checkbox
   function toggleGenre(g) {
@@ -319,7 +324,7 @@ export default function DataReports() {
             className={currentReport === 'genre' ? 'primary' : ''}
             onClick={() => { setCurrentReport('genre'); fetchReport(); }}
           >
-            Genre of Songs
+            Songs Report
           </button>
           <button
             className={currentReport === 'users' ? 'primary' : ''}
@@ -403,7 +408,33 @@ export default function DataReports() {
                       <Pie data={chartData} />
                     </div>
                     <div className="table genre-table">
-                      <h3>song details</h3>
+                      {/* Sort controls */}
+                      <div className="table-sorting-controls" style={{ marginBottom: '10px' }}>
+                        <label style={{ marginRight: '10px' }}>
+                          Sort By:
+                          <select value={songRepSortBy} onChange={e => setSongRepSortBy(e.target.value)} style={{ marginLeft: '5px' }}>
+                            <option value="views">Views</option>
+                            <option value="upload_date">Upload Date</option>
+                          </select>
+                        </label>
+                        <label>
+                          Order:
+                          <select value={songRepSortOrder} onChange={e => setSongRepSortOrder(e.target.value)} style={{ marginLeft: '5px' }}>
+                            <option value="asc">Ascending</option>
+                            <option value="desc">Descending</option>
+                          </select>
+                        </label>
+                      </div>
+
+                      {/* Dynamic Header Title */}
+                      <h3>
+                        song details
+                        {startDate && ` from ${startDate}`}
+                        {endDate && ` to ${endDate}`}
+                        {selectedGenres.length > 0 && ` | genres: ${selectedGenres.join(', ')}`}
+                        {(minViews || maxViews) && ` | views: ${minViews || 0} - ${maxViews || '∞'}`}
+                      </h3>
+
                       <table>
                         <thead>
                           <tr>
@@ -415,15 +446,27 @@ export default function DataReports() {
                           </tr>
                         </thead>
                         <tbody>
-                          {songs.map(s => (
-                            <tr key={s.song_id}>
-                              <td>{s.title}</td>
-                              <td>{s.artist_name}</td>
-                              <td>{s.genre}</td>
-                              <td>{s.views}</td>
-                              <td>{new Date(s.upload_date).toLocaleDateString()}</td>
-                            </tr>
-                          ))}
+                          {[...songs]
+                            .sort((a, b) => {
+                              if (songRepSortBy === 'views') {
+                                return songRepSortOrder === 'asc'
+                                  ? a.views - b.views
+                                  : b.views - a.views;
+                              } else {
+                                return songRepSortOrder === 'asc'
+                                  ? new Date(a.upload_date) - new Date(b.upload_date)
+                                  : new Date(b.upload_date) - new Date(a.upload_date);
+                              }
+                            })
+                            .map(s => (
+                              <tr key={s.song_id}>
+                                <td>{s.title}</td>
+                                <td>{s.artist_name}</td>
+                                <td>{s.genre}</td>
+                                <td>{s.views}</td>
+                                <td>{new Date(s.upload_date).toLocaleDateString()}</td>
+                              </tr>
+                            ))}
                         </tbody>
                       </table>
                     </div>
@@ -432,6 +475,7 @@ export default function DataReports() {
             }
           </>
         )}
+
 
         {/* report 2 - users report */}
         {currentReport === 'users' && (
