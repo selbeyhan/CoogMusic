@@ -62,13 +62,23 @@ export default function DataReports() {
     fetchReport();
   };
 
-  const clearFilters = () => {
+  const clearFilters = async () => {
     setStartDate('');
     setEndDate('');
     setSelectedGenres([]);
     setMinViews('');
     setMaxViews('');
-    fetchReport();
+    setLoading(true);
+    try {
+      const res  = await fetch('/admin/reports/genre');
+      const data = await res.json();
+      setGenreCounts(data.genreCounts);
+      setSongs(data.songs);
+    } catch (err) {
+      console.error('Error clearing filters:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const labels          = Object.keys(genreCounts);
@@ -84,7 +94,6 @@ export default function DataReports() {
           Back to Users
         </button>
       </div>
-
       <div className="report-box">
         <div className="report-buttons">
           <button
@@ -134,7 +143,6 @@ export default function DataReports() {
                   <label key={g}>
                     <input
                       type="checkbox"
-                      value={g}
                       checked={selectedGenres.includes(g)}
                       onChange={() => toggleGenre(g)}
                     />{' '}
@@ -172,6 +180,8 @@ export default function DataReports() {
 
             {loading ? (
               <p>Loading reports…</p>
+            ) : songs.length === 0 ? (
+              <p>No songs fit this criteria.</p>
             ) : (
               <>
                 <div className="chart">
