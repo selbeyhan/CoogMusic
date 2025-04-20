@@ -159,6 +159,9 @@ export default function DataReports() {
       .finally(() => setUsersLoading(false));
   };
 
+ 
+
+
   // prepare chart data for report 1
   const labels          = Object.keys(genreCounts);
   const values          = Object.values(genreCounts);
@@ -205,11 +208,28 @@ export default function DataReports() {
   
 
   // clear filters for report 3
-  const clearEngagementFilters = () => {
+  const clearEngagementFilters = async () => {
+    // reset input fields
     setEngagementStart('');
     setEngagementEnd('');
-    fetchEngagementReport();
+    // reset the “applied” header dates
+    setAppliedEngagementStart('');
+    setAppliedEngagementEnd('');
+
+    // re‐fetch unfiltered data
+    setEngagementLoading(true);
+    try {
+      const res = await fetch('/admin/reports/engagement');
+      const json = await res.json();
+      // normalize and set
+      setEngagementData(normalizeEngagement(json.data || []));
+    } catch {
+      setEngagementData([]);
+    } finally {
+      setEngagementLoading(false);
+    }
   };
+
 
   // prepare chart data for report 3
   const lineData = {
