@@ -35,6 +35,8 @@ export default function DataReports() {
   const [usersLoading, setUsersLoading]   = useState(false);
   const [minUserViews, setMinUserViews]   = useState('');
   const [maxUserViews, setMaxUserViews]   = useState('');
+  const [minUserLikes, setMinUserLikes]   = useState('');
+  const [maxUserLikes, setMaxUserLikes]   = useState('');
   const [userLimit, setUserLimit]         = useState('');
   const [userSortBy, setUserSortBy]       = useState('views');
   const [userSortOrder, setUserSortOrder] = useState('desc');
@@ -51,8 +53,8 @@ export default function DataReports() {
     return raw.map(u => ({
       user_id:    u.user_id,
       name:       u.name,
-      totalViews: u.total_views  ?? 0,
-      totalLikes: u.total_likes  ?? 0,
+      totalViews: u.total_views ?? 0,
+      totalLikes: u.total_likes ?? 0,
     }));
   }
 
@@ -88,6 +90,8 @@ export default function DataReports() {
       params.append('sortOrder', userSortOrder);
       if (minUserViews) params.append('minViews', minUserViews);
       if (maxUserViews) params.append('maxViews', maxUserViews);
+      if (minUserLikes) params.append('minLikes', minUserLikes);
+      if (maxUserLikes) params.append('maxLikes', maxUserLikes);
       if (userLimit)    params.append('limit',    userLimit);
 
       const res  = await fetch(`/admin/reports/users?${params}`);
@@ -114,6 +118,8 @@ export default function DataReports() {
   const clearUsersFilters = () => {
     setMinUserViews('');
     setMaxUserViews('');
+    setMinUserLikes('');
+    setMaxUserLikes('');
     setUserLimit('');
     setUserSortBy('views');
     setUserSortOrder('desc');
@@ -175,19 +181,19 @@ export default function DataReports() {
           <>
             <h2>Users Report</h2>
             <div className="filters">
-              <label>Sort by:
+              <label>sort by:
                 <select value={userSortBy} onChange={e => setUserSortBy(e.target.value)}>
-                  <option value="views">Total Views</option>
-                  <option value="likes">Total Likes</option>
+                  <option value="views">total views</option>
+                  <option value="likes">total likes</option>
                 </select>
               </label>
-              <label>Order:
+              <label>order:
                 <select value={userSortOrder} onChange={e => setUserSortOrder(e.target.value)}>
-                  <option value="desc">Most to Least</option>
-                  <option value="asc">Least to Most</option>
+                  <option value="desc">most to least</option>
+                  <option value="asc">least to most</option>
                 </select>
               </label>
-              <label>Min Views:
+              <label>min views:
                 <input
                   type="number"
                   value={minUserViews}
@@ -195,7 +201,7 @@ export default function DataReports() {
                   placeholder="0"
                 />
               </label>
-              <label>Max Views:
+              <label>max views:
                 <input
                   type="number"
                   value={maxUserViews}
@@ -203,7 +209,23 @@ export default function DataReports() {
                   placeholder="∞"
                 />
               </label>
-              <label>Limit:
+              <label>min likes:
+                <input
+                  type="number"
+                  value={minUserLikes}
+                  onChange={e => setMinUserLikes(e.target.value)}
+                  placeholder="0"
+                />
+              </label>
+              <label>max likes:
+                <input
+                  type="number"
+                  value={maxUserLikes}
+                  onChange={e => setMaxUserLikes(e.target.value)}
+                  placeholder="∞"
+                />
+              </label>
+              <label>limit:
                 <input
                   type="number"
                   value={userLimit}
@@ -211,23 +233,24 @@ export default function DataReports() {
                   placeholder="10"
                 />
               </label>
-              <button className="primary" onClick={fetchUsersReport}>Fetch Report</button>
-              <button className="secondary" onClick={clearUsersFilters}>Clear Filters</button>
+              <button className="primary" onClick={fetchUsersReport}>fetch report</button>
+              <button className="secondary" onClick={clearUsersFilters}>clear filters</button>
             </div>
 
             {usersLoading
-              ? <p>Loading users…</p>
+              ? <p>loading users…</p>
               : usersData.length === 0
-                ? <p>No users fit this criteria.</p>
+                ? <p>no users fit this criteria.</p>
                 : (
                   <div className="table">
-                    <h3>User Details</h3>
+                    <h3>user details</h3>
                     <table>
                       <thead>
                         <tr>
-                          <th>Rank</th>
-                          <th>Name</th>
-                          <th>{userSortBy === 'likes' ? 'Total Likes' : 'Total Views'}</th>
+                          <th>rank</th>
+                          <th>name</th>
+                          <th>total views</th>
+                          <th>total likes</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -235,7 +258,8 @@ export default function DataReports() {
                           <tr key={u.user_id}>
                             <td>{idx + 1}</td>
                             <td>{u.name}</td>
-                            <td>{userSortBy === 'likes' ? u.totalLikes : u.totalViews}</td>
+                            <td>{u.totalViews}</td>
+                            <td>{u.totalLikes}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -247,7 +271,7 @@ export default function DataReports() {
         )}
 
         {/* report 3 */}
-        {currentReport === 'report3' && <p>Report 3 coming soon…</p>}
+        {currentReport === 'report3' && <p>report 3 coming soon…</p>}
       </div>
     </div>
   );
