@@ -68,6 +68,8 @@ export default function DataReports() {
   const [engagementEnd, setEngagementEnd] = useState('');
   const [appliedEngagementStart, setAppliedEngagementStart] = useState('');
   const [appliedEngagementEnd, setAppliedEngagementEnd] = useState('');
+  const [currentGraph, setCurrentGraph] = useState(0); // for multiple graphs
+
 
 
 
@@ -384,16 +386,93 @@ const fetchEngagementReport = async (engagementStart, engagementEnd) => {
     setAppliedEngagementEnd('');
   };
 
-  // prepare chart data for report 3
-  const lineData = {
-    labels: engagementData.map(d => d.day),
-    datasets: [{
-      label: 'engagement score',
-      data: engagementData.map(d => d.engagement_score),
-      fill: false,
-      tension: 0.1
-    }]
+
+
+//fncs to handle next and prev graphs 
+  const handlePrevGraph = () => {
+    setCurrentGraph((prev) => (prev === 0 ? graphData.length - 1 : prev - 1));
   };
+
+
+  const handleNextGraph = () => {
+    setCurrentGraph((prev) => (prev === graphData.length - 1 ? 0 : prev + 1));
+  };
+
+
+  //switch between graphs in rep 3
+  const graphData = [
+    {
+      title: "Song Views",
+      data: {
+        labels: engagementData.map(d => d.day), // Dynamically fetch labels from engagement data
+        datasets: [
+          {
+            label: "Views",
+            data: engagementData.map(d => d.views), // Dynamically fetch data from engagement data
+            borderColor: '#FF6384',
+            fill: false,
+          },
+        ],
+      },
+    },
+    {
+      title: "Song Uploads",
+      data: {
+        labels: engagementData.map(d => d.day),
+        datasets: [
+          {
+            label: "Uploads",
+            data: engagementData.map(d => d.uploads),
+            borderColor: '#36A2EB',
+            fill: false,
+          },
+        ],
+      },
+    },
+    {
+      title: "Playlist Uploads",
+      data: {
+        labels: engagementData.map(d => d.day),
+        datasets: [
+          {
+            label: "Uploads",
+            data: engagementData.map(d => d.playlists),
+            borderColor: '#FFCE56',
+            fill: false,
+          },
+        ],
+      },
+    },
+    {
+      title: "Album Creations",
+      data: {
+        labels: engagementData.map(d => d.day),
+        datasets: [
+          {
+            label: "Creations",
+            data: engagementData.map(d => d.albums),
+            borderColor: '#4BC0C0',
+            fill: false,
+          },
+        ],
+      },
+    },
+    {
+      title: "Total Engagement Score",
+      data: {
+        labels: engagementData.map(d => d.day),
+        datasets: [
+          {
+            label: "Engagement",
+            data: engagementData.map(d => d.engagement_score),
+            borderColor: '#9966FF',
+            fill: false,
+          },
+        ],
+      },
+    }
+  ];
+  
 
   const weeklyAverages = useMemo(() => {
     if (engagementData.length === 0) return null;
@@ -1016,22 +1095,26 @@ const fetchEngagementReport = async (engagementStart, engagementEnd) => {
               <p>no data for this range.</p>
             ) : (
               <>
+                <div className="graph-navigation">
+                  <button onClick={handlePrevGraph}>{"<"}</button> {/* Previous graph */}
+                  <button onClick={handleNextGraph}>{">"}</button> {/* Next graph */}
+                </div>
+
+                {/* Render the selected graph dynamically */}
                 <div className="chart">
                   <Line
-                    data={lineData}
+                    data={graphData[currentGraph].data} // Dynamically fetch data for the current graph
                     options={{
                       plugins: {
                         title: {
                           display: true,
-                          text: appliedEngagementStart && appliedEngagementEnd
-                            ? `Engagement from ${appliedEngagementStart} to ${appliedEngagementEnd}`
-                            : 'Engagement over time'
+                          text: graphData[currentGraph].title, // Display the current graph's title
                         },
                         tooltip: { mode: 'index', intersect: false }
                       },
                       scales: {
-                        x: { title: { display: true, text: 'date' } },
-                        y: { title: { display: true, text: 'score' } }
+                        x: { title: { display: true, text: 'Date' } },
+                        y: { title: { display: true, text: 'Score' } }
                       }
                     }}
                   />
@@ -1048,11 +1131,11 @@ const fetchEngagementReport = async (engagementStart, engagementEnd) => {
                     <thead>
                       <tr>
                         <th>Date</th>
-                        <th>Song Views</th>
-                        <th>Song Uploads</th>
-                        <th>Playlist Uploads</th>
-                        <th>Album Creations</th>
-                        <th>Total Engagement Score</th>
+                        <th>Song Views</th>
+                        <th>Song Uploads</th>
+                        <th>Playlist Uploads</th>
+                        <th>Album Creations</th>
+                        <th>Total Engagement Score</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1068,10 +1151,9 @@ const fetchEngagementReport = async (engagementStart, engagementEnd) => {
                       ))}
                     </tbody>
                   </table>
-
                 </div>
 
-                {/* now render the memo’d stats unconditionally once we have data */}
+                {/* Now render the memo'd stats unconditionally once we have data */}
                 {weeklyAverages && (
                   <div className="user-stats-summary">
                     <h4>Weekly Averages</h4>
@@ -1103,6 +1185,7 @@ const fetchEngagementReport = async (engagementStart, engagementEnd) => {
             )}
           </>
         )}
+
 
       </div>
     </div>
