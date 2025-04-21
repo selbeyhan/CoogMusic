@@ -262,7 +262,6 @@ function AdminPortal() {
                 <th>Listens</th>
                 <th>Affil</th>
                 <th>Status</th>
-                <th>Role</th>
                 <th>ID</th>
                 <th>Act</th>
               </tr>
@@ -297,7 +296,6 @@ function AdminPortal() {
                         <option value={0}>Unverified</option>
                       </select>
                     </td>
-                    <td>{u.admin_role}</td>
                     <td>{u.user_id}</td>
                     <td>
                       <button onClick={() => handleDelete(u)}>Delete</button>
@@ -306,7 +304,7 @@ function AdminPortal() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="12">No users found</td>
+                  <td colSpan="11">No users found</td>
                 </tr>
               )}
             </tbody>

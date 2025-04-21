@@ -139,11 +139,11 @@
 .users-table th:nth-child(8),
 .users-table td:nth-child(8)   { width:  6%; }  /* Affil */
 .users-table th:nth-child(10),
-.users-table td:nth-child(10)  { width:  5%; }  /* Role */
+.users-table td:nth-child(10) { width: 6%; }  /* new id */
 .users-table th:nth-child(11),
-.users-table td:nth-child(11)  { width:  6%; }  /* ID */
-.users-table th:nth-child(12),
-.users-table td:nth-child(12)  { width:  4%; }  /* Act */
+.users-table td:nth-child(11) { width: 4%; } /* new action*/ 
+
+
 
 /* Responsive: small screens still scroll if needed */
 @media (max-width: 600px) {
