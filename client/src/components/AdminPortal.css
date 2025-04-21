@@ -103,7 +103,7 @@
 .users-table th:nth-child(9),
 .users-table td:nth-child(9) {
   width: auto;        /* allow growing beyond 7% */
-  min-width: 8ch;     /* room for ~8 characters */
+  min-width: 8ch;     /* room for more chars incase */
 }
 
 .users-table th {
@@ -121,7 +121,7 @@
   object-fit: cover;
 }
 
-/* Column widths (total ≈100%) */
+
 .users-table th:nth-child(1),
 .users-table td:nth-child(1)   { width:  8%; }  /* Name */
 .users-table th:nth-child(2),

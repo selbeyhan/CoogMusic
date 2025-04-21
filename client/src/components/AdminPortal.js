@@ -259,11 +259,11 @@ function AdminPortal() {
                 <th>Joined</th>
                 <th>Avatar</th>
                 <th>Bio</th>
-                <th>Listens</th>
-                <th>Affil</th>
+                <th>Monthly Views</th>
+                <th>Affiliation</th>
                 <th>Status</th>
                 <th>ID</th>
-                <th>Act</th>
+                <th>Delete</th>
               </tr>
             </thead>
             <tbody>
