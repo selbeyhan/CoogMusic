@@ -8,94 +8,22 @@ CoogMusic is a comprehensive music streaming platform designed specifically for 
 
 **Website URL:** [https://coogmusic.com/](https://coogmusic.com/)
 
-## Files Included in Submission
-
-This submission includes:
-
-1. **SQL Database Dump**
-   - `main_database_dump.sql` - Complete SQL dump of the populated database with all tables, data, and trigger definitions
-   
-2. **Application Source Code**
-   - `client/` - Frontend React application
-   - `server/` - Backend Node.js server
-   - `easydeploy.sh` - Automated deployment script
-
-3. **Documentation**
-   - `README.md` - This file
-   - `ProjectDocument.md` - Detailed project documentation
-
-## Installation Instructions
-
-### Prerequisites
-
-Before installing CoogMusic, ensure you have the following:
-- Node.js (v18 or later)
-- npm (v8 or later)
-- MySQL (v8 or later)
-- Azure Storage Account (for production deployment)
-- Clerk account for authentication
-
-### Database Setup
-
-1. Create a new MySQL database:
-   ```sql
-   CREATE DATABASE coogmusic;
-   ```
-
-2. Import the database dump:
-   ```bash
-   mysql -u your_username -p coogmusic < main_database_dump.sql
-   ```
-
-3. Update database configuration in `server/dbConfig.js` with your MySQL credentials.
-
 ### Local Development Setup
 
-1. **Clone the Repository (if you're using the source files directly)**
-   ```bash
-   git clone https://github.com/yourusername/coogmusic.git
-   cd coogmusic
-   ```
+1. **Install Dependencies and Run**
+   1. Open a terminal and navigate to the project root folder.
+   2. Make the script executable (only needed the first time):
+      Use the provided deployment script:
+      ```bash
+      chmod +x easydeploy.sh
+      ```
+      Run the script:
+      ```bash
+      ./easydeploy.sh
+      ```
+      Press any key to stop the server and clean up temporary files.
 
-2. **Set Up Environment Variables**
-
-   Create a `.env` file in the `server` directory:
-   ```
-   CLERK_API_KEY=sk_test_hHsyPcEKFcdp7VAjqneTtFU1KLYIh0n1rw9JTkgSfD
-   ```
-
-   Create a `.env` file in the `client` directory:
-   ```
-   REACT_APP_CLERK_FRONTEND_API=pk_test_cmVsaWV2ZWQtZ25hdC0xNC5jbGVyay5hY2NvdW50cy5kZXYk
-   ```
-
-3. **Install Dependencies and Run**
-
-   Use the provided deployment script:
-   ```bash
-   chmod +x easydeploy.sh
-   ./easydeploy.sh
-   ```
-
-   Or manually:
-   ```bash
-   # Install server dependencies
-   cd server
-   npm install
-   
-   # Install client dependencies and build
-   cd ../client
-   npm install
-   npm run build
-   
-   # Move build folder to server and run
-   mv build ../server/
-   cd ../server
-   node server.js
-   ```
-
-4. **Access the Application**
-
+2. **Access the Application**
    Open your browser and navigate to `http://localhost:8080`
 
 ## Project Document Summary
@@ -122,6 +50,6 @@ Before installing CoogMusic, ensure you have the following:
 
 ### 4. Queries/Reports
 
-- **Genre Report:** Analysis of song distribution by genre with filtering capabilities
+- **Song Report:** Analysis of song distribution by genre with filtering capabilities
 - **User Report:** User growth and engagement metrics with visualizations
 - **Engagement Report:** Platform activity tracking over time
