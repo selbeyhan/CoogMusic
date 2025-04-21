@@ -1348,7 +1348,9 @@ const engagementTableRows = filteredEngagementData.map(d => (
             }}
           />
         </div>
-
+        <div className="formula">
+          Song Views + Song Uploads + Playlist Uploads + Album Creations = Total Engagement Score
+        </div>
         <div className="table">
           <h3>
             Daily Engagement

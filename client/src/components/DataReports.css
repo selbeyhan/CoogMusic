@@ -233,10 +233,11 @@
   flex-direction: column;
   gap: 2rem;
   margin-bottom: 2rem;
+  justify-content: center;
+  align-items: center;
 }
 
 .chart-container {
-  background: white;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.05);
   padding: 1.5rem;
@@ -310,6 +311,7 @@
   .visualizations-container {
     flex-direction: row;
     flex-wrap: wrap;
+    justify-content: center;
   }
   
   .chart-container {
@@ -324,6 +326,11 @@
   margin-top: 1.5rem;
 }
 
+.chart-container,
+.chart {
+  margin: 0 auto 2rem;
+}
+
 .visualizations-container .users-table {
   max-height: 400px;
   overflow-y: auto;
@@ -332,4 +339,12 @@
 
 .visualizations-container .users-table table {
   margin-top: 0;
+}
+
+.formula {
+  text-align: center;
+  font-weight: bold;
+  margin: 1rem 0;
+  font-size: 1rem;
+  color: #333;
 }
