@@ -644,7 +644,7 @@ const engagementTableRows = filteredEngagementData.map(d => (
   // useEffect to re-fetch report 3 when filters are changed
   useEffect(() => {
     fetchEngagementReport(engagementStart, engagementEnd);
-  }, [engagementStart, engagementEnd, minEngagementViews, maxEngagementViews, minEngagementUploads, maxEngagementUploads, minEngagementPlaylists, maxEngagementPlaylists, minEngagementAlbums, maxEngagementAlbums, minEngagementScore, maxEngagementScore]); // Trigger fetch when start or end date changes
+  }, [fetchEngagementReport, engagementStart, engagementEnd, minEngagementViews, maxEngagementViews, minEngagementUploads, maxEngagementUploads, minEngagementPlaylists, maxEngagementPlaylists, minEngagementAlbums, maxEngagementAlbums, minEngagementScore, maxEngagementScore]); // Trigger fetch when start or end date changes
 
 
 
