@@ -376,6 +376,11 @@ const fetchEngagementReport = async (engagementStart, engagementEnd) => {
   }
 };
 
+  const handleFetchEngagement = () => {
+    fetchEngagementReport(engagementStart, engagementEnd); // Trigger fetch when button is clicked
+  };
+
+
   // clear filters for report 3
   const clearEngagementFilters = () => {
     // wipe the inputs
@@ -1081,7 +1086,7 @@ const fetchEngagementReport = async (engagementStart, engagementEnd) => {
                   onChange={e => setEngagementEnd(e.target.value)}
                 />
               </label>
-              <button className="primary" onClick={fetchEngagementReport}>
+              <button className="primary" onClick={handleFetchEngagement}>
                 fetch engagement
               </button>
               <button className="secondary" onClick={clearEngagementFilters}>
