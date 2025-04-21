@@ -1091,6 +1091,8 @@ const engagementTableRows = filteredEngagementData.map(d => (
                           <tr>
                             <th>rank</th>
                             <th>name</th>
+                            <th>signupdate</th>
+                            <th>account type</th>
                             <th>total views</th>
                             <th>total likes</th>
                           </tr>
@@ -1107,6 +1109,8 @@ const engagementTableRows = filteredEngagementData.map(d => (
                               <tr key={u.user_id}>
                                 <td>{idx + 1}</td>
                                 <td>{u.name}</td>
+                                <td>{u.registrationDate ? u.registrationDate.toLocaleDateString() : 'Unknown'}</td>
+                                <td>{u.accountType}</td>
                                 <td>{u.totalViews}</td>
                                 <td>{u.totalLikes}</td>
                               </tr>
