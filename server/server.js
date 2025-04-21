@@ -2618,7 +2618,7 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/genre")) {
 
 
 // helper for report number 2
-async function getUsersReport(minViews, maxViews, minLikes, maxLikes, limit, sortBy, sortOrder, startDate, endDate) {
+async function getUsersReport(minViews, maxViews, minLikes, maxLikes, limit, sortBy, sortOrder, startDate, endDate, roleFilter) {
   let connection;
   try {
     connection = await mysql.createConnection(dbConfig);
@@ -2631,7 +2631,7 @@ async function getUsersReport(minViews, maxViews, minLikes, maxLikes, limit, sor
     if (minLikes) { havings.push("total_likes >= ?"); params.push(minLikes); }
     if (maxLikes) { havings.push("total_likes <= ?"); params.push(maxLikes); }
     
-    // Date filters (new)
+    // Date filters
     const whereClauses = [];
     if (startDate) {
       whereClauses.push("u.registration_date >= ?");
@@ -2640,6 +2640,12 @@ async function getUsersReport(minViews, maxViews, minLikes, maxLikes, limit, sor
     if (endDate) {
       whereClauses.push("u.registration_date <= ?");
       params.push(endDate + " 23:59:59");
+    }
+    
+    // Add role filter
+    if (roleFilter && roleFilter !== 'All') {
+      whereClauses.push("u.account_type = ?");
+      params.push(roleFilter);
     }
     
     const whereClause = whereClauses.length
@@ -2655,7 +2661,7 @@ async function getUsersReport(minViews, maxViews, minLikes, maxLikes, limit, sor
     if (sortBy === "likes") {
       sortField = "total_likes";
     } else if (sortBy === "date") {
-      sortField = "u.registration_date"; // New sort option
+      sortField = "u.registration_date";
     } else {
       sortField = "total_views";
     }
@@ -2687,19 +2693,48 @@ async function getUsersReport(minViews, maxViews, minLikes, maxLikes, limit, sor
     `;
 
     const [rows] = await connection.execute(sql, params);
-
-    // debug logs
-    if (rows.length > 0) {
-      console.log(`🚀 Top user is "${rows[0].name}" with ${rows[0].total_views} views`);
-      console.log(`🚀 Top user is "${rows[0].name}" with ${rows[0].total_likes} likes`);
-    } else {
-      console.log("🚀 No users returned by report");
-    }
-
     return rows;
   } finally {
     if (connection) await connection.end();
   }
+}
+
+// Then update the route handler to include the role filter parameter
+if (req.method === "GET" && req.url.startsWith("/admin/reports/users")) {
+  const urlObj = new URL(req.url, `http://${req.headers.host}`);
+  const minViews = urlObj.searchParams.get("minViews") || "";
+  const maxViews = urlObj.searchParams.get("maxViews") || "";
+  const minLikes = urlObj.searchParams.get("minLikes") || "";
+  const maxLikes = urlObj.searchParams.get("maxLikes") || "";
+  const limit = urlObj.searchParams.get("limit") || "";
+  const sortBy = urlObj.searchParams.get("sortBy") || "views";
+  const sortOrder = urlObj.searchParams.get("sortOrder") || "DESC";
+  const startDate = urlObj.searchParams.get("startDate") || "";
+  const endDate = urlObj.searchParams.get("endDate") || "";
+  const roleFilter = urlObj.searchParams.get("role") || "All"; // New role filter parameter
+
+  try {
+    const users = await getUsersReport(
+      minViews,
+      maxViews,
+      minLikes,
+      maxLikes,
+      limit,
+      sortBy,
+      sortOrder,
+      startDate,
+      endDate,
+      roleFilter  // Pass the role filter to the function
+    );
+    
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ users }));
+  } catch (err) {
+    console.error("❌ Error generating users report:", err);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: err.message }));
+  }
+  return;
 }
 
 // route for report 2

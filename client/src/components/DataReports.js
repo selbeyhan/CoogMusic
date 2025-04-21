@@ -45,6 +45,7 @@ export default function DataReports() {
 
 
   // report 2 state
+  const [userRoleFilter, setUserRoleFilter] = useState('All');
   const [usersData, setUsersData]         = useState([]);
   const [usersLoading, setUsersLoading]   = useState(false);
   const [minUserLikes, setMinUserLikes]   = useState('');
@@ -208,17 +209,22 @@ export default function DataReports() {
       const params = new URLSearchParams();
       params.append('sortBy', userSortBy);
       params.append('sortOrder', userSortOrder);
-
+  
       // only append the relevant min/max pair for likes
       if (minUserLikes) params.append('minLikes', minUserLikes);
       if (maxUserLikes) params.append('maxLikes', maxUserLikes);
-
+  
       if (userLimit) params.append('limit', userLimit);
-
+  
       // Add date range parameters
       if (userStartDate) params.append('startDate', userStartDate);
       if (userEndDate) params.append('endDate', userEndDate);
-
+      
+      // Add role filter parameter
+      if (userRoleFilter !== 'All') {
+        params.append('role', userRoleFilter);
+      }
+  
       const res = await fetch(`/admin/reports/users?${params}`);
       const json = await res.json();
       setUsersData(normalizeUsers(json.users || []));
@@ -248,7 +254,8 @@ export default function DataReports() {
     setUserSortOrder('desc');
     setUserStartDate(''); 
     setUserEndDate(''); 
-
+    setUserRoleFilter('All'); 
+  
     setUsersLoading(true);
     fetch('/admin/reports/users')
       .then(res => res.json())
@@ -629,6 +636,14 @@ export default function DataReports() {
                 <select value={userVisualType} onChange={e => setUserVisualType(e.target.value)}>
                   <option value="table">Table</option>
                   <option value="visualizations">Visualizations</option>
+                </select>
+              </label>
+
+              <label>role:
+                <select value={userRoleFilter} onChange={e => setUserRoleFilter(e.target.value)}>
+                  <option value="All">All Roles</option>
+                  <option value="Listener">Listeners Only</option>
+                  <option value="Musician">Musicians Only</option>
                 </select>
               </label>
 
