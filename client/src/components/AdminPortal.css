@@ -94,9 +94,16 @@
 
 /* select box - prevent it spilling into adjacent columns */
 .users-table td select {
-  box-sizing: border-box; 
-  width: 100%;          
-  max-width: 100%;      
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ensure "Verified"/"Unverified" can show in full */
+.users-table th:nth-child(9),
+.users-table td:nth-child(9) {
+  width: auto;        /* allow growing beyond 7% */
+  min-width: 8ch;     /* room for ~8 characters */
 }
 
 .users-table th {
@@ -131,8 +138,6 @@
 .users-table td:nth-child(7)   { width:  5%; }  /* Listens */
 .users-table th:nth-child(8),
 .users-table td:nth-child(8)   { width:  6%; }  /* Affil */
-.users-table th:nth-child(9),
-.users-table td:nth-child(9)   { width:  7%; }  /* Status */
 .users-table th:nth-child(10),
 .users-table td:nth-child(10)  { width:  5%; }  /* Role */
 .users-table th:nth-child(11),
@@ -143,7 +148,7 @@
 /* Responsive: small screens still scroll if needed */
 @media (max-width: 600px) {
   .users-table {
-      display: block;
-      overflow-x: auto;
+    display: block;
+    overflow-x: auto;
   }
 }
