@@ -24,6 +24,18 @@
     flex-shrink: 0;
     background-color: #f0f0f0;
   }
+
+
+  .artist-account-type {
+
+    display: inline-block;
+    background: #ff0000;
+    color: white;
+    font-size: 0.9rem;
+    padding: 0.2rem 0.8rem;
+    border-radius: 20px;
+    margin-bottom: 1rem;
+  }
   
   .artist-image img {
     width: 100%;
