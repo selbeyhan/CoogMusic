@@ -2382,7 +2382,7 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/genre")) {
 
 
 // helper for report number 2
-async function getUsersReport(minViews, maxViews, minLikes, maxLikes, limit, sortBy, sortOrder, startDate, endDate) {
+async function getUsersReport(minViews, maxViews, minLikes, maxLikes, limit, sortBy, sortOrder, startDate, endDate, roleFilter) {
   let connection;
   try {
     connection = await mysql.createConnection(dbConfig);
@@ -2404,6 +2404,12 @@ async function getUsersReport(minViews, maxViews, minLikes, maxLikes, limit, sor
     if (endDate) {
       whereClauses.push("u.registration_date <= ?");
       params.push(endDate + " 23:59:59");
+    }
+
+     // Add role filter
+     if (roleFilter && roleFilter !== 'All') {
+      whereClauses.push("u.account_type = ?");
+      params.push(roleFilter);
     }
     
     const whereClause = whereClauses.length
@@ -2479,6 +2485,7 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/users")) {
   // New parameters
   const startDate = urlObj.searchParams.get("startDate") || "";
   const endDate = urlObj.searchParams.get("endDate") || "";
+  const roleFilter = urlObj.searchParams.get("role") || "All"; // role filter parameter
 
   try {
     const users = await getUsersReport(
@@ -2490,7 +2497,8 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/users")) {
       sortBy,
       sortOrder,
       startDate,
-      endDate
+      endDate,
+      roleFilter
     );
     
     res.writeHead(200, { "Content-Type": "application/json" });

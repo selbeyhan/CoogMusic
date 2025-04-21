@@ -48,6 +48,7 @@ export default function DataReports() {
 
 
   // report 2 state
+  const [userRoleFilter, setUserRoleFilter] = useState('All');
   const [usersData, setUsersData]         = useState([]);
   const [usersLoading, setUsersLoading]   = useState(false);
   const [minUserLikes, setMinUserLikes]   = useState('');
@@ -242,6 +243,10 @@ export default function DataReports() {
       if (minUserViews) params.append('minViews', minUserViews);
       if (maxUserViews) params.append('maxViews', maxUserViews);
 
+          // Add role filter parameter
+      if (userRoleFilter !== 'All') {
+        params.append('role', userRoleFilter);
+      }
 
       const res = await fetch(`/admin/reports/users?${params}`);
       const json = await res.json();
@@ -879,6 +884,14 @@ const engagementTableRows = filteredEngagementData.map(d => (
                 <select value={userVisualType} onChange={e => setUserVisualType(e.target.value)}>
                   <option value="table">Table</option>
                   <option value="visualizations">Visualizations</option>
+                </select>
+              </label>
+
+              <label>role:
+                <select value={userRoleFilter} onChange={e => setUserRoleFilter(e.target.value)}>
+                  <option value="All">All Roles</option>
+                  <option value="Listener">Listeners Only</option>
+                  <option value="Musician">Musicians Only</option>
                 </select>
               </label>
 
