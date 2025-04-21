@@ -688,7 +688,7 @@ const Profile = () => {
                 <option value="Other">Other</option>
               </select>
             </div>
-            <div className="form-group">
+            <div className="form-group description-group">
               <label htmlFor="description">Description</label>
               <textarea
                 id="description"
@@ -708,20 +708,19 @@ const Profile = () => {
                 required
               />
             </div>
-            <div className="form-group">
+            <div className="form-group cover-art-group">
               <label htmlFor="coverArt">Cover Art</label>
               <input
                 type="file"
                 id="coverArt"
                 accept="image/*"
-                onChange={(e) => setUploadCoverArtFile(e.target.files[0])}
+                onChange={e => setUploadCoverArtFile(e.target.files[0])}
               />
             </div>
             <button type="submit" className="submit-btn">Upload Song</button>
           </form>
         </div>
       )}
-
       <div className="profile-content">
         <div className="tabs">
           <button
