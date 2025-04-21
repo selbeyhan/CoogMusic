@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom';
 import './AdminPortal.css';
 import './DataReports.css';
@@ -364,7 +364,7 @@ function normalizeEngagement(raw = []) {
 }
 
 // fetch report 3 (engagement)
-const fetchEngagementReport = async (engagementStart, engagementEnd) => {
+const fetchEngagementReport = useCallback(async (engagementStart, engagementEnd) => {
   setEngagementLoading(true);
   try {
     const params = new URLSearchParams();
@@ -409,7 +409,9 @@ const fetchEngagementReport = async (engagementStart, engagementEnd) => {
   } finally {
     setEngagementLoading(false);
   }
-};
+}, [minEngagementViews, maxEngagementViews, minEngagementUploads, maxEngagementUploads, minEngagementPlaylists, maxEngagementPlaylists, minEngagementAlbums, maxEngagementAlbums, minEngagementScore, maxEngagementScore]);
+
+
 
 const handleFetchEngagement = () => {
   fetchEngagementReport(engagementStart, engagementEnd); // Trigger fetch when button is clicked
@@ -644,8 +646,8 @@ const engagementTableRows = filteredEngagementData.map(d => (
   // useEffect to re-fetch report 3 when filters are changed
   useEffect(() => {
     fetchEngagementReport(engagementStart, engagementEnd);
-  }, [fetchEngagementReport, engagementStart, engagementEnd, minEngagementViews, maxEngagementViews, minEngagementUploads, maxEngagementUploads, minEngagementPlaylists, maxEngagementPlaylists, minEngagementAlbums, maxEngagementAlbums, minEngagementScore, maxEngagementScore]); // Trigger fetch when start or end date changes
-
+  }, [fetchEngagementReport, engagementStart, engagementEnd]); // Trigger fetch when start or end date changes
+  
 
 
 
