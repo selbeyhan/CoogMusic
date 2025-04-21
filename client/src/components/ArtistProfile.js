@@ -119,6 +119,13 @@ const ArtistProfile = () => {
         <div className="artist-info">
           <h1>{artist.name}</h1>
           <p className="artist-bio">{artist.bio || "No bio available."}</p>
+
+            {/* Display Account Type */}
+          <div className="artist-account-type">
+            <span className="account-type-label"></span>
+            <span className="account-type-value">{artist.account_type || "Not specified"}</span>
+          </div>
+
           <div className="artist-stats">
             <div className="stat">
               <span className="stat-value">{artist.monthly_listeners || 0}</span>
