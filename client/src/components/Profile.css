@@ -489,23 +489,36 @@
 
 .modal-content {
   background: white;
-  padding: 2rem;
   border-radius: 8px;
-  max-width: 400px;
   width: 90%;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  max-width: 600px;
+  margin: 0 auto;           /* center in the overlay */
+  padding: 2rem 1.5rem;
+  box-sizing: border-box;
+}
+
+.modal-content .form-group {
+  width: 100%;
 }
 
 .modal-content h3 {
   margin-top: 0;
   color: #ff0000;
+  text-align: center;
+  width: 100%;
 }
 
 .modal-buttons {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
+  gap: 1rem;
 }
 
 .cancel-btn,
@@ -530,7 +543,6 @@
 .confirm-btn:hover {
   background: #cc0000;
 }
-
 
 .create-playlist-form {
   margin-bottom: 1.5rem;
@@ -582,6 +594,23 @@
   color: #555;
 }
 
+.create-album-form,
+.form-buttons {
+  display: flex;
+  flex-direction: column;   /* stack “Add New Song” over the “Create/Cancel” row */
+  align-items: center;
+  gap: 1rem;
+}
+
+.form-buttons {
+  flex-direction: row;
+  justify-content: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 600px;
+  margin-top: 1rem;
+}
+
 /* Edit playlist form styles */
 .edit-playlist-form {
   padding: 1rem;
@@ -624,13 +653,20 @@
 .edit-song-form {
   position: relative;
   z-index: 10000;
-  padding: 1rem;
   background: white;
   border-radius: 8px;
   border: 1px solid #eee;
   margin-bottom: 1rem;
   width: 100%;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;                /* vertical spacing between fields */
+  max-width: 600px;         /* prevent it from growing too wide */
+  margin: 0 auto 2rem;      /* center horizontally + some bottom space */
+  padding: 1.5rem;          /* optional padding for breathing room */
+  box-sizing: border-box;
 }
 
 .edit-song-form h3 {
@@ -640,6 +676,7 @@
 
 .edit-song-form .form-group {
   margin-bottom: 0.8rem;
+  width: 100%;  
 }
 
 .edit-song-form input,
@@ -652,8 +689,10 @@
 
 .edit-song-buttons {
   display: flex;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 1rem;
   margin-top: 1rem;
+  width: 100%;
 }
 
 .edit-song-buttons button {
@@ -736,4 +775,57 @@
   color: #999;
   font-size: 0.8rem;
   margin: 0.2rem 0;
+}
+
+.edit-song-form,
+.modal-content,
+.create-album-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.edit-song-form .form-group,
+.modal-content .form-group,
+.create-album-form .form-group {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.edit-song-form .form-group label,
+.modal-content .form-group label,
+.create-album-form .form-group label {
+  display: block;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.edit-song-form .form-group input,
+.edit-song-form .form-group textarea,
+.edit-song-form .form-group select,
+.modal-content .form-group input,
+.modal-content .form-group textarea,
+.modal-content .form-group select,
+.create-album-form .form-group input,
+.create-album-form .form-group textarea,
+.create-album-form .form-group select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.edit-song-buttons,
+.modal-buttons,
+.form-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 500px;
+  margin: 1rem auto 0;
+}
+
+.search-results-container .result-section h2 {
+  text-align: center;
 }
