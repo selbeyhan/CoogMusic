@@ -107,6 +107,7 @@
   cursor: pointer;
   font-weight: bold;
   transition: background 0.3s;
+  margin-right: var(--spacing);
 }
 
 .upload-btn:hover {
@@ -143,10 +144,43 @@
   color: #ff0000;
 }
 
+:root {
+  --primary-red:   #ff0000;
+  --text-dark:     #333;
+  --text-muted:    #666;
+  --bg-white:      #fff;
+  --spacing:       1rem;
+  --radius:        8px;
+  --shadow-light:  0 2px 8px rgba(0,0,0,0.1);
+}
+
 .upload-form {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--spacing);
+}
+
+.upload-form .description-group {
+  grid-column: 1 / -1;
+  padding: 0 var(--spacing);
+}
+
+.upload-form .description-group textarea {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.upload-form .submit-btn {
+  grid-column: 1 / -1;
+}
+
+.upload-form .cover-art-group {
+  grid-column: 2;
+}
+
+.upload-form .form-group input[type="file"] {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .form-group {
@@ -176,12 +210,15 @@
   background: #ff0000;
   color: white;
   border: none;
-  padding: 0.8rem 1.5rem;
+  padding: 0.6rem 1.2rem;
   border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
   transition: background 0.3s;
   grid-column: span 2;
+  font-size: 1.0rem;
+  max-width: 180px;
+  justify-self: center;
 }
 
 .submit-btn:hover {
@@ -197,7 +234,9 @@
 
 .tabs {
   display: flex;
+  justify-content: center;
   border-bottom: 1px solid #ddd;
+  gap: var(--spacing);
 }
 
 .tab-btn {
@@ -225,7 +264,10 @@
 
 .songs-tab h2,
 .playlists-tab h2,
-.about-tab h2 {
+.about-tab h2,
+.albums-tab h2,
+.likes-tab h2,
+.following-tab h2 {
   margin-top: 0;
   margin-bottom: 1.5rem;
   color: #ff0000;
