@@ -122,7 +122,7 @@ const ArtistProfile = () => {
 
             {/* Display Account Type */}
           <div className="artist-account-type">
-            <span className="account-type-label">Account Type: </span>
+            <span className="account-type-label"></span>
             <span className="account-type-value">{artist.account_type || "Not specified"}</span>
           </div>
 
