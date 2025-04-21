@@ -652,7 +652,7 @@ const engagementTableRows = filteredEngagementData.map(d => (
 
 
   return (
-    <div className="admin-portal">
+    <div className="admin-portal2">
       <h1>Admin Portal: Data Reports</h1>
       <div className="button-row">
         <button className="primary" onClick={() => navigate('/adminportal')}>
@@ -733,10 +733,10 @@ const engagementTableRows = filteredEngagementData.map(d => (
                 />
               </label>
               <button className="primary" onClick={fetchReport}>
-                fetch report
+                Fetch Report
               </button>
               <button className="secondary" onClick={clearGenreFilters}>
-                clear filters
+                Clear Filters
               </button>
             </div>
 
@@ -747,7 +747,13 @@ const engagementTableRows = filteredEngagementData.map(d => (
                 : (
                   <>
                     <div className="chart">
-                      <Pie data={chartData} />
+                      <Pie data={chartData} 
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: { legend: { position: 'top' } }
+                        }}
+                      />
                     </div>
                     <div className="table genre-table">
                       {/* Sort controls */}
@@ -780,11 +786,11 @@ const engagementTableRows = filteredEngagementData.map(d => (
                       <table>
                         <thead>
                           <tr>
-                            <th>title</th>
-                            <th>artist</th>
-                            <th>genre</th>
-                            <th>views</th>
-                            <th>upload date</th>
+                            <th>Title</th>
+                            <th>Artist</th>
+                            <th>Genre</th>
+                            <th>Views</th>
+                            <th>Upload Date</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1048,11 +1054,11 @@ const engagementTableRows = filteredEngagementData.map(d => (
                             <table>
                               <thead>
                                 <tr>
-                                  <th>rank</th>
-                                  <th>name</th>
-                                  <th>signup date</th>
-                                  <th>account type</th>
-                                  <th>total likes</th>
+                                  <th>Rank</th>
+                                  <th>Name</th>
+                                  <th>Signup Date</th>
+                                  <th>Account Type</th>
+                                  <th>Total Likes</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1085,16 +1091,16 @@ const engagementTableRows = filteredEngagementData.map(d => (
 
                     {userVisualType === 'table' && (
                       <div className="table users-table">
-                      <h3>user details</h3>
+                      <h3>User Details</h3>
                       <table>
                         <thead>
                           <tr>
-                            <th>rank</th>
-                            <th>name</th>
-                            <th>signupdate</th>
-                            <th>account type</th>
-                            <th>total views</th>
-                            <th>total likes</th>
+                            <th>Rank</th>
+                            <th>Name</th>
+                            <th>Signup Date</th>
+                            <th>Account Type</th>
+                            <th>Total Views</th>
+                            <th>Total Likes</th>
                           </tr>
                         </thead>
                         <tbody>
