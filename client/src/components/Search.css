@@ -1,9 +1,24 @@
 .search-container {
-  max-width: 1200px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 2rem;
   color: #333;
   animation: fadeIn 0.5s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  align-items: center;       /* center children horizontally */
+  padding: 2rem 1rem;
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.logo-container,
+.search-form,
+.search-tabs,
+.search-results-container {
+  width: 100%;
+  max-width: 800px;          /* match your design width */
+  margin: 0 auto;     /* auto‑center + bottom spacing */
 }
 
 @keyframes fadeIn {
@@ -116,17 +131,18 @@
   box-shadow: none;
 }
 
-/* Tabs styling with animated indicator */
 .search-tabs {
   display: flex;
-  border-bottom: 1px solid #ddd;
-  margin-bottom: 2rem;
-  background: white;
-  border-radius: 8px 8px 0 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  position: relative;
-  overflow: hidden;
+  justify-content: center;
+  gap: var(--spacing, 1rem);
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto 2rem;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
 }
+
 
 .search-tabs .tab-btn {
   background: none;
@@ -138,6 +154,9 @@
   color: #666;
   position: relative;
   z-index: 1;
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing,1rem); 
 }
 
 .search-tabs .tab-btn.active {
@@ -175,6 +194,12 @@
   background-image: radial-gradient(#f9f9f9 1px, transparent 1px);
   background-size: 20px 20px;
   position: relative;
+  align-self: center; 
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .search-results-container:before {
@@ -221,7 +246,8 @@
 
 /* Results sections with subtle heading decoration */
 .result-section {
-  margin-bottom: 2.5rem;
+  margin-block-start: 0;
+  margin-block-end: 1rem;
   position: relative;
 }
 
