@@ -69,6 +69,18 @@ export default function DataReports() {
   const [appliedEngagementStart, setAppliedEngagementStart] = useState('');
   const [appliedEngagementEnd, setAppliedEngagementEnd] = useState('');
   const [currentGraph, setCurrentGraph] = useState(0); // for multiple graphs
+    // states for filters for engagement values
+  const [minEngagementViews, setMinEngagementViews] = useState('');
+  const [maxEngagementViews, setMaxEngagementViews] = useState('');
+  const [minEngagementUploads, setMinEngagementUploads] = useState('');
+  const [maxEngagementUploads, setMaxEngagementUploads] = useState('');
+  const [minEngagementPlaylists, setMinEngagementPlaylists] = useState('');
+  const [maxEngagementPlaylists, setMaxEngagementPlaylists] = useState('');
+  const [minEngagementAlbums, setMinEngagementAlbums] = useState('');
+  const [maxEngagementAlbums, setMaxEngagementAlbums] = useState('');
+  const [minEngagementScore, setMinEngagementScore] = useState('');
+  const [maxEngagementScore, setMaxEngagementScore] = useState('');
+
 
 
 
@@ -332,7 +344,6 @@ export default function DataReports() {
   };
 
 
-
 /* report 3 */ 
 
 // normalize raw engagement rows into our shape
@@ -355,20 +366,39 @@ const fetchEngagementReport = async (engagementStart, engagementEnd) => {
     if (engagementStart) params.append('start', engagementStart);
     if (engagementEnd) params.append('end', engagementEnd);
 
+    // add the engagement filters to the params
+    if (minEngagementViews) params.append('minViews', minEngagementViews);
+    if (maxEngagementViews) params.append('maxViews', maxEngagementViews);
+
+    if (minEngagementUploads) params.append('minUploads', minEngagementUploads);
+    if (maxEngagementUploads) params.append('maxUploads', maxEngagementUploads);
+
+    if (minEngagementPlaylists) params.append('minPlaylists', minEngagementPlaylists);
+    if (maxEngagementPlaylists) params.append('maxPlaylists', maxEngagementPlaylists);
+
+    if (minEngagementAlbums) params.append('minAlbums', minEngagementAlbums);
+    if (maxEngagementAlbums) params.append('maxAlbums', maxEngagementAlbums);
+
+    if (minEngagementScore) params.append('minEngagementScore', minEngagementScore);
+    if (maxEngagementScore) params.append('maxEngagementScore', maxEngagementScore);
+
+    // make api call to backend
     const res = await fetch(`/admin/reports/engagement?${params}`);
     const json = await res.json();
 
-    // normalize and sort by date
+    // normalize and sort the data by date
     const normalized = normalizeEngagement(json.data || [])
       .sort((a, b) => new Date(a.day) - new Date(b.day));
+
+    // Set the engagement data
     setEngagementData(normalized);
 
-    // choose the “applied” range:
-    // if the user typed one, use that -- else fall back to full data bounds
+    // Choose the "applied" range (user-specified or fallback to full data bounds)
     const first = normalized[0]?.day;
     const last = normalized[normalized.length - 1]?.day;
     setAppliedEngagementStart(engagementStart || first);
     setAppliedEngagementEnd(engagementEnd || last);
+
   } catch {
     setEngagementData([]);
   } finally {
@@ -376,148 +406,240 @@ const fetchEngagementReport = async (engagementStart, engagementEnd) => {
   }
 };
 
-  const handleFetchEngagement = () => {
-    fetchEngagementReport(engagementStart, engagementEnd); // Trigger fetch when button is clicked
+const handleFetchEngagement = () => {
+  fetchEngagementReport(engagementStart, engagementEnd); // Trigger fetch when button is clicked
+};
+
+const clearEngagementFilters = () => {
+  // Reset all filter fields
+  setEngagementStart('');
+  setEngagementEnd('');
+  setMinEngagementViews('');
+  setMaxEngagementViews('');
+  setMinEngagementUploads('');
+  setMaxEngagementUploads('');
+  setMinEngagementPlaylists('');
+  setMaxEngagementPlaylists('');
+  setMinEngagementAlbums('');
+  setMaxEngagementAlbums('');
+  setMinEngagementScore('');
+  setMaxEngagementScore('');
+
+  // Trigger data fetch after clearing filters
+  fetchEngagementReport('', ''); // Empty start and end dates to fetch the full range
+};
+
+// fncs to handle next and prev graphs 
+const handlePrevGraph = () => {
+  setCurrentGraph((prev) => (prev === 0 ? graphData.length - 1 : prev - 1));
+};
+
+const handleNextGraph = () => {
+  setCurrentGraph((prev) => (prev === graphData.length - 1 ? 0 : prev + 1));
+};
+
+// switch between graphs in report 3
+const filteredEngagementData = useMemo(() => {
+  // convert the min and max values to numbers
+  const minViewsNumber = minEngagementViews ? Number(minEngagementViews) : '';
+  const maxViewsNumber = maxEngagementViews ? Number(maxEngagementViews) : '';
+  const minUploadsNumber = minEngagementUploads ? Number(minEngagementUploads) : '';
+  const maxUploadsNumber = maxEngagementUploads ? Number(maxEngagementUploads) : '';
+  const minPlaylistsNumber = minEngagementPlaylists ? Number(minEngagementPlaylists) : '';
+  const maxPlaylistsNumber = maxEngagementPlaylists ? Number(maxEngagementPlaylists) : '';
+  const minAlbumsNumber = minEngagementAlbums ? Number(minEngagementAlbums) : '';
+  const maxAlbumsNumber = maxEngagementAlbums ? Number(maxEngagementAlbums) : '';
+  const minScoreNumber = minEngagementScore ? Number(minEngagementScore) : '';
+  const maxScoreNumber = maxEngagementScore ? Number(maxEngagementScore) : '';
+
+  // log the bounds to ensure they are being set correctly
+  console.log({
+    minViewsNumber,
+    maxViewsNumber,
+    minUploadsNumber,
+    maxUploadsNumber,
+    minPlaylistsNumber,
+    maxPlaylistsNumber,
+    minAlbumsNumber,
+    maxAlbumsNumber,
+    minScoreNumber,
+    maxScoreNumber
+  });
+
+  return engagementData.filter(d => {
+    // ensure data is parsed as numbers for comparison
+    const views = parseInt(d.views, 10);
+    const uploads = parseInt(d.uploads, 10);
+    const playlists = parseInt(d.playlists, 10);
+    const albums = parseInt(d.albums, 10);
+    const score = parseInt(d.engagement_score, 10);
+
+    // log each data entry to verify filtering works as expected
+    console.log('Filtering data entry:', {
+      day: d.day,
+      views,
+      uploads,
+      playlists,
+      albums,
+      score
+    });
+
+    // apply the filtering logic with min/max bounds
+    return (
+      (minViewsNumber === '' || views >= minViewsNumber) &&
+      (maxViewsNumber === '' || views <= maxViewsNumber) &&
+      (minUploadsNumber === '' || uploads >= minUploadsNumber) &&
+      (maxUploadsNumber === '' || uploads <= maxUploadsNumber) &&
+      (minPlaylistsNumber === '' || playlists >= minPlaylistsNumber) &&
+      (maxPlaylistsNumber === '' || playlists <= maxPlaylistsNumber) &&
+      (minAlbumsNumber === '' || albums >= minAlbumsNumber) &&
+      (maxAlbumsNumber === '' || albums <= maxAlbumsNumber) &&
+      (minScoreNumber === '' || score >= minScoreNumber) &&
+      (maxScoreNumber === '' || score <= maxScoreNumber)
+    );
+  });
+}, [
+  engagementData, minEngagementViews, maxEngagementViews,
+  minEngagementUploads, maxEngagementUploads,
+  minEngagementPlaylists, maxEngagementPlaylists,
+  minEngagementAlbums, maxEngagementAlbums,
+  minEngagementScore, maxEngagementScore
+]);
+
+// log the filtered engagement data to ensure it's correct
+console.log('Filtered Engagement Data:', filteredEngagementData);
+
+
+// Calculate weekly averages after filtering the data
+const weeklyAverages = useMemo(() => {
+  if (filteredEngagementData.length === 0) return null;
+
+  // stamp these in as soon as you have data
+  const start = new Date(appliedEngagementStart);
+  const end = new Date(appliedEngagementEnd);
+
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const totalDays = Math.round((end - start) / msPerDay) + 1;
+  const weeks = Math.max(1, totalDays / 7);
+
+  const sums = filteredEngagementData.reduce((acc, d) => ({
+    views: acc.views + Number(d.views),
+    uploads: acc.uploads + Number(d.uploads),
+    playlists: acc.playlists + Number(d.playlists),
+    albums: acc.albums + Number(d.albums),
+    score: acc.score + Number(d.engagement_score),
+  }), { views: 0, uploads: 0, playlists: 0, albums: 0, score: 0 });
+
+  console.log({ totalDays, weeks, sums });  // <— inspect these in your browser console
+
+  const avg = v => parseFloat((v / weeks).toFixed(1));
+
+  return {
+    avgViews: avg(sums.views),
+    avgUploads: avg(sums.uploads),
+    avgPlaylists: avg(sums.playlists),
+    avgAlbums: avg(sums.albums),
+    avgScore: avg(sums.score),
   };
+}, [filteredEngagementData, appliedEngagementStart, appliedEngagementEnd]);
 
-
-  // clear filters for report 3
-  const clearEngagementFilters = () => {
-    // wipe the inputs
-    setEngagementStart('');
-    setEngagementEnd('');
-    // also clear the applied dates so fetchEngagementReport will re-stamp
-    setAppliedEngagementStart('');
-    setAppliedEngagementEnd('');
-  };
-
-
-
-//fncs to handle next and prev graphs 
-  const handlePrevGraph = () => {
-    setCurrentGraph((prev) => (prev === 0 ? graphData.length - 1 : prev - 1));
-  };
-
-
-  const handleNextGraph = () => {
-    setCurrentGraph((prev) => (prev === graphData.length - 1 ? 0 : prev + 1));
-  };
-
-
-  //switch between graphs in rep 3
-  const graphData = [
-    {
-      title: "Song Views",
-      data: {
-        labels: engagementData.map(d => d.day), // Dynamically fetch labels from engagement data
-        datasets: [
-          {
-            label: "Views",
-            data: engagementData.map(d => d.views), // Dynamically fetch data from engagement data
-            borderColor: '#FF6384',
-            fill: false,
-          },
-        ],
-      },
+// Prepare chart data for report 3
+const graphData = [
+  {
+    title: "Song Views",
+    data: {
+      labels: filteredEngagementData.map(d => d.day), // Use filtered data here
+      datasets: [
+        {
+          label: "Views",
+          data: filteredEngagementData.map(d => d.views), // Use filtered data here
+          borderColor: '#FF6384',
+          fill: false,
+        },
+      ],
     },
-    {
-      title: "Song Uploads",
-      data: {
-        labels: engagementData.map(d => d.day),
-        datasets: [
-          {
-            label: "Uploads",
-            data: engagementData.map(d => d.uploads),
-            borderColor: '#36A2EB',
-            fill: false,
-          },
-        ],
-      },
+  },
+  {
+    title: "Song Uploads",
+    data: {
+      labels: filteredEngagementData.map(d => d.day),
+      datasets: [
+        {
+          label: "Uploads",
+          data: filteredEngagementData.map(d => d.uploads),
+          borderColor: '#36A2EB',
+          fill: false,
+        },
+      ],
     },
-    {
-      title: "Playlist Uploads",
-      data: {
-        labels: engagementData.map(d => d.day),
-        datasets: [
-          {
-            label: "Uploads",
-            data: engagementData.map(d => d.playlists),
-            borderColor: '#FFCE56',
-            fill: false,
-          },
-        ],
-      },
+  },
+  {
+    title: "Playlist Uploads",
+    data: {
+      labels: filteredEngagementData.map(d => d.day),
+      datasets: [
+        {
+          label: "Uploads",
+          data: filteredEngagementData.map(d => d.playlists),
+          borderColor: '#FFCE56',
+          fill: false,
+        },
+      ],
     },
-    {
-      title: "Album Creations",
-      data: {
-        labels: engagementData.map(d => d.day),
-        datasets: [
-          {
-            label: "Creations",
-            data: engagementData.map(d => d.albums),
-            borderColor: '#4BC0C0',
-            fill: false,
-          },
-        ],
-      },
+  },
+  {
+    title: "Album Creations",
+    data: {
+      labels: filteredEngagementData.map(d => d.day),
+      datasets: [
+        {
+          label: "Creations",
+          data: filteredEngagementData.map(d => d.albums),
+          borderColor: '#4BC0C0',
+          fill: false,
+        },
+      ],
     },
-    {
-      title: "Total Engagement Score",
-      data: {
-        labels: engagementData.map(d => d.day),
-        datasets: [
-          {
-            label: "Engagement",
-            data: engagementData.map(d => d.engagement_score),
-            borderColor: '#9966FF',
-            fill: false,
-          },
-        ],
-      },
-    }
-  ];
-  
+  },
+  {
+    title: "Total Engagement Score",
+    data: {
+      labels: filteredEngagementData.map(d => d.day),
+      datasets: [
+        {
+          label: "Engagement",
+          data: filteredEngagementData.map(d => d.engagement_score),
+          borderColor: '#9966FF',
+          fill: false,
+        },
+      ],
+    },
+  }
+];
 
-  const weeklyAverages = useMemo(() => {
-    if (engagementData.length === 0) return null;
+// Render the filtered engagement data in the table
+const engagementTableRows = filteredEngagementData.map(d => (
+  <tr key={d.day}>
+    <td>{d.day}</td>
+    <td>{d.views}</td>
+    <td>{d.uploads}</td>
+    <td>{d.playlists}</td>
+    <td>{d.albums}</td>
+    <td>{d.engagement_score}</td>
+  </tr>
+));
 
-    // stamp these in as soon as you have data
-    const start = new Date(appliedEngagementStart);
-    const end = new Date(appliedEngagementEnd);
 
-    const msPerDay = 1000 * 60 * 60 * 24;
-    const totalDays = Math.round((end - start) / msPerDay) + 1;
-    const weeks = Math.max(1, totalDays / 7);
+/* report 3*/ 
 
-    // force numeric addition
-    const sums = engagementData.reduce((acc, d) => ({
-      views: acc.views + Number(d.views),
-      uploads: acc.uploads + Number(d.uploads),
-      playlists: acc.playlists + Number(d.playlists),
-      albums: acc.albums + Number(d.albums),
-      score: acc.score + Number(d.engagement_score),
-    }), { views: 0, uploads: 0, playlists: 0, albums: 0, score: 0 });
 
-    console.log({ totalDays, weeks, sums });  // <— inspect these in your browser console
 
-    const avg = v => parseFloat((v / weeks).toFixed(1));
 
-    return {
-      avgViews: avg(sums.views),
-      avgUploads: avg(sums.uploads),
-      avgPlaylists: avg(sums.playlists),
-      avgAlbums: avg(sums.albums),
-      avgScore: avg(sums.score),
-    };
-  }, [engagementData, appliedEngagementStart, appliedEngagementEnd]);
-
-  /* report 3 */
 
   // useEffect to re-fetch report 3 when filters are changed
   useEffect(() => {
     fetchEngagementReport(engagementStart, engagementEnd);
-  }, [engagementStart, engagementEnd]); // Trigger fetch when start or end date changes
+  }, [engagementStart, engagementEnd, minEngagementViews, maxEngagementViews, minEngagementUploads, maxEngagementUploads, minEngagementPlaylists, maxEngagementPlaylists, minEngagementAlbums, maxEngagementAlbums, minEngagementScore, maxEngagementScore]); // Trigger fetch when start or end date changes
 
 
 
@@ -1061,135 +1183,205 @@ const fetchEngagementReport = async (engagementStart, engagementEnd) => {
 
         {/* report 3 */}
         {currentReport === 'report3' && (
-          <>
-            <h2>
-              Engagement Report
-              {appliedEngagementStart && appliedEngagementEnd
-                ? ` for ${appliedEngagementStart} to ${appliedEngagementEnd}`
-                : ""}
-            </h2>
+  <>
+    <h2>
+      Engagement Report
+      {appliedEngagementStart && appliedEngagementEnd
+        ? ` for ${appliedEngagementStart} to ${appliedEngagementEnd}`
+        : ""}
+    </h2>
 
-            <div className="filters">
-              <label>
-                start date:
-                <input
-                  type="date"
-                  value={engagementStart}
-                  onChange={e => setEngagementStart(e.target.value)}
-                />
-              </label>
-              <label>
-                end date:
-                <input
-                  type="date"
-                  value={engagementEnd}
-                  onChange={e => setEngagementEnd(e.target.value)}
-                />
-              </label>
-              <button className="primary" onClick={handleFetchEngagement}>
-                fetch engagement
-              </button>
-              <button className="secondary" onClick={clearEngagementFilters}>
-                clear filters
-              </button>
+    <div className="filters">
+      <label>
+        start date:
+        <input
+          type="date"
+          value={engagementStart}
+          onChange={e => setEngagementStart(e.target.value)}
+        />
+      </label>
+      <label>
+        end date:
+        <input
+          type="date"
+          value={engagementEnd}
+          onChange={e => setEngagementEnd(e.target.value)}
+        />
+      </label>
+
+      {/* Engagement Filters */}
+      <label>Min Song Views:
+        <input
+          type="number"
+          value={minEngagementViews}
+          onChange={e => setMinEngagementViews(e.target.value)}
+        />
+      </label>
+      <label>Max Song Views:
+        <input
+          type="number"
+          value={maxEngagementViews}
+          onChange={e => setMaxEngagementViews(e.target.value)}
+        />
+      </label>
+
+      <label>Min Song Uploads:
+        <input
+          type="number"
+          value={minEngagementUploads}
+          onChange={e => setMinEngagementUploads(e.target.value)}
+        />
+      </label>
+      <label>Max Song Uploads:
+        <input
+          type="number"
+          value={maxEngagementUploads}
+          onChange={e => setMaxEngagementUploads(e.target.value)}
+        />
+      </label>
+
+      <label>Min Playlist Uploads:
+        <input
+          type="number"
+          value={minEngagementPlaylists}
+          onChange={e => setMinEngagementPlaylists(e.target.value)}
+        />
+      </label>
+      <label>Max Playlist Uploads:
+        <input
+          type="number"
+          value={maxEngagementPlaylists}
+          onChange={e => setMaxEngagementPlaylists(e.target.value)}
+        />
+      </label>
+
+      <label>Min Album Creations:
+        <input
+          type="number"
+          value={minEngagementAlbums}
+          onChange={e => setMinEngagementAlbums(e.target.value)}
+        />
+      </label>
+      <label>Max Album Creations:
+        <input
+          type="number"
+          value={maxEngagementAlbums}
+          onChange={e => setMaxEngagementAlbums(e.target.value)}
+        />
+      </label>
+
+      <label>Min Engagement Score:
+        <input
+          type="number"
+          value={minEngagementScore}
+          onChange={e => setMinEngagementScore(e.target.value)}
+        />
+      </label>
+      <label>Max Engagement Score:
+        <input
+          type="number"
+          value={maxEngagementScore}
+          onChange={e => setMaxEngagementScore(e.target.value)}
+        />
+      </label>
+
+      <button className="primary" onClick={handleFetchEngagement}>
+        fetch engagement
+      </button>
+      <button className="secondary" onClick={clearEngagementFilters}>
+        clear filters
+      </button>
+    </div>
+
+    {engagementLoading ? (
+      <p>loading engagement data…</p>
+    ) : engagementData.length === 0 ? (
+      <p>no data for this range.</p>
+    ) : (
+      <>
+        <div className="graph-navigation">
+          <button onClick={handlePrevGraph}>{"<"}</button> {/* Previous graph */}
+          <button onClick={handleNextGraph}>{">"}</button> {/* Next graph */}
+        </div>
+
+        {/* Render the selected graph dynamically */}
+        <div className="chart">
+          <Line
+            data={graphData[currentGraph].data} // Dynamically fetch data for the current graph
+            options={{
+              plugins: {
+                title: {
+                  display: true,
+                  text: graphData[currentGraph].title, // Display the current graph's title
+                },
+                tooltip: { mode: 'index', intersect: false }
+              },
+              scales: {
+                x: { title: { display: true, text: 'Date' } },
+                y: { title: { display: true, text: 'Score' } }
+              }
+            }}
+          />
+        </div>
+
+        <div className="table">
+          <h3>
+            Daily Engagement
+            {appliedEngagementStart && appliedEngagementEnd
+              ? ` from ${appliedEngagementStart} to ${appliedEngagementEnd}`
+              : ''}
+          </h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Song Views</th>
+                <th>Song Uploads</th>
+                <th>Playlist Uploads</th>
+                <th>Album Creations</th>
+                <th>Total Engagement Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {engagementTableRows}
+            </tbody>
+
+          </table>
+        </div>
+
+        {/* Now render the memo'd stats unconditionally once we have data */}
+        {weeklyAverages && (
+          <div className="user-stats-summary">
+            <h4>Weekly Averages</h4>
+            <div className="stats-grid">
+              <div className="stat-box">
+                <p className="stat-label">Avg Song Views</p>
+                <p className="stat-value">{weeklyAverages.avgViews}</p>
+              </div>
+              <div className="stat-box">
+                <p className="stat-label">Avg Song Uploads</p>
+                <p className="stat-value">{weeklyAverages.avgUploads}</p>
+              </div>
+              <div className="stat-box">
+                <p className="stat-label">Avg Playlist Uploads</p>
+                <p className="stat-value">{weeklyAverages.avgPlaylists}</p>
+              </div>
+              <div className="stat-box">
+                <p className="stat-label">Avg Album Creations</p>
+                <p className="stat-value">{weeklyAverages.avgAlbums}</p>
+              </div>
+              <div className="stat-box">
+                <p className="stat-label">Avg Total Score</p>
+                <p className="stat-value">{weeklyAverages.avgScore}</p>
+              </div>
             </div>
-
-            {engagementLoading ? (
-              <p>loading engagement data…</p>
-            ) : engagementData.length === 0 ? (
-              <p>no data for this range.</p>
-            ) : (
-              <>
-                <div className="graph-navigation">
-                  <button onClick={handlePrevGraph}>{"<"}</button> {/* Previous graph */}
-                  <button onClick={handleNextGraph}>{">"}</button> {/* Next graph */}
-                </div>
-
-                {/* Render the selected graph dynamically */}
-                <div className="chart">
-                  <Line
-                    data={graphData[currentGraph].data} // Dynamically fetch data for the current graph
-                    options={{
-                      plugins: {
-                        title: {
-                          display: true,
-                          text: graphData[currentGraph].title, // Display the current graph's title
-                        },
-                        tooltip: { mode: 'index', intersect: false }
-                      },
-                      scales: {
-                        x: { title: { display: true, text: 'Date' } },
-                        y: { title: { display: true, text: 'Score' } }
-                      }
-                    }}
-                  />
-                </div>
-
-                <div className="table">
-                  <h3>
-                    Daily Engagement
-                    {appliedEngagementStart && appliedEngagementEnd
-                      ? ` from ${appliedEngagementStart} to ${appliedEngagementEnd}`
-                      : ''}
-                  </h3>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Song Views</th>
-                        <th>Song Uploads</th>
-                        <th>Playlist Uploads</th>
-                        <th>Album Creations</th>
-                        <th>Total Engagement Score</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {engagementData.map(d => (
-                        <tr key={d.day}>
-                          <td>{d.day}</td>
-                          <td>{d.views}</td>
-                          <td>{d.uploads}</td>
-                          <td>{d.playlists}</td>
-                          <td>{d.albums}</td>
-                          <td>{d.engagement_score}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Now render the memo'd stats unconditionally once we have data */}
-                {weeklyAverages && (
-                  <div className="user-stats-summary">
-                    <h4>Weekly Averages</h4>
-                    <div className="stats-grid">
-                      <div className="stat-box">
-                        <p className="stat-label">Avg Song Views</p>
-                        <p className="stat-value">{weeklyAverages.avgViews}</p>
-                      </div>
-                      <div className="stat-box">
-                        <p className="stat-label">Avg Song Uploads</p>
-                        <p className="stat-value">{weeklyAverages.avgUploads}</p>
-                      </div>
-                      <div className="stat-box">
-                        <p className="stat-label">Avg Playlist Uploads</p>
-                        <p className="stat-value">{weeklyAverages.avgPlaylists}</p>
-                      </div>
-                      <div className="stat-box">
-                        <p className="stat-label">Avg Album Creations</p>
-                        <p className="stat-value">{weeklyAverages.avgAlbums}</p>
-                      </div>
-                      <div className="stat-box">
-                        <p className="stat-label">Avg Total Score</p>
-                        <p className="stat-value">{weeklyAverages.avgScore}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </>
+          </div>
         )}
+      </>
+    )}
+  </>
+)}
+  
 
 
       </div>
