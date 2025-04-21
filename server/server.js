@@ -2603,6 +2603,244 @@ if (req.method === "GET" && req.url.startsWith("/admin/reports/engagement")) {
 
 /* report 3*/
 
+//extra admin portal methods
+
+if (req.method === "GET" && req.url === "/admin/all-songs") {
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [songs] = await connection.execute(`
+      SELECT songs.song_id, songs.title, songs.musician_id, songs.upload_date, songs.genre,
+             songs.duration, songs.file_url, songs.cover_art_url, songs.description,
+             songs.views, users.name AS musician_name
+      FROM songs
+      JOIN users ON songs.musician_id = users.user_id
+      ORDER BY songs.views DESC
+    `);
+    await connection.end();
+    
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(songs));
+  } catch (err) {
+    console.error("❌ Error fetching all songs:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to fetch songs" }));
+  }
+  return;
+}
+
+// Admin endpoint to delete any song
+if (req.method === "DELETE" && req.url.startsWith("/admin/song/")) {
+  const songId = decodeURIComponent(req.url.split("/admin/song/")[1]);
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [result] = await connection.execute(
+      "DELETE FROM songs WHERE song_id = ?",
+      [songId]
+    );
+    await connection.end();
+
+    if (result.affectedRows === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Song not found" }));
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ message: "Song deleted successfully by admin" }));
+  } catch (err) {
+    console.error("❌ Error admin deleting song:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to delete song" }));
+  }
+  return;
+}
+
+// Admin endpoint to delete any playlist
+if (req.method === "DELETE" && req.url.startsWith("/admin/playlist/")) {
+  const playlistId = decodeURIComponent(req.url.split("/admin/playlist/")[1]);
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [result] = await connection.execute(
+      "DELETE FROM playlists WHERE playlist_id = ?",
+      [playlistId]
+    );
+    await connection.end();
+
+    if (result.affectedRows === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Playlist not found" }));
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ message: "Playlist deleted successfully by admin" }));
+  } catch (err) {
+    console.error("❌ Error admin deleting playlist:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to delete playlist" }));
+  }
+  return;
+}
+
+// Admin endpoint to delete any album with cascade deletion of exclusive songs
+if (req.method === "DELETE" && req.url.startsWith("/admin/album/")) {
+  const albumId = decodeURIComponent(req.url.split("/admin/album/")[1]);
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    // First, identify and delete songs ONLY linked to this album
+    // These are songs that appear in album_songs for this album_id
+    // but don't appear in album_songs for any other album_id
+    await connection.execute(`
+      DELETE FROM songs
+      WHERE song_id IN (
+        SELECT song_id FROM album_songs WHERE album_id = ?
+      )
+      AND song_id NOT IN (
+        SELECT song_id FROM album_songs WHERE album_id != ?
+      );
+    `, [albumId, albumId]);
+
+    // Now delete the album itself (which will cascade delete entries in album_songs)
+    const [result] = await connection.execute(
+      "DELETE FROM albums WHERE album_id = ?", 
+      [albumId]
+    );
+
+    await connection.end();
+
+    if (result.affectedRows === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Album not found" }));
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ message: "Album and its exclusive songs deleted successfully" }));
+  } catch (err) {
+    console.error("❌ Error deleting album with cascade:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to delete album" }));
+  }
+  return;
+}
+
+// Admin endpoint to edit any song
+if (req.method === "PATCH" && req.url.startsWith("/admin/song/")) {
+  upload.single("cover_art")(req, res, async (err) => {
+    if (err) {
+      console.error("❌ Multer error:", err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "File processing error" }));
+    }
+    
+    try {
+      const songId = decodeURIComponent(req.url.split("/admin/song/")[1]);
+      const { title, genre, description } = req.body;
+      
+      const updates = [];
+      const params = [];
+      
+      if (title) {
+        updates.push("title = ?");
+        params.push(title);
+      }
+      
+      if (genre) {
+        updates.push("genre = ?");
+        params.push(genre);
+      }
+      
+      if (description) {
+        updates.push("description = ?");
+        params.push(description);
+      }
+      
+      // If cover art was uploaded
+      if (req.file) {
+        const coverName = `${uuidv4()}-${req.file.originalname}`;
+        const blockBlobClient = songPictureContainerClient.getBlockBlobClient(coverName);
+        await blockBlobClient.uploadData(req.file.buffer, {
+          blobHTTPHeaders: { blobContentType: req.file.mimetype },
+        });
+        const coverUrl = blockBlobClient.url;
+        
+        updates.push("cover_art_url = ?");
+        params.push(coverUrl);
+      }
+      
+      if (updates.length === 0) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "No updates provided" }));
+      }
+      
+      params.push(songId);
+      
+      const connection = await mysql.createConnection(dbConfig);
+      const [result] = await connection.execute(
+        `UPDATE songs SET ${updates.join(", ")} WHERE song_id = ?`,
+        params
+      );
+      await connection.end();
+      
+      if (result.affectedRows === 0) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Song not found" }));
+      }
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Song updated successfully by admin" }));
+    } catch (err) {
+      console.error("❌ Error admin updating song:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Failed to update song" }));
+    }
+  });
+  return;
+}
+
+if (req.method === "GET" && req.url === "/admin/all-playlists") {
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [playlists] = await connection.execute(`
+      SELECT p.*, u.name as creator_name
+      FROM playlists p
+      JOIN users u ON p.user_id = u.user_id
+      ORDER BY p.creation_date DESC
+    `);
+    await connection.end();
+    
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(playlists));
+  } catch (err) {
+    console.error("❌ Error fetching all playlists:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to fetch playlists" }));
+  }
+  return;
+}
+
+// Admin endpoint to get all albums
+if (req.method === "GET" && req.url === "/admin/all-albums") {
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [albums] = await connection.execute(`
+      SELECT a.*, u.name as artist_name
+      FROM albums a
+      JOIN users u ON a.musician_id = u.user_id
+      ORDER BY a.release_date DESC
+    `);
+    await connection.end();
+    
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(albums));
+  } catch (err) {
+    console.error("❌ Error fetching all albums:", err.message);
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Failed to fetch albums" }));
+  }
+  return;
+}
 
 
   // Serve React Frontend (Static Files)
