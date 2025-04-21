@@ -83,6 +83,20 @@
     white-space: normal;      /* allow wrapping */
     word-break: keep-all;  
   }
+
+  .users-table tbody td {
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+/*select box - prevent from overflow */ 
+.users-table td select {
+  box-sizing: border-box; 
+  width: 100%;          
+  max-width: 100%;      
+}
+
   
   .users-table th {
     font-weight: 600;
