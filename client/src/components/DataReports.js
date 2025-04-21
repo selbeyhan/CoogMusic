@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom';
 import './AdminPortal.css';
 import './DataReports.css';
@@ -330,65 +330,59 @@ export default function DataReports() {
   };
 
 
+
 /* report 3 */ 
 
-  // normalize raw engagement rows into our shape
-  function normalizeEngagement(raw = []) {
-    return raw.map(r => ({
-      day:              r.day,
-      views:            r.views,
-      uploads:          r.uploads,
-      playlists:        r.playlists,
-      albums:           r.albums,
-      engagement_score: r.engagement_score
-    }));
+// normalize raw engagement rows into our shape
+function normalizeEngagement(raw = []) {
+  return raw.map(r => ({
+    day: r.day,
+    views: r.views,
+    uploads: r.uploads,
+    playlists: r.playlists,
+    albums: r.albums,
+    engagement_score: r.engagement_score
+  }));
+}
+
+// fetch report 3 (engagement)
+const fetchEngagementReport = async (engagementStart, engagementEnd) => {
+  setEngagementLoading(true);
+  try {
+    const params = new URLSearchParams();
+    if (engagementStart) params.append('start', engagementStart);
+    if (engagementEnd) params.append('end', engagementEnd);
+
+    const res = await fetch(`/admin/reports/engagement?${params}`);
+    const json = await res.json();
+
+    // normalize and sort by date
+    const normalized = normalizeEngagement(json.data || [])
+      .sort((a, b) => new Date(a.day) - new Date(b.day));
+    setEngagementData(normalized);
+
+    // choose the “applied” range:
+    // if the user typed one, use that -- else fall back to full data bounds
+    const first = normalized[0]?.day;
+    const last = normalized[normalized.length - 1]?.day;
+    setAppliedEngagementStart(engagementStart || first);
+    setAppliedEngagementEnd(engagementEnd || last);
+  } catch {
+    setEngagementData([]);
+  } finally {
+    setEngagementLoading(false);
   }
-
-  // fetch report 3 (engagement)
-  const fetchEngagementReport = async () => {
-    setEngagementLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (engagementStart) params.append('start', engagementStart);
-      if (engagementEnd)   params.append('end',   engagementEnd);
-  
-      const res  = await fetch(`/admin/reports/engagement?${params}`);
-      const json = await res.json();
-  
-      // normalize and sort by date
-      const normalized = normalizeEngagement(json.data || [])
-        .sort((a, b) => new Date(a.day) - new Date(b.day));
-      setEngagementData(normalized);
-  
-      // choose the “applied” range:
-      // if the user typed one, use that -- else  fall back to full data bounds
-      const first = normalized[0]?.day;
-      const last  = normalized[normalized.length - 1]?.day;
-      setAppliedEngagementStart( engagementStart || first );
-      setAppliedEngagementEnd(   engagementEnd   || last  );
-    } catch {
-      setEngagementData([]);
-    } finally {
-      setEngagementLoading(false);
-    }
-  };
-  
-
+};
 
   // clear filters for report 3
-  const clearEngagementFilters = async () => {
+  const clearEngagementFilters = () => {
     // wipe the inputs
     setEngagementStart('');
     setEngagementEnd('');
-    // also clear the applied dates so fetchEngagementReport will re‑stamp
+    // also clear the applied dates so fetchEngagementReport will re-stamp
     setAppliedEngagementStart('');
     setAppliedEngagementEnd('');
-
-    // then just re‑use your fetch logic
-    fetchEngagementReport();
   };
-
-
 
   // prepare chart data for report 3
   const lineData = {
@@ -403,38 +397,47 @@ export default function DataReports() {
 
   const weeklyAverages = useMemo(() => {
     if (engagementData.length === 0) return null;
-  
+
     // stamp these in as soon as you have data
     const start = new Date(appliedEngagementStart);
-    const end   = new Date(appliedEngagementEnd);
-  
-    const msPerDay  = 1000 * 60 * 60 * 24;
+    const end = new Date(appliedEngagementEnd);
+
+    const msPerDay = 1000 * 60 * 60 * 24;
     const totalDays = Math.round((end - start) / msPerDay) + 1;
-    const weeks     = Math.max(1, totalDays / 7);
-  
+    const weeks = Math.max(1, totalDays / 7);
+
     // force numeric addition
     const sums = engagementData.reduce((acc, d) => ({
-      views:     acc.views     + Number(d.views),
-      uploads:   acc.uploads   + Number(d.uploads),
+      views: acc.views + Number(d.views),
+      uploads: acc.uploads + Number(d.uploads),
       playlists: acc.playlists + Number(d.playlists),
-      albums:    acc.albums    + Number(d.albums),
-      score:     acc.score     + Number(d.engagement_score),
+      albums: acc.albums + Number(d.albums),
+      score: acc.score + Number(d.engagement_score),
     }), { views: 0, uploads: 0, playlists: 0, albums: 0, score: 0 });
-  
+
     console.log({ totalDays, weeks, sums });  // <— inspect these in your browser console
-  
+
     const avg = v => parseFloat((v / weeks).toFixed(1));
-  
+
     return {
-      avgViews:     avg(sums.views),
-      avgUploads:   avg(sums.uploads),
+      avgViews: avg(sums.views),
+      avgUploads: avg(sums.uploads),
       avgPlaylists: avg(sums.playlists),
-      avgAlbums:    avg(sums.albums),
-      avgScore:     avg(sums.score),
+      avgAlbums: avg(sums.albums),
+      avgScore: avg(sums.score),
     };
   }, [engagementData, appliedEngagementStart, appliedEngagementEnd]);
-  
-  /* report 3 */ 
+
+  /* report 3 */
+
+  // useEffect to re-fetch report 3 when filters are changed
+  useEffect(() => {
+    fetchEngagementReport(engagementStart, engagementEnd);
+  }, [engagementStart, engagementEnd]); // Trigger fetch when start or end date changes
+
+
+
+
 
 
   return (
