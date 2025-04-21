@@ -4,133 +4,151 @@
 
 /* Container & Title */
 .admin-portal {
-    max-width: 100%;
-    margin: 0 auto;
-    padding: 2rem 1rem;
-    font-size: 1rem;
-  }
-  
-  .admin-portal h1 {
-    text-align: center;
-    margin-bottom: 1.5rem;
-    font-size: 2rem;
-    font-weight: bold;
-  }
-  
-  /* Button Row */
-  .button-row {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-  
-  .button-row button {
-    padding: 0.75rem 1.5rem;
-    font-size: 1rem;
-    border: none;
-    border-radius: 0.375rem;
-    cursor: pointer;
-    transition: opacity 0.2s ease;
-  }
-  
-  .button-row .primary {
-    background-color: #f14e4e;
-    color: #fff;
-  }
-  
-  .button-row button:not(.primary) {
-    background-color: #e0e0e0;
-    color: #333;
-  }
-  
-  .button-row button:hover {
-    opacity: 0.9;
-  }
-  
-  /* Search Box */
-  .search-container {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 1.5rem;
-  }
-  
-  .search-container input {
-    width: 300px;
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    border: 1px solid #ccc;
-  }
-  
-  /* Users Table */
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  font-size: 1rem;
+  overflow-x: auto;           /* allow horizontal scroll if table overflows */
+}
+
+.admin-portal h1 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+/* Button Row */
+.button-row {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.button-row button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.button-row .primary {
+  background-color: #f14e4e;
+  color: #fff;
+}
+
+.button-row button:not(.primary) {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
+.button-row button:hover {
+  opacity: 0.9;
+}
+
+/* Search Box */
+.search-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.search-container input {
+  width: 300px;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: 1px solid #ccc;
+}
+
+/* Users Table */
+.users-table {
+  width: max-content;         /* expand to fit content */
+  min-width: 100%;            /* at least fill container */
+  table-layout: auto;         /* let content determine column widths */
+  border-collapse: collapse;
+  font-size: 1rem;
+}
+
+.users-table thead {
+  background-color: #fafafa;
+}
+
+.users-table th,
+.users-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid #eee;
+  white-space: normal;        /* allow wrapping */
+  word-break: keep-all;       /* only wrap at spaces */
+}
+
+.users-table tbody td {
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: break-word;  /* break long tokens if needed */
+}
+
+/* select box - prevent it spilling into adjacent columns */
+.users-table td select {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ensure "Verified"/"Unverified" can show in full */
+.users-table th:nth-child(9),
+.users-table td:nth-child(9) {
+  width: auto;        /* allow growing beyond 7% */
+  min-width: 8ch;     /* room for more chars incase */
+}
+
+.users-table th {
+  font-weight: 600;
+}
+
+.users-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.users-table img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+
+.users-table th:nth-child(1),
+.users-table td:nth-child(1)   { width:  8%; }  /* Name */
+.users-table th:nth-child(2),
+.users-table td:nth-child(2)   { width: 12%; }  /* Email */
+.users-table th:nth-child(3),
+.users-table td:nth-child(3)   { width:  6%; }  /* Type */
+.users-table th:nth-child(4),
+.users-table td:nth-child(4)   { width: 10%; }  /* Joined */
+.users-table th:nth-child(5),
+.users-table td:nth-child(5)   { width:  4%; }  /* Avatar */
+.users-table th:nth-child(6),
+.users-table td:nth-child(6)   { width: 12%; }  /* Bio */
+.users-table th:nth-child(7),
+.users-table td:nth-child(7)   { width:  5%; }  /* Listens */
+.users-table th:nth-child(8),
+.users-table td:nth-child(8)   { width:  6%; }  /* Affil */
+.users-table th:nth-child(10),
+.users-table td:nth-child(10) { width: 6%; }  /* new id */
+.users-table th:nth-child(11),
+.users-table td:nth-child(11) { width: 4%; } /* new action*/ 
+
+
+
+/* Responsive: small screens still scroll if needed */
+@media (max-width: 600px) {
   .users-table {
-    width: 100%;
-    table-layout: fixed;      /* split width by percentages below */
-    border-collapse: collapse;
-    font-size: 1rem;
+    display: block;
+    overflow-x: auto;
   }
-  
-  .users-table thead {
-    background-color: #fafafa;
-  }
-  
-  .users-table th,
-  .users-table td {
-    padding: 0.75rem 1rem;
-    text-align: left;
-    vertical-align: top;
-    border-bottom: 1px solid #eee;
-    white-space: normal;      /* allow wrapping */
-    word-wrap: break-word;    /* break long words */
-  }
-  
-  .users-table th {
-    font-weight: 600;
-  }
-  
-  .users-table tbody tr:hover {
-    background-color: #f9f9f9;
-  }
-  
-  .users-table img {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-  }
-  
-  /* Column widths (total ≈100%) */
-  .users-table th:nth-child(1),
-  .users-table td:nth-child(1)   { width:  8%; }  /* Name */
-  .users-table th:nth-child(2),
-  .users-table td:nth-child(2)   { width: 12%; }  /* Email */
-  .users-table th:nth-child(3),
-  .users-table td:nth-child(3)   { width:  6%; }  /* Type */
-  .users-table th:nth-child(4),
-  .users-table td:nth-child(4)   { width: 10%; }  /* Joined */
-  .users-table th:nth-child(5),
-  .users-table td:nth-child(5)   { width:  4%; }  /* Avatar */
-  .users-table th:nth-child(6),
-  .users-table td:nth-child(6)   { width: 12%; }  /* Bio */
-  .users-table th:nth-child(7),
-  .users-table td:nth-child(7)   { width:  5%; }  /* Listens */
-  .users-table th:nth-child(8),
-  .users-table td:nth-child(8)   { width:  6%; }  /* Affil */
-  .users-table th:nth-child(9),
-  .users-table td:nth-child(9)   { width:  7%; }  /* Status */
-  .users-table th:nth-child(10),
-  .users-table td:nth-child(10) { width:  5%; }  /* Role */
-  .users-table th:nth-child(11),
-  .users-table td:nth-child(11) { width:  6%; }  /* ID */
-  .users-table th:nth-child(12),
-  .users-table td:nth-child(12) { width: 15%; }  /* ClerkID */
-  .users-table th:nth-child(13),
-  .users-table td:nth-child(13) { width:  4%; }  /* Act */
-  
-  /* Responsive: small screens still scroll if absolutely needed */
-  @media (max-width: 600px) {
-    .users-table {
-      display: block;
-      overflow-x: auto;
-    }
-  }  
+}
