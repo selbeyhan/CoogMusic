@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@clerk/clerk-react": "^5.28.2",
+    "@clerk/clerk-react": "^5.30.0",
     "axios": "^1.8.1",
     "chart.js": "^4.4.9",
     "react": "^19.0.0",
