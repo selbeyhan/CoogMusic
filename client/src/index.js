@@ -10,7 +10,7 @@ import reportWebVitals from './reportWebVitals';
 const clerkPubKey = process.env.REACT_APP_CLERK_FRONTEND_API; // Ensure this is set in .env
 
 // Debugging logs to verify Clerk API key and appearance settings
-console.log("✅ Clerk Publishable Key:", clerkPubKey);
+// console.log("✅ Clerk Publishable Key:", clerkPubKey);
 console.log("✅ Clerk Appearance Config Loaded:", {
   variables: {
     colorPrimary: '#ff0000', // Red primary color
