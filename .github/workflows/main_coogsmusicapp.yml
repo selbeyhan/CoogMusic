@@ -21,21 +21,28 @@ jobs:
         with:
           node-version: '22.x'
 
+      - name: Set environment variables from GitHub Secrets
+        run: |
+          echo "CLERK_API_KEY=${{ secrets.CLERK_API_KEY }}" >> $GITHUB_ENV
+          echo "REACT_APP_CLERK_FRONTEND_API=${{ secrets.REACT_APP_CLERK_FRONTEND_API }}" >> $GITHUB_ENV
+
       - name: Install server dependencies
         run: |
           cd server
+          # Create server .env file
+          echo "CLERK_API_KEY=$CLERK_API_KEY" > .env
           npm install
           npm install dotenv @clerk/clerk-sdk-node  # Install dotenv and Clerk SDK for server
 
       - name: Install client dependencies and build
         run: |
           cd client
+          # Create client .env file
+          echo "REACT_APP_CLERK_FRONTEND_API=$REACT_APP_CLERK_FRONTEND_API" > .env
           npm install
-          # ensure Clerk, icons, and chart libs are installed
           npm install @clerk/clerk-react react-icons react-chartjs-2 chart.js
           cat .env   # Debug step
           npm run build
-
 
       - name: Move client build to server
         run: mv client/build server/build
@@ -71,9 +78,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_BB772A2201B940BF9C0B32F02AAD1854 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_463A9B1956C84010A2CA228B9EC01DFB }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_43353BD398484D5197A9D75B1A329D5A }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Set AZURE_ACCESS_KEY as env variable
         run: echo "AZURE_ACCESS_KEY=${{ secrets.AZURE_ACCESS_KEY }}" >> $GITHUB_ENV
