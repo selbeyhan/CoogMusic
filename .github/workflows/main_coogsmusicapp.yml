@@ -75,9 +75,6 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_463A9B1956C84010A2CA228B9EC01DFB }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_43353BD398484D5197A9D75B1A329D5A }}
 
-      - name: Set AZURE_ACCESS_KEY as env variable
-        run: echo "AZURE_ACCESS_KEY=${{ secrets.AZURE_ACCESS_KEY }}" >> $GITHUB_ENV
-
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
