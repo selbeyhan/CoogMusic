@@ -21,28 +21,21 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: Set environment variables from GitHub Secrets
-        run: |
-          echo "CLERK_API_KEY=${{ secrets.CLERK_API_KEY }}" >> $GITHUB_ENV
-          echo "REACT_APP_CLERK_FRONTEND_API=${{ secrets.REACT_APP_CLERK_FRONTEND_API }}" >> $GITHUB_ENV
-
       - name: Install server dependencies
         run: |
           cd server
-          # Create server .env file
-          echo "CLERK_API_KEY=$CLERK_API_KEY" > .env
           npm install
           npm install dotenv @clerk/clerk-sdk-node  # Install dotenv and Clerk SDK for server
 
       - name: Install client dependencies and build
         run: |
           cd client
-          # Create client .env file
-          echo "REACT_APP_CLERK_FRONTEND_API=$REACT_APP_CLERK_FRONTEND_API" > .env
           npm install
+          # ensure Clerk, icons, and chart libs are installed
           npm install @clerk/clerk-react react-icons react-chartjs-2 chart.js
           cat .env   # Debug step
           npm run build
+
 
       - name: Move client build to server
         run: mv client/build server/build
