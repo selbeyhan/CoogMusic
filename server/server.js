@@ -23,7 +23,8 @@ console.log("Clerk API Key:", process.env.CLERK_API_KEY); // Debugging step to c
 const PORT = process.env.PORT || 8080;
 const upload = multer({ storage: multer.memoryStorage() });
 
-const AZURE_ACCESS_KEY = process.env.AZURE_ACCESS_KEY;
+//const AZURE_ACCESS_KEY = process.env.AZURE_ACCESS_KEY;
+const AZURE_ACCESS_KEY = "DefaultEndpointsProtocol=https;AccountName=coogsmusicstorage;AccountKey=WPvelBoCZ6xVs39HDIoJ+aVzkNwFoo0bex+H2uG9ANc+dZOUVlz3LxlVE91SLWIA3e1X0/L1sVba+AStpYb1uw==;EndpointSuffix=core.windows.net";
 const SONGS_CONTAINER_NAME = "songs";
 const PROFILE_PICTURE_CONTAINER_NAME = "profilepicture";
 const SONG_PICTURE_CONTAINER_NAME = "songpictures";
