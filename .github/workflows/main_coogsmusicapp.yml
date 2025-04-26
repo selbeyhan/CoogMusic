@@ -78,9 +78,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_BB772A2201B940BF9C0B32F02AAD1854 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_463A9B1956C84010A2CA228B9EC01DFB }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_43353BD398484D5197A9D75B1A329D5A }}
 
       - name: Set AZURE_ACCESS_KEY as env variable
         run: echo "AZURE_ACCESS_KEY=${{ secrets.AZURE_ACCESS_KEY }}" >> $GITHUB_ENV
